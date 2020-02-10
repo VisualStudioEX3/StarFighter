@@ -84,6 +84,18 @@ local
 begin
     initialize();
 
+    ////////////////////////////////////////
+    // Test code
+    ////////////////////////////////////////
+    background();
+
+    repeat
+        process_input();
+        frame;
+    until(input_down(_input_menu));
+
+    exit("(C) Visual Studio EX3 - 2020", 0);
+    ////////////////////////////////////////
 end
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -96,6 +108,7 @@ function initialize()
 begin
     setup_video_mode();
     load_resources();
+    set_default_input();
 end
 
 function setup_video_mode()
@@ -103,16 +116,35 @@ begin
     set_mode(m640x400);
     set_fps(60, 0);
     vsync = 1;
-
-    load_pal("space.pal");
 end
 
 function load_resources()
 begin
-    chdir("projects\div2gjam\");
+    // Resolve working path:
+    if (!chdir("projects\div2gjam\")) // My working directory.
+        chdir("ex3\div2gjam\"); // DIV2 Game Jam required path.
+    end
 
-    fpg_background = load_fpg("space.fpg");
+    load_pal("space.pal");
+    fpg_background = load_fpg("fpg/space.fpg");
 end
+
+function set_default_input()
+begin
+    set_input_action(_input_left,       "LEFT",     _left,      _a,     _joy_left);
+    set_input_action(_input_up,         "UP",       _up,        _w,     _joy_up);
+    set_input_action(_input_right,      "RIGHT",    _right,     _d,     _joy_right);
+    set_input_action(_input_down,       "DOWN",     _down,      _s,     _joy_down);
+
+    set_input_action(_input_submit,     "SUBMIT",   _enter,     _space, _joy_button1);
+    set_input_action(_input_back,       "BACK",     _esc,       0,      _joy_button2);
+    set_input_action(_input_menu,       "MENU",     _esc,       0,      _joy_button4);
+    set_input_action(_input_mode,       "MODE",     _tab,       0,      _joy_button3);
+
+    set_input_action(_input_shoot,      "SHOOT",    _control,   _space, _joy_button2);
+    set_input_action(_input_special,    "SPECIAL",  _alt,       _e,     _joy_button1);
+end
+
 
 ///////////////////////////////////////////////////////////////////////////////
 
