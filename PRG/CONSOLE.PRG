@@ -5,7 +5,7 @@
 program log_console_test;
 
 const
-    _log_buffer_size = 1023;        // The log buffer can store 1024 messages.
+    _log_buffer_size = 19;          // The log buffer can store 20 messages (for ease test buffer overflow logic).
     _console_width = 320;           // This value varies for desired video mode.
     _console_height = 100;          // This value varies for desired video mode.
     _console_text_offset_x = 5;     // Offset X value in write() calls.
@@ -16,12 +16,12 @@ const
     _console_text_lines = 9;        // Number of visible lines in console.
 
 global
-    int log_index = 0;                  // Index of the next log entry.
-    struct log_buffer[_log_buffer_size] // In this sample, the console stores 1024 lines (of 256 characters each one).
+    int log_index = 0;              // Index of the next log entry.
+    struct log_buffer[_log_buffer_size]
         string value;
     end;
-    int console_text[_console_text_lines];            // Instances for write() objects.
-    struct console_messages[_console_text_lines]      // String instances for write() objects.
+    int console_text[_console_text_lines];          // Instances for write() objects.
+    struct console_messages[_console_text_lines]    // String instances for write() objects.
         string value;
     end
     int console_index;              // Index to start to read log in console.
@@ -42,31 +42,33 @@ begin
     log("Press Space to log timer value...");
     log("Press ~ to hide or show the console...");
     log("Press Supr to clear the console...");
+    log("Use up, down, pgUp pgDown to navigate previous msg...");
     log("");
 
     loop
-        if (key(_wave))
-            if (!console_visible)
-                show_log_console();
-            else
-                hide_log_console();
-            end
-        end
-
-        if (key(_del)) clear_log(); end
-
         if (key(_space)) log("The timer value is " + itoa(timer[0])); end
 
         frame;
     end
 end
 
-function clamp(int value, int min, int max)
+function clamp(v, min_v, max_v)
 begin
-    if (value < min) return (min); end
-    if (value > max) return (max); end
-    return (value);
+    if (v < min_v) return (min_v); end
+    if (v > max_v) return (max_v); end
+    return (v);
 end
+
+function min(a, b)
+begin
+    if (a =< b) return (a); else return (b); end
+end
+
+function max(a, b)
+begin
+    if (a => b) return (a); else return (b); end
+end
+
 
 // Create an instance of log console.
 process log_console()
@@ -87,17 +89,63 @@ begin
     end
 
     loop
+        // The input can be improved using the Input Manager (key down events!)
+        if (key(_wave))
+            if (!console_visible)
+                show_log_console();
+            else
+                hide_log_console();
+            end
+        end if (key(_del))
+            clear_log();
+        end if (key(_up))
+            console_nav_line_up();
+        end if (key(_down))
+            console_nav_line_down();
+        end if (key(_pgup))
+            console_nav_page_up();
+        end if (key(_pgdn))
+            console_nav_page_down();
+        end
+
         frame;
     end
 end
 
+function console_nav_line_up()
+begin
+    console_index = clamp(--console_index, _console_text_lines, _log_buffer_size);
+    update_console_view();
+end
+
+function console_nav_line_down()
+begin
+    console_index = clamp(++console_index, 0, log_index);
+    update_console_view();
+end
+
+function console_nav_page_up()
+begin
+    console_index -= _console_text_lines;
+    console_index = clamp(console_index, _console_text_lines, _log_buffer_size);
+    update_console_view();
+end
+
+function console_nav_page_down()
+begin
+    console_index += _console_text_lines;
+    console_index = clamp(console_index, 0, log_index);
+    update_console_view();
+end
+
+
 // Private: Update the view in console.
-function update_console_view(int index)
+function update_console_view()
 private
     int i, read_line;
 
 begin
-    read_line = clamp(index - 10, 0, _log_buffer_size);
+    read_line = clamp(console_index - 10, 0, _log_buffer_size);
 
     from i = 0 to _console_text_lines;
         console_messages[i].value = log_buffer[read_line].value;
@@ -143,10 +191,21 @@ end
 
 // Add message to log buffer.
 function log(string message)
+private
+    int i;
 begin
     log_buffer[log_index].value = message;
-    log_index++;
-    update_console_view(log_index);
+
+    if (log_index == _log_buffer_size)
+        from i = 0 to _log_buffer_size - 1;
+            log_buffer[i].value = log_buffer[i + 1].value;
+        end
+    else
+        log_index++;
+        console_index = log_index;
+    end
+
+    update_console_view();
 end
 
 // Clear all log buffer.
@@ -158,6 +217,6 @@ begin
     from i = 0 to _log_buffer_size;
         log_buffer[i].value = "";
     end
-    log_index = 0;
-    update_console_view(log_index);
+    log_index = console_index = 0;
+    update_console_view();
 end
