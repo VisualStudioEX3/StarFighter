@@ -14,7 +14,7 @@ const
 // Input Manager
 ///////////////////////////////////////////////////////////////////////////////
 
-    _max_input_actions = 9;
+    _max_input_actions = 10;
 
     // Input action list:
     _input_left     = 0;
@@ -25,8 +25,9 @@ const
     _input_back     = 5;
     _input_menu     = 6;
     _input_mode     = 7;
-    _input_shoot    = 8;
-    _input_special  = 9;
+    _input_console  = 8;
+    _input_shoot    = 9;
+    _input_special  = 10;
 
     // Joystick button constants:
     _joy_left       = 100;
@@ -40,12 +41,43 @@ const
 
 ///////////////////////////////////////////////////////////////////////////////
 
-global
 ///////////////////////////////////////////////////////////////////////////////
-// Resources
+// Log console
 ///////////////////////////////////////////////////////////////////////////////
 
-    int fpg_background;
+    _log_buffer_size = 1023;        // The log buffer capacity.
+    _console_width = 640;           // This value varies for desired video mode.
+    _console_height = 200;          // This value varies for desired video mode.
+    _console_text_offset_x = 5;     // Offset X value in write() calls.
+    _console_text_offset_y = 5;     // Offset Y value in write() calls.
+    _console_background_color = 1;  // Black (DIV.PAL).
+    _console_background_op = 7;     // Mid opacity.
+    _console_border_color = 15;     // White (DIV.PAL).
+    _console_text_lines = 19;       // Number of visible lines in console.
+
+///////////////////////////////////////////////////////////////////////////////
+
+global
+///////////////////////////////////////////////////////////////////////////////
+// Log console
+///////////////////////////////////////////////////////////////////////////////
+
+    int log_index = 0;                  // Index of the next log entry.
+    struct log_buffer[_log_buffer_size] // In this sample, the console stores 1024 lines (of 256 characters each one).
+        string value;
+    end;
+    int console_text[_console_text_lines];            // Instances for write() objects.
+    struct console_messages[_console_text_lines]      // String instances for write() objects.
+        string value;
+    end
+    int console_index;                  // Index to start to read log in console.
+    int console_box;                    // Box instance for background.
+    int console_line;                   // Line instance for bottom border.
+    int console_visible;                // Is the console visible?
+
+    int console_id;                     // Instance of log console process.
+
+///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
 // Input Manager
@@ -65,6 +97,14 @@ global
             int up;             // Has been released the key/button?
         end
     end
+
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Resources
+///////////////////////////////////////////////////////////////////////////////
+
+    int fpg_background;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -106,6 +146,7 @@ end
 
 function initialize()
 begin
+    create_log_console();
     setup_video_mode();
     load_resources();
     set_default_input();
@@ -116,6 +157,15 @@ begin
     set_mode(m640x400);
     set_fps(60, 0);
     vsync = 1;
+end
+
+function create_log_console()
+begin
+    console_id = log_console();
+
+    log("DIV2 log console initialized");
+    log("----------------------------");
+    log("");
 end
 
 function load_resources()
@@ -141,10 +191,11 @@ begin
     set_input_action(_input_menu,       "MENU",     _esc,       0,      _joy_button4);
     set_input_action(_input_mode,       "MODE",     _tab,       0,      _joy_button3);
 
+    set_input_action(_input_console,    "CONSOLE",  _wave,      0,      0);
+
     set_input_action(_input_shoot,      "SHOOT",    _control,   _space, _joy_button2);
     set_input_action(_input_special,    "SPECIAL",  _alt,       _e,     _joy_button1);
 end
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -320,6 +371,116 @@ begin
 
     scroll.x1 += x;
     scroll.y1 += y;
+end
+
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Log console
+///////////////////////////////////////////////////////////////////////////////
+
+// Create an instance of log console.
+process log_console()
+private
+    int i;
+
+begin
+    console_box = draw(3, _console_background_color, _console_background_op, 0,
+                       0, 0,
+                       _console_width, _console_height + _console_text_offset_y);
+
+    console_line = draw(1, _console_border_color, 15, 0,
+                        0, _console_height + _console_text_offset_y,
+                        _console_width, _console_height + _console_text_offset_y);
+
+    from i = 0 to _console_text_lines;
+        console_text[i] = write(0, _console_text_offset_x, (i * 10) + _console_text_offset_y, 0, console_messages[i].value);
+    end
+
+    hide_log_console();
+
+    loop
+        if (input_down(_input_console))
+            if (console_visible)
+                hide_log_console();
+            else
+                show_log_console();
+            end
+        end
+
+        frame;
+    end
+end
+
+// Private: Update the view in console.
+function update_console_view(int index)
+private
+    int i, read_line;
+
+begin
+    read_line = clamp(index - 10, 0, _log_buffer_size);
+
+    from i = 0 to _console_text_lines;
+        console_messages[i].value = log_buffer[read_line].value;
+        read_line++;
+    end
+end
+
+// Shows debug console.
+function show_log_console()
+private
+    int i;
+
+begin
+    from i = 0 to _console_text_lines;
+        move_text(console_text[i], _console_text_offset_x, (i * 10) + _console_text_offset_y);
+    end
+
+    move_draw(console_box, _console_background_color, _console_background_op,
+              0, 0, _console_width, _console_height + _console_text_offset_y);
+
+    move_draw(console_line, _console_border_color, 15,
+              0, _console_height + _console_text_offset_y,
+              _console_width, _console_height + _console_text_offset_y);
+
+    console_visible = 1;
+end
+
+// Hides debug console.
+function hide_log_console()
+private
+    int i;
+
+begin
+    from i = 0 to _console_text_lines;
+        move_text(console_text[i], 0, -10);
+    end
+
+    move_draw(console_box, _console_background_color, 0, 0, 0, 0, 0);
+    move_draw(console_line, _console_border_color, 0, 0, 0, 0, 0);
+
+    console_visible = 0;
+end
+
+// Add message to log buffer.
+function log(string message)
+begin
+    log_buffer[log_index].value = message;
+    log_index++;
+    update_console_view(log_index);
+end
+
+// Clear all log buffer.
+function clear_log()
+private
+    int i;
+
+begin
+    from i = 0 to _log_buffer_size;
+        log_buffer[i].value = "";
+    end
+    log_index = 0;
+    update_console_view(log_index);
 end
 
 ///////////////////////////////////////////////////////////////////////////////
