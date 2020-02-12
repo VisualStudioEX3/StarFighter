@@ -1,35 +1,37 @@
 ///////////////////////////////////////////////////////////////////////////////
 // In-game basic log console
 ///////////////////////////////////////////////////////////////////////////////
-
 program log_console_test;
-
 const
-    _log_buffer_size = 19;          // The log buffer can store 20 messages (for ease test buffer overflow logic).
-    _console_width = 320;           // This value varies for desired video mode.
-    _console_height = 100;          // This value varies for desired video mode.
-    _console_text_offset_x = 5;     // Offset X value in write() calls.
-    _console_text_offset_y = 5;     // Offset Y value in write() calls.
-    _console_background_color = 1;  // Black (DIV.PAL).
-    _console_background_op = 7;     // Mid opacity.
-    _console_border_color = 15;     // White (DIV.PAL).
-    _console_text_lines = 9;        // Number of visible lines in console.
+    _log_buffer_size = 31;              // The log buffer can store 32 messages (for ease test buffer overflow logic).
+    _log_to_file = 1;                   // The log can write to file in disk.
+    _log_filename = "console.log";      // Filename to write the log (if _log_to_file == 1.
+    _console_width = 320;               // This value varies for desired video mode.
+    _console_text_offset_x = 5;         // Offset X value in write() calls.
+    _console_text_offset_y = 5;         // Offset Y value in write() calls.
+    _console_background_color = 1;      // Black (DIV.PAL).
+    _console_background_op = 7;         // Mid opacity.
+    _console_border_color = 15;         // White (DIV.PAL).
+    _console_text_lines = 15;           // Number of visible lines in console.
 
 global
-    int log_index = 0;              // Index of the next log entry.
-    struct log_buffer[_log_buffer_size]
+    int log_index = 0;                  // Index of the next log entry.
+    struct log_buffer[_log_buffer_size] // String array to store log entries.
         string value;
     end;
-    int console_text[_console_text_lines];          // Instances for write() objects.
-    struct console_messages[_console_text_lines]    // String instances for write() objects.
-        string value;
-    end
-    int console_index;              // Index to start to read log in console.
-    int console_box;                // Box instance for background.
-    int console_line;               // Line instance for bottom border.
-    int console_visible = 1;        // Is the console visible?
 
-    int console_id;
+    int console_id;                     // Console process instance.
+    int console_index;                  // Index to start to read log in console.
+    int console_visible = 1;            // Is the console visible?
+    struct console_ui                   // UI console elements:
+        struct text[_console_text_lines]    // Console text lines:
+            int obj;                        // Instances for write() objects.
+            string value;                   // String instances for write() objects.
+        end
+        int box;                            // Box instance for background.
+        int line;                           // Line instance for bottom border.
+        int height;                         // Height calculated by visible lines.
+    end
 
 begin
     put_screen(load_fpg("help\help.fpg"), 1); // Test background.
@@ -46,8 +48,7 @@ begin
     log("");
 
     loop
-        if (key(_space)) log("The timer value is " + itoa(timer[0])); end
-
+        if (key(_space)) log("The timer 0 value is " + itoa(timer[0])); end
         frame;
     end
 end
@@ -69,23 +70,26 @@ begin
     if (a => b) return (a); else return (b); end
 end
 
-
 // Create an instance of log console.
 process log_console()
 private
     int i;
 
 begin
-    console_box = draw(3, _console_background_color, _console_background_op, 0,
-                       0, 0,
-                       _console_width, _console_height + _console_text_offset_y);
+    console_ui.height = (_console_text_lines + 1) * 10;
 
-    console_line = draw(1, _console_border_color, 15, 0,
-                        0, _console_height + _console_text_offset_y,
-                        _console_width, _console_height + _console_text_offset_y);
+    console_ui.box = draw(3, _console_background_color, _console_background_op, 0,
+                          0, 0,
+                          _console_width, console_ui.height + _console_text_offset_y);
+
+    console_ui.line = draw(1, _console_border_color, 15, 0,
+                           0, console_ui.height + _console_text_offset_y,
+                           _console_width, console_ui.height + _console_text_offset_y);
 
     from i = 0 to _console_text_lines;
-        console_text[i] = write(0, _console_text_offset_x, (i * 10) + _console_text_offset_y, 0, console_messages[i].value);
+        console_ui.text[i].obj = write(0,
+                                       _console_text_offset_x, (i * 10) + _console_text_offset_y,
+                                       0, console_ui.text[i].value);
     end
 
     loop
@@ -96,61 +100,59 @@ begin
             else
                 hide_log_console();
             end
-        end if (key(_del))
-            clear_log();
-        end if (key(_up))
-            console_nav_line_up();
-        end if (key(_down))
-            console_nav_line_down();
-        end if (key(_pgup))
-            console_nav_page_up();
-        end if (key(_pgdn))
-            console_nav_page_down();
+        end if (console_visible)
+            if (key(_del))  clear_log();                end
+            if (key(_up))   console_nav_line_up();      end
+            if (key(_down)) console_nav_line_down();    end
+            if (key(_pgup)) console_nav_page_up();      end
+            if (key(_pgdn)) console_nav_page_down();    end
         end
-
         frame;
     end
 end
 
-function console_nav_line_up()
-begin
-    console_index = clamp(--console_index, _console_text_lines, _log_buffer_size);
-    update_console_view();
-end
-
-function console_nav_line_down()
-begin
-    console_index = clamp(++console_index, 0, log_index);
-    update_console_view();
-end
-
-function console_nav_page_up()
-begin
-    console_index -= _console_text_lines;
-    console_index = clamp(console_index, _console_text_lines, _log_buffer_size);
-    update_console_view();
-end
-
-function console_nav_page_down()
-begin
-    console_index += _console_text_lines;
-    console_index = clamp(console_index, 0, log_index);
-    update_console_view();
-end
-
-
-// Private: Update the view in console.
-function update_console_view()
+// Private: Updated console view.
+function console_update()
 private
     int i, read_line;
 
 begin
-    read_line = clamp(console_index - 10, 0, _log_buffer_size);
+    read_line = clamp(console_index - (_console_text_lines + 1), 0, _log_buffer_size);
 
     from i = 0 to _console_text_lines;
-        console_messages[i].value = log_buffer[read_line].value;
+        console_ui.text[i].value = log_buffer[read_line].value;
         read_line++;
     end
+end
+
+// Allow to navigate one previous line in historic.
+function console_nav_line_up()
+begin
+    console_index = clamp(--console_index, _console_text_lines, _log_buffer_size);
+    console_update();
+end
+
+// Allow to navigate one later line in historic.
+function console_nav_line_down()
+begin
+    console_index = clamp(++console_index, 0, log_index);
+    console_update();
+end
+
+// Allow to navigate one previous page in historic.
+function console_nav_page_up()
+begin
+    console_index -= _console_text_lines;
+    console_index = clamp(console_index, _console_text_lines, _log_buffer_size);
+    console_update();
+end
+
+// Allow to navigate one later page in historic.
+function console_nav_page_down()
+begin
+    console_index += _console_text_lines;
+    console_index = clamp(console_index, 0, log_index);
+    console_update();
 end
 
 // Shows debug console.
@@ -160,17 +162,17 @@ private
 
 begin
     from i = 0 to _console_text_lines;
-        move_text(console_text[i], _console_text_offset_x, (i * 10) + _console_text_offset_y);
+        move_text(console_ui.text[i].obj, _console_text_offset_x, (i * 10) + _console_text_offset_y);
     end
 
-    move_draw(console_box, _console_background_color, _console_background_op,
-              0, 0, _console_width, _console_height + _console_text_offset_y);
+    move_draw(console_ui.box, _console_background_color, _console_background_op,
+              0, 0, _console_width, console_ui.height + _console_text_offset_y);
 
-    move_draw(console_line, _console_border_color, 15,
-              0, _console_height + _console_text_offset_y,
-              _console_width, _console_height + _console_text_offset_y);
+    move_draw(console_ui.line, _console_border_color, 15,
+              0, console_ui.height + _console_text_offset_y,
+              _console_width, console_ui.height + _console_text_offset_y);
 
-    console_visible = 1;
+    console_visible = true;
 end
 
 // Hides debug console.
@@ -180,20 +182,30 @@ private
 
 begin
     from i = 0 to _console_text_lines;
-        move_text(console_text[i], 0, -9999);
+        move_text(console_ui.text[i].obj, 0, -10);
     end
 
-    move_draw(console_box, _console_background_color, 0, 0, 0, 0, 0);
-    move_draw(console_line, _console_border_color, 0, 0, 0, 0, 0);
+    move_draw(console_ui.box, _console_background_color, 0, 0, 0, 0, 0);
+    move_draw(console_ui.line, _console_border_color, 0, 0, 0, 0, 0);
 
-    console_visible = 0;
+    console_visible = false;
 end
-
 // Add message to log buffer.
 function log(string message)
 private
     int i;
+    string echo_output;
+
 begin
+    if (_log_to_file)
+        echo_output = message;
+        // Avoid "ECHO IS ON" when write empty strings:
+        if (echo_output == "")
+            echo_output = "~";
+        end
+        system("echo " + echo_output + " >> " + _log_filename);
+    end
+
     log_buffer[log_index].value = message;
 
     if (log_index == _log_buffer_size)
@@ -205,7 +217,7 @@ begin
         console_index = log_index;
     end
 
-    update_console_view();
+    console_update();
 end
 
 // Clear all log buffer.
@@ -216,7 +228,11 @@ private
 begin
     from i = 0 to _log_buffer_size;
         log_buffer[i].value = "";
+
+        if (i =< _console_text_lines)
+            console_ui.text[i].value = "";
+        end
     end
+
     log_index = console_index = 0;
-    update_console_view();
 end

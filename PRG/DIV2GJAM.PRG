@@ -10,24 +10,38 @@
 program DIV2_GAME_JAM_PROJECT;
 
 const
+    _working_path_dev       = "projects\div2gjam\";
+    _working_path_prod      = "ex3\div2gjam\";
+    _max_fps                = 60;
+    _vsync                  = 1;
+    _show_console_at_start  = 1;
+
 ///////////////////////////////////////////////////////////////////////////////
 // Input Manager
 ///////////////////////////////////////////////////////////////////////////////
 
-    _max_input_actions = 10;
+    _max_input_actions = 15;
 
     // Input action list:
-    _input_left     = 0;
-    _input_up       = 1;
-    _input_right    = 2;
-    _input_down     = 3;
-    _input_submit   = 4;
-    _input_back     = 5;
-    _input_menu     = 6;
-    _input_mode     = 7;
-    _input_console  = 8;
-    _input_shoot    = 9;
-    _input_special  = 10;
+    _input_left                 = 0;
+    _input_up                   = 1;
+    _input_right                = 2;
+    _input_down                 = 3;
+
+    _input_submit               = 4;
+    _input_back                 = 5;
+    _input_menu                 = 6;
+    _input_mode                 = 7;
+
+    _input_console              = 8;
+    _input_console_up           = 9;
+    _input_console_down         = 10;
+    _input_console_page_up      = 11;
+    _input_console_page_down    = 12;
+    _input_console_clear        = 13;
+
+    _input_shoot                = 14;
+    _input_special              = 15;
 
     // Joystick button constants:
     _joy_left       = 100;
@@ -45,15 +59,24 @@ const
 // Log console
 ///////////////////////////////////////////////////////////////////////////////
 
-    _log_buffer_size = 1023;        // The log buffer capacity.
-    _console_width = 640;           // This value varies for desired video mode.
-    _console_height = 200;          // This value varies for desired video mode.
-    _console_text_offset_x = 5;     // Offset X value in write() calls.
-    _console_text_offset_y = 5;     // Offset Y value in write() calls.
-    _console_background_color = 1;  // Black (DIV.PAL).
-    _console_background_op = 7;     // Mid opacity.
-    _console_border_color = 15;     // White (DIV.PAL).
-    _console_text_lines = 19;       // Number of visible lines in console.
+    _log_buffer_size = 512;             // The log buffer size.
+    _log_to_file = 1;                   // The log can write to file in disk.
+    _log_filename = "console.log";      // Filename to write the log (if _log_to_file == 1).
+    _console_width = 640;               // This value varies for desired video mode.
+    _console_text_offset_x = 5;         // Offset X value in write() calls.
+    _console_text_offset_y = 5;         // Offset Y value in write() calls.
+    _console_background_color = 1;      // Black (DIV.PAL).
+    _console_background_op = 7;         // Mid opacity.
+    _console_border_color = 15;         // White (DIV.PAL).
+    _console_text_lines = 15;           // Number of visible lines in console.
+
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Advanced timers
+///////////////////////////////////////////////////////////////////////////////
+
+    _max_xtimers = 31;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -63,20 +86,22 @@ global
 ///////////////////////////////////////////////////////////////////////////////
 
     int log_index = 0;                  // Index of the next log entry.
-    struct log_buffer[_log_buffer_size] // In this sample, the console stores 1024 lines (of 256 characters each one).
+    struct log_buffer[_log_buffer_size] // String array to store log entries.
         string value;
     end;
-    int console_text[_console_text_lines];            // Instances for write() objects.
-    struct console_messages[_console_text_lines]      // String instances for write() objects.
-        string value;
-    end
+
+    int console_id;                     // Console process instance.
     int console_index;                  // Index to start to read log in console.
-    int console_box;                    // Box instance for background.
-    int console_line;                   // Line instance for bottom border.
-    int console_visible;                // Is the console visible?
-
-    int console_id;                     // Instance of log console process.
-
+    int console_visible = 1;            // Is the console visible?
+    struct console_ui                   // UI console elements:
+        struct text[_console_text_lines]    // Console text lines:
+            int obj;                        // Instances for write() objects.
+            string value;                   // String instances for write() objects.
+        end
+        int box;                            // Box instance for background.
+        int line;                           // Line instance for bottom border.
+        int height;                         // Height calculated by visible lines.
+    end
 ///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -96,6 +121,19 @@ global
             int down;           // Has been pressed the key/button?
             int up;             // Has been released the key/button?
         end
+    end
+
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Advanced timers
+///////////////////////////////////////////////////////////////////////////////
+
+    struct xtimer[_max_xtimers]
+        int start_time;
+        int pause_delta;
+        int time;           // Time value (updated by update_xtimers()).
+        int paused = 0;     // Is timer paused? (not changes this manually!)
     end
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -131,6 +169,7 @@ begin
 
     repeat
         process_input();
+
         frame;
     until(input_down(_input_menu));
 
@@ -146,33 +185,42 @@ end
 
 function initialize()
 begin
+    log("Initializating systems...");
+
     create_log_console();
     setup_video_mode();
     load_resources();
     set_default_input();
+
+    log("Systems initialized!");
+end
+
+function create_log_console()
+begin
+    log("> Initializating log console...");
+    console_id = log_console();
 end
 
 function setup_video_mode()
 begin
     set_mode(m640x400);
-    set_fps(60, 0);
-    vsync = 1;
-end
+    set_fps(_max_fps, 0);
+    vsync = _vsync;
 
-function create_log_console()
-begin
-    console_id = log_console();
-
-    log("DIV2 log console initialized");
-    log("----------------------------");
-    log("");
+    log("> Initialized video mode at 640x400, " + itoa(_max_fps) + "fps, vsync: " + itoa(_vsync));
 end
 
 function load_resources()
+private
+    string working_path;
+
 begin
     // Resolve working path:
-    if (!chdir("projects\div2gjam\")) // My working directory.
-        chdir("ex3\div2gjam\"); // DIV2 Game Jam required path.
+    if (chdir(_working_path_dev))
+        log("> Working path: C:\DIV2\" + upper(_working_path_dev));
+    else
+        chdir(_working_path_prod); // DIV2 Game Jam required path.
+        log("> Working path: C:\DIV2\" + upper(_working_path_prod));
     end
 
     load_pal("space.pal");
@@ -181,6 +229,8 @@ end
 
 function set_default_input()
 begin
+    log("> Set default input bindings...");
+
     set_input_action(_input_left,       "LEFT",     _left,      _a,     _joy_left);
     set_input_action(_input_up,         "UP",       _up,        _w,     _joy_up);
     set_input_action(_input_right,      "RIGHT",    _right,     _d,     _joy_right);
@@ -191,7 +241,12 @@ begin
     set_input_action(_input_menu,       "MENU",     _esc,       0,      _joy_button4);
     set_input_action(_input_mode,       "MODE",     _tab,       0,      _joy_button3);
 
-    set_input_action(_input_console,    "CONSOLE",  _wave,      0,      0);
+    set_input_action(_input_console,            "CONSOLE",          _wave,  0,  0);
+    set_input_action(_input_console_up,         "CONSOLE_UP",       _up,    0,  0);
+    set_input_action(_input_console_down,       "CONSOLE_DOWN",     _down,  0,  0);
+    set_input_action(_input_console_page_up,    "CONSOLE_PGUP",     _pgup,  0,  0);
+    set_input_action(_input_console_page_down,  "CONSOLE_PGDN",     _pgdn,  0,  0);
+    set_input_action(_input_console_clear,      "CONSOLE_CLEAR",    _del,   0,  0);
 
     set_input_action(_input_shoot,      "SHOOT",    _control,   _space, _joy_button2);
     set_input_action(_input_special,    "SPECIAL",  _alt,       _e,     _joy_button1);
@@ -200,14 +255,24 @@ end
 ///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
-// Helper functions
+// Math functions
 ///////////////////////////////////////////////////////////////////////////////
 
-function clamp(int value, int min, int max)
+function clamp(v, min_v, max_v)
 begin
-    if (value < min) return (min); end
-    if (value > max) return (max); end
-    return (value);
+    if (v < min_v) return (min_v); end
+    if (v > max_v) return (max_v); end
+    return (v);
+end
+
+function min(a, b)
+begin
+    if (a =< b) return (a); else return (b); end
+end
+
+function max(a, b)
+begin
+    if (a => b) return (a); else return (b); end
 end
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -324,6 +389,233 @@ end
 ///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
+// Log console
+///////////////////////////////////////////////////////////////////////////////
+
+// Create an instance of log console.
+process log_console()
+private
+    int i;
+
+begin
+    console_ui.height = (_console_text_lines + 1) * 10;
+    console_ui.box = draw(3, _console_background_color, _console_background_op, 0,
+                          0, 0,
+                          _console_width, console_ui.height + _console_text_offset_y);
+    console_ui.line = draw(1, _console_border_color, 15, 0,
+                           0, console_ui.height + _console_text_offset_y,
+                           _console_width, console_ui.height + _console_text_offset_y);
+
+    from i = 0 to _console_text_lines;
+        console_ui.text[i].obj = write(0,
+                                       _console_text_offset_x, (i * 10) + _console_text_offset_y,
+                                       0, console_ui.text[i].value);
+    end
+
+    if (!_show_console_at_start)
+        hide_log_console();
+    end
+
+    loop
+        if (input_down(_input_console))
+            if (console_visible)
+                hide_log_console();
+            else
+                show_log_console();
+            end
+        end if (console_visible)
+            if (input_down(_input_console_clear))
+                clear_log();
+            end if (input_down(_input_console_up))
+                console_nav_line_up();
+            end if (input_down(_input_console_down))
+                console_nav_line_down();
+            end if (input_down(_input_console_page_up))
+                console_nav_page_up();
+            end if (input_down(_input_console_page_down))
+                console_nav_page_down();
+            end
+        end
+
+        frame;
+    end
+end
+
+// Private: Updated console view.
+function console_update()
+private
+    int i, read_line;
+
+begin
+    read_line = clamp(console_index - (_console_text_lines + 1), 0, _log_buffer_size);
+
+    from i = 0 to _console_text_lines;
+        console_ui.text[i].value = log_buffer[read_line].value;
+        read_line++;
+    end
+end
+
+// Allow to navigate one previous line in historic.
+function console_nav_line_up()
+begin
+    console_index = clamp(--console_index, _console_text_lines, _log_buffer_size);
+
+    console_update();
+end
+
+// Allow to navigate one later line in historic.
+function console_nav_line_down()
+begin
+    console_index = clamp(++console_index, 0, log_index);
+
+    console_update();
+end
+
+// Allow to navigate one previous page in historic.
+function console_nav_page_up()
+begin
+    console_index -= _console_text_lines;
+    console_index = clamp(console_index, _console_text_lines, _log_buffer_size);
+
+    console_update();
+end
+
+// Allow to navigate one later page in historic.
+function console_nav_page_down()
+begin
+    console_index += _console_text_lines;
+    console_index = clamp(console_index, 0, log_index);
+
+    console_update();
+end
+
+// Shows debug console.
+function show_log_console()
+private
+    int i;
+
+begin
+    from i = 0 to _console_text_lines;
+        move_text(console_ui.text[i].obj, _console_text_offset_x, (i * 10) + _console_text_offset_y);
+    end
+
+    move_draw(console_ui.box, _console_background_color, _console_background_op,
+              0, 0, _console_width, console_ui.height + _console_text_offset_y);
+
+    move_draw(console_ui.line, _console_border_color, 15,
+              0, console_ui.height + _console_text_offset_y,
+              _console_width, console_ui.height + _console_text_offset_y);
+
+    console_visible = true;
+end
+
+// Hides debug console.
+function hide_log_console()
+private
+    int i;
+
+begin
+    from i = 0 to _console_text_lines;
+        move_text(console_ui.text[i].obj, 0, -10);
+    end
+
+    move_draw(console_ui.box, _console_background_color, 0, 0, 0, 0, 0);
+    move_draw(console_ui.line, _console_border_color, 0, 0, 0, 0, 0);
+
+    console_visible = false;
+end
+
+// Add message to log buffer.
+function log(string message)
+private
+    int i;
+
+    string echo_output;
+begin
+    if (_log_to_file)
+        echo_output = message;
+        // Avoid "ECHO IS ON" when write empty strings:
+        if (echo_output == "")
+            echo_output = "~";
+        end
+        system("echo " + echo_output + " >> " + _log_filename);
+    end
+
+    log_buffer[log_index].value = message;
+
+    if (log_index == _log_buffer_size)
+        from i = 0 to _log_buffer_size - 1;
+            log_buffer[i].value = log_buffer[i + 1].value;
+        end
+    else
+        log_index++;
+        console_index = log_index;
+    end
+
+    console_update();
+end
+
+// Clear all log buffer.
+function clear_log()
+private
+    int i;
+
+begin
+    from i = 0 to _log_buffer_size;
+        log_buffer[i].value = "";
+        if (i =< _console_text_lines)
+            console_ui.text[i].value = "";
+        end
+    end
+
+    log_index = console_index = 0;
+end
+
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Advanced timers
+///////////////////////////////////////////////////////////////////////////////
+
+function update_xtimers()
+private
+    int i;
+begin
+    from i = 0 to _max_xtimers;
+        if (!xtimer[i].paused)
+            xtimer[i].time = timer[0] - xtimer[i].start_time;
+        else
+            xtimer[i].time = xtimer[i].pause_delta - xtimer[i].start_time;
+        end
+    end
+end
+
+function pause_xtimer(int index)
+begin
+    if (!xtimer[index].paused)
+        xtimer[index].pause_delta = timer[0];
+        xtimer[index].paused = true;
+    end
+end
+
+function resume_xtimer(int index)
+begin
+    if (xtimer[index].paused)
+        xtimer[index].start_time += timer[0] - xtimer[index].pause_delta;
+        xtimer[index].paused = false;
+    end
+end
+
+function reset_xtimer(int index, int paused)
+begin
+    xtimer[index].start_time = timer[0];
+    xtimer[index].pause_delta = 0;
+    xtimer[index].paused = paused;
+end
+
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
 // Scrolled background
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -375,112 +667,3 @@ end
 
 ///////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////
-// Log console
-///////////////////////////////////////////////////////////////////////////////
-
-// Create an instance of log console.
-process log_console()
-private
-    int i;
-
-begin
-    console_box = draw(3, _console_background_color, _console_background_op, 0,
-                       0, 0,
-                       _console_width, _console_height + _console_text_offset_y);
-
-    console_line = draw(1, _console_border_color, 15, 0,
-                        0, _console_height + _console_text_offset_y,
-                        _console_width, _console_height + _console_text_offset_y);
-
-    from i = 0 to _console_text_lines;
-        console_text[i] = write(0, _console_text_offset_x, (i * 10) + _console_text_offset_y, 0, console_messages[i].value);
-    end
-
-    hide_log_console();
-
-    loop
-        if (input_down(_input_console))
-            if (console_visible)
-                hide_log_console();
-            else
-                show_log_console();
-            end
-        end
-
-        frame;
-    end
-end
-
-// Private: Update the view in console.
-function update_console_view(int index)
-private
-    int i, read_line;
-
-begin
-    read_line = clamp(index - 10, 0, _log_buffer_size);
-
-    from i = 0 to _console_text_lines;
-        console_messages[i].value = log_buffer[read_line].value;
-        read_line++;
-    end
-end
-
-// Shows debug console.
-function show_log_console()
-private
-    int i;
-
-begin
-    from i = 0 to _console_text_lines;
-        move_text(console_text[i], _console_text_offset_x, (i * 10) + _console_text_offset_y);
-    end
-
-    move_draw(console_box, _console_background_color, _console_background_op,
-              0, 0, _console_width, _console_height + _console_text_offset_y);
-
-    move_draw(console_line, _console_border_color, 15,
-              0, _console_height + _console_text_offset_y,
-              _console_width, _console_height + _console_text_offset_y);
-
-    console_visible = 1;
-end
-
-// Hides debug console.
-function hide_log_console()
-private
-    int i;
-
-begin
-    from i = 0 to _console_text_lines;
-        move_text(console_text[i], 0, -10);
-    end
-
-    move_draw(console_box, _console_background_color, 0, 0, 0, 0, 0);
-    move_draw(console_line, _console_border_color, 0, 0, 0, 0, 0);
-
-    console_visible = 0;
-end
-
-// Add message to log buffer.
-function log(string message)
-begin
-    log_buffer[log_index].value = message;
-    log_index++;
-    update_console_view(log_index);
-end
-
-// Clear all log buffer.
-function clear_log()
-private
-    int i;
-
-begin
-    from i = 0 to _log_buffer_size;
-        log_buffer[i].value = "";
-    end
-    log_index = 0;
-    update_console_view(log_index);
-end
-
-///////////////////////////////////////////////////////////////////////////////
