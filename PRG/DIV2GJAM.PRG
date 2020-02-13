@@ -697,6 +697,9 @@ process game_scene()
 private
     int dummy_black_map;
 
+    int background_id;
+    int starfield_id;
+
 begin
     dummy_black_map = new_map(1, 1, 0, 0, 0); // TODO: Externalize on global section.
 
@@ -706,12 +709,25 @@ begin
     m7.color = 0;
     m7.camera = id;
 
-    space_background();
-    starfield();
+    background_id = space_background();
+    starfield_id = starfield();
 
     starfield_speed = 3;
 
     loop
+        if (input_pressed(_input_right))
+            move_background(1, 0);
+        end
+        if (input_pressed(_input_left))
+            move_background(-1, 0);
+        end
+        if (input_pressed(_input_down))
+            move_background(0, 1);
+        end
+        if (input_pressed(_input_up))
+            move_background(0, -1);
+        end
+
         frame;
     end
 
