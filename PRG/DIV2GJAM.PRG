@@ -1,25 +1,29 @@
-///////////////////////////////////////////////////////////////////////////////
-// DIV2 GAME JAM Project
-//
-// A "Space Shoot 'Em Up" developed in Div Game Studio 2 'vanilla'.
-//
-// <project_name> (C) VisualStudioEX3, José Miguel Sánchez Fernández - 2020
-// Div Game Studio 2 (C) Hammer Technologies - 1998 - 1999
-///////////////////////////////////////////////////////////////////////////////
+/* ============================================================================
+ * DIV2 GAME JAM Project
+ *
+ * A "Space Shoot 'Em Up" developed in Div Game Studio 2 'vanilla'.
+ *
+ * <project_name> (C) VisualStudioEX3, José Miguel Sánchez Fernández - 2020
+ * Div Game Studio 2 (C) Hammer Technologies - 1998 - 1999
+ * ============================================================================
+ */
 
 program DIV2_GAME_JAM_PROJECT;
 
 const
+// System setup
+// ============================================================================
     _working_path_dev       = "projects\div2gjam\";
     _working_path_prod      = "ex3\div2gjam\";
     _max_fps                = 60;
     _vsync                  = 1;
+    _restore_mode           = no_restore;
     _show_console_at_start  = 1;
+    _show_fps_counter       = 1;
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
 // Input Manager
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
     _max_input_actions = 15;
 
     // Input action list:
@@ -52,39 +56,36 @@ const
     _joy_button2    = 105;
     _joy_button3    = 106;
     _joy_button4    = 107;
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
 // Log console
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
     _log_buffer_size = 512;             // The log buffer size.
     _log_to_file = 1;                   // The log can write to file in disk.
     _log_filename = "console.log";      // Filename to write the log (if _log_to_file == 1).
     _console_width = 640;               // This value varies for desired video mode.
     _console_text_offset_x = 5;         // Offset X value in write() calls.
     _console_text_offset_y = 5;         // Offset Y value in write() calls.
-    _console_background_color = 1;      // Black (DIV.PAL).
-    _console_background_op = 7;         // Mid opacity.
-    _console_border_color = 15;         // White (DIV.PAL).
+    _console_background_color = 1;      // Black (DIV.PAL: 1).
+    _console_border_color = 215;        // White (DIV.PAL: 15).
     _console_text_lines = 15;           // Number of visible lines in console.
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
 // Advanced timers
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
     _max_xtimers = 31;
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
+// Mode7 starfield
+// ============================================================================
+    _starfield_max_stars = 100;
+    _starfield_width = 30;
+    _starfield_height = 100;
+// ============================================================================
 
 global
-///////////////////////////////////////////////////////////////////////////////
 // Log console
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
     int log_index = 0;                  // Index of the next log entry.
     struct log_buffer[_log_buffer_size] // String array to store log entries.
         string value;
@@ -102,12 +103,10 @@ global
         int line;                           // Line instance for bottom border.
         int height;                         // Height calculated by visible lines.
     end
-///////////////////////////////////////////////////////////////////////////////
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
 // Input Manager
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
     // Input action definitions:
     struct input_actions[_max_input_actions]
         string name;            // Action name.
@@ -122,67 +121,52 @@ global
             int up;             // Has been released the key/button?
         end
     end
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
 // Advanced timers
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
     struct xtimer[_max_xtimers]
         int start_time;
         int pause_delta;
         int time;           // Time value (updated by update_xtimers()).
         int paused = 0;     // Is timer paused? (not changes this manually!)
     end
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
+// Mode7 starfield
+// ============================================================================
+    int starfield_speed;
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
 // Resources
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
     int fpg_background;
-
-///////////////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 local
-///////////////////////////////////////////////////////////////////////////////
 // Input Manager
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
     struct pointer input_actions input_action_ptr;
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
 // Main process
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
 begin
     initialize();
 
-    ////////////////////////////////////////
-    // Test code
-    ////////////////////////////////////////
-    background();
+    game_scene();
 
     repeat
         process_input();
-
         frame;
     until(input_down(_input_menu));
 
     exit("(C) Visual Studio EX3 - 2020", 0);
-    ////////////////////////////////////////
 end
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
 // Initialization functions
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
 function initialize()
 begin
     log("Initializating systems...");
@@ -191,6 +175,8 @@ begin
     setup_video_mode();
     load_resources();
     set_default_input();
+
+    if (_show_fps_counter) write_int(0, 640, 0, 2, offset fps); end
 
     log("Systems initialized!");
 end
@@ -206,8 +192,9 @@ begin
     set_mode(m640x400);
     set_fps(_max_fps, 0);
     vsync = _vsync;
+    restore_type = _restore_mode;
 
-    log("> Initialized video mode at 640x400, " + itoa(_max_fps) + "fps, vsync: " + itoa(_vsync));
+    log("> Initialized video mode at 640x400, " + itoa(_max_fps) + "fps, vsync: " + itoa(_vsync) + ", restore mode: " + itoa(_restore_mode));
 end
 
 function load_resources()
@@ -251,13 +238,10 @@ begin
     set_input_action(_input_shoot,      "SHOOT",    _control,   _space, _joy_button2);
     set_input_action(_input_special,    "SPECIAL",  _alt,       _e,     _joy_button1);
 end
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
 // Math functions
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
 function clamp(v, min_v, max_v)
 begin
     if (v < min_v) return (min_v); end
@@ -274,13 +258,10 @@ function max(a, b)
 begin
     if (a => b) return (a); else return (b); end
 end
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
 // Input manager
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
 // Setup an input action bindings and name:
 function set_input_action(int index, string name, int key_primary, int key_secondary, int joy_button)
 begin
@@ -385,13 +366,10 @@ begin
 
     return (0);
 end
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
 // Log console
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
 // Create an instance of log console.
 process log_console()
 private
@@ -399,9 +377,7 @@ private
 
 begin
     console_ui.height = (_console_text_lines + 1) * 10;
-    console_ui.box = draw(3, _console_background_color, _console_background_op, 0,
-                          0, 0,
-                          _console_width, console_ui.height + _console_text_offset_y);
+    console_ui.box = new_map(640, console_ui.height + _console_text_offset_y, 0, 0, _console_background_color);
     console_ui.line = draw(1, _console_border_color, 15, 0,
                            0, console_ui.height + _console_text_offset_y,
                            _console_width, console_ui.height + _console_text_offset_y);
@@ -416,7 +392,16 @@ begin
         hide_log_console();
     end
 
+    graph = console_ui.box;
+    flags = 4;
+
     loop
+        if (console_visible)
+            size = 100;
+        else
+            size = 0;
+        end
+
         if (input_down(_input_console))
             if (console_visible)
                 hide_log_console();
@@ -499,9 +484,6 @@ begin
         move_text(console_ui.text[i].obj, _console_text_offset_x, (i * 10) + _console_text_offset_y);
     end
 
-    move_draw(console_ui.box, _console_background_color, _console_background_op,
-              0, 0, _console_width, console_ui.height + _console_text_offset_y);
-
     move_draw(console_ui.line, _console_border_color, 15,
               0, console_ui.height + _console_text_offset_y,
               _console_width, console_ui.height + _console_text_offset_y);
@@ -519,7 +501,6 @@ begin
         move_text(console_ui.text[i].obj, 0, -10);
     end
 
-    move_draw(console_ui.box, _console_background_color, 0, 0, 0, 0, 0);
     move_draw(console_ui.line, _console_border_color, 0, 0, 0, 0, 0);
 
     console_visible = false;
@@ -570,13 +551,11 @@ begin
 
     log_index = console_index = 0;
 end
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////
 // Advanced timers
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
 function update_xtimers()
 private
     int i;
@@ -612,15 +591,14 @@ begin
     xtimer[index].pause_delta = 0;
     xtimer[index].paused = paused;
 end
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
 
-///////////////////////////////////////////////////////////////////////////////
 // Scrolled background
-///////////////////////////////////////////////////////////////////////////////
-
+// ============================================================================
 // Create the scrollable background process:
-process background()
+process space_background()
 private
     struct plane[1]
         int width;
@@ -664,6 +642,79 @@ begin
     scroll.x1 += x;
     scroll.y1 += y;
 end
+// ============================================================================
 
-///////////////////////////////////////////////////////////////////////////////
+// Mode7 Starfield
+// ============================================================================
+// Creates a particle system to simulate speed and movement in the void.
+process starfield()
+private
+    int i;
+    int star_sprite;
 
+begin
+    star_sprite = new_map(1, 1, 0, 0, 215);
+
+    from i = 0 to _starfield_max_stars;
+        star(star_sprite);
+    end
+
+    loop
+        // TODO: Replaces by condition.
+        /*if (key(_esc))
+            unload_map(star_sprite);
+            signal(id, s_kill_tree);
+        end*/
+        frame;
+    end
+end
+
+process star(graph)
+private
+    int distance = 200;
+
+begin
+    flags = 4;
+    ctype = c_m7;
+    x = rand(0, 300) + m7.camera.x + m7.distance;
+    y = rand(-_starfield_width, _starfield_width);
+    height = m7.height + rand(_starfield_height, -_starfield_height);
+
+    loop
+        repeat
+            x -= starfield_speed;
+            frame();
+        until(m7.camera.x > x + m7.distance);
+
+        x = distance + m7.camera.x + m7.distance;
+    end
+end
+// ============================================================================
+
+// Game scene process
+// ============================================================================
+process game_scene()
+private
+    int dummy_black_map;
+
+begin
+    dummy_black_map = new_map(1, 1, 0, 0, 0); // TODO: Externalize on global section.
+
+    start_mode7(0, 0, dummy_black_map, 0, 0, 200);
+    m7.distance = 32;
+    m7.height = 0;
+    m7.color = 0;
+    m7.camera = id;
+
+    space_background();
+    starfield();
+
+    starfield_speed = 3;
+
+    loop
+        frame;
+    end
+
+    unload_map(dummy_black_map);
+end
+// ============================================================================
