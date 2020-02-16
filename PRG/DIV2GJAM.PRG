@@ -13,8 +13,8 @@ program DIV2_GAME_JAM_PROJECT;
 const
 // System setup
 // ============================================================================
-    _working_path_dev       = "projects\div2gjam\";
-    _working_path_prod      = "ex3\div2gjam\";
+    _working_path_dev       = "projects/div2gjam/";
+    _working_path_prod      = "ex3/div2gjam/";
     _max_fps                = 60;
     _vsync                  = 1;
     _restore_mode           = no_restore;
@@ -144,7 +144,7 @@ global
 
     int fpg_background;
     int fpg_hyperspace;
-    int pcx_ship;
+    int fpg_player;
 // ============================================================================
 
 local
@@ -202,26 +202,23 @@ begin
 end
 
 function load_resources()
-private
-    string working_path;
-
 begin
     // Resolve working path:
     if (chdir(_working_path_dev))
-        log("> Working path: C:\DIV2\" + upper(_working_path_dev));
+        log("> Working path: C:/DIV2/" + upper(_working_path_dev));
     else
         chdir(_working_path_prod); // DIV2 Game Jam required path.
-        log("> Working path: C:\DIV2\" + upper(_working_path_prod));
+        log("> Working path: C:/DIV2/" + upper(_working_path_prod));
     end
 
     load_pal("space.pal");
 
-    black_pixel = new_map(1, 1, 0, 0, 0);
+    black_pixel     = new_map(1, 1, 0, 0, 0);
 
-    fpg_background = load_fpg("fpg/space.fpg");
-    fpg_hyperspace = load_fpg("fpg/hyperspc.fpg");
+    fpg_background  = load_fpg("fpg/space.fpg");
+    fpg_hyperspace  = load_fpg("fpg/hyperspc.fpg");
+    fpg_player      = load_fpg("fpg/player.fpg");
 
-    pcx_ship = load_pcx("pcx/ship.pcx");
 end
 
 function set_default_input()
@@ -706,16 +703,18 @@ begin
     space_background();
     starfield();
 
-    hyperspace();
-    //ship();
+    //hyperspace();
+    ship();
 
     starfield_speed = 3;
 
     loop
-        if (input_pressed(_input_right))
+        /*if (input_pressed(_input_right))
+            angle+=22500;
             move_background(1, 0);
         end
         if (input_pressed(_input_left))
+            angle-=22500;
             move_background(-1, 0);
         end
         if (input_pressed(_input_down))
@@ -723,7 +722,9 @@ begin
         end
         if (input_pressed(_input_up))
             move_background(0, -1);
-        end
+        end*/
+
+        log("GameScene x" + itoa(x) + " y" + itoa(y) + ", angle: " + itoa(angle));
 
         frame;
     end
@@ -772,11 +773,32 @@ end
 process ship()
 begin
     ctype = c_m7;
-    graph = pcx_ship;
+    file = fpg_player;
+    graph = 1;
     x = 64;
+    y = 0;
     height = -175;
 
     loop
+        if (input_pressed(_input_right))
+            y++;
+            move_background(1, 0);
+        end
+        if (input_pressed(_input_left))
+            y--;
+            move_background(-1, 0);
+        end
+        if (input_pressed(_input_up))
+            x++;
+        end
+        if (input_pressed(_input_down))
+            x--;
+        end
+
+        log("Player x" + itoa(x) + " y" + itoa(y) +
+            " angle: " + itoa(fget_angle(m7.camera.x, m7.camera.y, x, y)));
+            //", angle to camera: " + itoa(get_angle(m7.camera)));
+
         frame;
     end
 end
