@@ -140,7 +140,11 @@ global
 
 // Resources
 // ============================================================================
+    int black_pixel;
+
     int fpg_background;
+    int fpg_hyperspace;
+    int pcx_ship;
 // ============================================================================
 
 local
@@ -211,7 +215,13 @@ begin
     end
 
     load_pal("space.pal");
+
+    black_pixel = new_map(1, 1, 0, 0, 0);
+
     fpg_background = load_fpg("fpg/space.fpg");
+    fpg_hyperspace = load_fpg("fpg/hyperspc.fpg");
+
+    pcx_ship = load_pcx("pcx/ship.pcx");
 end
 
 function set_default_input()
@@ -392,6 +402,7 @@ begin
         hide_log_console();
     end
 
+    z = -255;
     graph = console_ui.box;
     flags = 4;
 
@@ -660,11 +671,6 @@ begin
     end
 
     loop
-        // TODO: Replaces by condition.
-        /*if (key(_esc))
-            unload_map(star_sprite);
-            signal(id, s_kill_tree);
-        end*/
         frame;
     end
 end
@@ -691,26 +697,17 @@ begin
 end
 // ============================================================================
 
-// Game scene process
+// Game scene
 // ============================================================================
 process game_scene()
-private
-    int dummy_black_map;
-
-    int background_id;
-    int starfield_id;
-
 begin
-    dummy_black_map = new_map(1, 1, 0, 0, 0); // TODO: Externalize on global section.
+    init_mode7(id);
 
-    start_mode7(0, 0, dummy_black_map, 0, 0, 200);
-    m7.distance = 32;
-    m7.height = 0;
-    m7.color = 0;
-    m7.camera = id;
+    space_background();
+    starfield();
 
-    background_id = space_background();
-    starfield_id = starfield();
+    hyperspace();
+    //ship();
 
     starfield_speed = 3;
 
@@ -731,6 +728,56 @@ begin
         frame;
     end
 
-    unload_map(dummy_black_map);
+    signal(type space_background, s_kill);
+    signal(type starfield, s_kill);
+    signal(type hyperspace, s_kill);
+
+    stop_mode7(0);
+
+end
+
+function init_mode7(camera_id)
+begin
+    start_mode7(0, 0, black_pixel, 0, 0, 200);
+
+    m7.distance = 32;
+    m7.height = 0;
+    m7.color = 0;
+    m7.camera = camera_id;
+end
+// ============================================================================
+
+// Hyper-space effect background (maybe need to be optimized in graphic sizes)
+// ============================================================================
+process hyperspace()
+private
+    int i = 1;
+
+begin
+    x = 90;
+    height = -250;
+    ctype = c_m7;
+    file = fpg_hyperspace;
+
+    loop
+        graph = i;
+        if (++i == 10) i = 1; end
+        frame;
+    end
+end
+// ============================================================================
+
+// Test player ship process (used to test heights and playground dimensions)
+// ============================================================================
+process ship()
+begin
+    ctype = c_m7;
+    graph = pcx_ship;
+    x = 64;
+    height = -175;
+
+    loop
+        frame;
+    end
 end
 // ============================================================================
