@@ -67,7 +67,7 @@ const
     _console_text_offset_x = 5;         // Offset X value in write() calls.
     _console_text_offset_y = 5;         // Offset Y value in write() calls.
     _console_background_color = 1;      // Black (DIV.PAL: 1).
-    _console_border_color = 215;        // White (DIV.PAL: 15).
+    _console_border_color = 223;        // White (DIV.PAL: 15).
     _console_text_lines = 15;           // Number of visible lines in console.
 // ============================================================================
 
@@ -86,7 +86,7 @@ const
 // Game scene
 // ============================================================================
     _scene_size_left = -60;
-    _scene_size_top = 30;
+    _scene_size_top = -30;
     _scene_size_right = 60;
     _scene_size_bottom = -300;
 // ============================================================================
@@ -149,10 +149,13 @@ global
 // Resources
 // ============================================================================
     int black_pixel;
+    int white_pixel;
 
     int fpg_background;
     int fpg_hyperspace;
     int fpg_player;
+    int fpg_ui;
+    int fpg_shoots;
 // ============================================================================
 
 local
@@ -222,10 +225,13 @@ begin
     load_pal("space.pal");
 
     black_pixel     = new_map(1, 1, 0, 0, 0);
+    white_pixel     = new_map(1, 1, 0, 0, 223);
 
     fpg_background  = load_fpg("fpg/space.fpg");
     fpg_hyperspace  = load_fpg("fpg/hyperspc.fpg");
     fpg_player      = load_fpg("fpg/player.fpg");
+    fpg_ui          = load_fpg("fpg/ui.fpg");
+    fpg_shoots      = load_fpg("fpg/shoots.fpg");
 
 end
 
@@ -666,13 +672,10 @@ end
 process starfield()
 private
     int i;
-    int star_sprite;
 
 begin
-    star_sprite = new_map(1, 1, 0, 0, 215);
-
     from i = 0 to _starfield_max_stars;
-        star(star_sprite);
+        star();
     end
 
     loop
@@ -680,11 +683,12 @@ begin
     end
 end
 
-process star(graph)
+process star()
 private
     int distance = 200;
 
 begin
+    graph = white_pixel;
     flags = 4;
     ctype = c_m7;
     x = rand(0, 300) + m7.camera.x + m7.distance;
@@ -740,6 +744,7 @@ begin
     signal(type space_background, s_kill);
     signal(type starfield, s_kill);
     signal(type hyperspace, s_kill);
+    signal(type player, s_kill);
 
     stop_mode7(0);
 
@@ -747,11 +752,9 @@ end
 
 function init_mode7(camera_id)
 begin
-    start_mode7(0, 0, black_pixel, 0, 0, 200);
+    start_mode7(0, 0, black_pixel, 0, 0, 175);
 
-    m7.distance = 32;
     m7.height = 0;
-    m7.color = 0;
     m7.camera = camera_id;
 end
 
@@ -759,6 +762,7 @@ function get_angle_m7(process_id)
 begin
     angle = fget_angle(m7.camera.x, m7.camera.y, process_id.x, process_id.y);
 
+//    if (angle <
 
 end
 
@@ -771,15 +775,16 @@ private
     int i = 1;
 
 begin
-    x = 90;
-    height = -250;
+    x = 100;
+    size = 130;
+    height = -350;
     ctype = c_m7;
     file = fpg_hyperspace;
 
     loop
         graph = i;
         if (++i == 10) i = 1; end
-        frame;
+        frame();
     end
 end
 // ============================================================================
@@ -802,6 +807,8 @@ begin
     y = 0;
     height = _default_height;
 
+    player_aim_sight();
+
     loop
         if (input_pressed(_input_right))
             y = min(y + _move_speed.x, _scene_size_right);
@@ -820,9 +827,47 @@ begin
             if (height > _scene_size_bottom) move_background(0, 1); end
         end
 
-        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
-            " a" + itoa(fget_angle(m7.camera.x, m7.camera.y, x, y)));
+        //if (input_down(_input_shoot)) shoot(); end
 
+//        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
+//            " a" + itoa(fget_angle(m7.camera.x, m7.camera.y, x, y)));
+
+        frame;
+    end
+end
+
+process player_aim_sight()
+begin
+    file = fpg_ui;
+    graph = 1;
+    size = 600;
+    ctype = c_m7;
+    x = father.x + 300;
+
+    loop
+        y = father.y;
+        height = father.height;
+
+        if (input_down(_input_shoot)) shoot(); end
+
+        frame;
+    end
+end
+
+process shoot()
+private
+    int i;
+
+begin
+    file = fpg_shoots;
+    graph = 1;
+    ctype = c_m7;
+    x = father.x;
+    y = father.y;
+    height = father.height;
+
+    from i = 0 to 600;
+        x += 100;
         frame;
     end
 end
