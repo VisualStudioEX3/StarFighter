@@ -83,6 +83,14 @@ const
     _starfield_height = 100;
 // ============================================================================
 
+// Game scene
+// ============================================================================
+    _scene_size_left = -60;
+    _scene_size_top = 30;
+    _scene_size_right = 60;
+    _scene_size_bottom = -300;
+// ============================================================================
+
 global
 // Log console
 // ============================================================================
@@ -704,7 +712,7 @@ begin
     starfield();
 
     //hyperspace();
-    ship();
+    player();
 
     starfield_speed = 3;
 
@@ -724,7 +732,7 @@ begin
             move_background(0, -1);
         end*/
 
-        log("GameScene x" + itoa(x) + " y" + itoa(y) + ", angle: " + itoa(angle));
+        //log("GameScene x" + itoa(x) + " y" + itoa(y) + ", angle: " + itoa(angle));
 
         frame;
     end
@@ -746,6 +754,14 @@ begin
     m7.color = 0;
     m7.camera = camera_id;
 end
+
+function get_angle_m7(process_id)
+begin
+    angle = fget_angle(m7.camera.x, m7.camera.y, process_id.x, process_id.y);
+
+
+end
+
 // ============================================================================
 
 // Hyper-space effect background (maybe need to be optimized in graphic sizes)
@@ -770,34 +786,42 @@ end
 
 // Test player ship process (used to test heights and playground dimensions)
 // ============================================================================
-process ship()
+process player()
+private
+    struct _move_speed
+        int x = 4;
+        int y = 8;
+    end
+    int _default_height = -175;
+
 begin
     ctype = c_m7;
     file = fpg_player;
     graph = 1;
-    x = 64;
+    x = 100;
     y = 0;
-    height = -175;
+    height = _default_height;
 
     loop
         if (input_pressed(_input_right))
-            y++;
-            move_background(1, 0);
+            y = min(y + _move_speed.x, _scene_size_right);
+            if (y < _scene_size_right) move_background(1, 0); end
         end
         if (input_pressed(_input_left))
-            y--;
-            move_background(-1, 0);
+            y = max(y - _move_speed.x, _scene_size_left);
+            if (y > _scene_size_left) move_background(-1, 0); end
         end
         if (input_pressed(_input_up))
-            x++;
+            height = min(height + _move_speed.y, _scene_size_top);
+            if (height < _scene_size_top) move_background(0, -1); end
         end
         if (input_pressed(_input_down))
-            x--;
+            height = max(height - _move_speed.y, _scene_size_bottom);
+            if (height > _scene_size_bottom) move_background(0, 1); end
         end
 
-        log("Player x" + itoa(x) + " y" + itoa(y) +
-            " angle: " + itoa(fget_angle(m7.camera.x, m7.camera.y, x, y)));
-            //", angle to camera: " + itoa(get_angle(m7.camera)));
+        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
+            " a" + itoa(fget_angle(m7.camera.x, m7.camera.y, x, y)));
 
         frame;
     end
