@@ -3,7 +3,7 @@
  *
  * A "Space Shoot 'Em Up" developed in Div Game Studio 2 'vanilla'.
  *
- * <project_name> (C) VisualStudioEX3, Jos√© Miguel S√°nchez Fern√°ndez - 2020
+ * <project_name> (C) VisualStudioEX3, JosÇ Miguel S†nchez Fern†ndez - 2020
  * Div Game Studio 2 (C) Hammer Technologies - 1998 - 1999
  * ============================================================================
  */
@@ -766,35 +766,51 @@ end
 // Custom xgraph logic to determine the sprite to show in each height and angle:
 function m7_xgraph(process_id)
 private
-    int ret = 100; // By default, the centered sprite.
+    int ret;
 
 begin
     // This table defines how the different angle sprites must be store in the FPG:
-    //              30ß  20ß  10ß  0ß   -10ß -22ß -30ß
-    // Upper level: 303, 302, 301, 300, 311, 312, 313
-    // Midle level: 103, 102, 101, 100, 111, 112, 113
-    // Lower level: 203, 202, 201, 200, 211, 212, 213
+    //  --------------------------------------------------------------
+    // | Angles |  30 | 22.5|  15 | 7.5 |  0  |-7.5 | -15 |-22.5| -30 |
+    // |--------+-----+-----+-----+-----+-----+-----+-----+-----+-----|
+    // | Graphs | 104 | 103 | 102 | 101 | 100 | 111 | 112 | 113 | 114 |
+    //  --------------------------------------------------------------
 
     // This list defines how the different heights sprites must be store in the FPG:
-    // Upper level: 100 to 12
-    // Midle level: 12  to -64
-    // Lower level: -64 to -200
+    //  -------------------
+    // | Height    | Range |
+    // |-----------+-------|
+    // | 100 :  60 |  100  |
+    // |  60 : -10 |  200  |
+    // | -10 : -60 |  300  |
+    // | -60 :-100 |  400  |
+    // |-100 :-150 |  500  |
+    // |-150 :-200 |  600  |
+    //  -------------------
 
     angle = m7_get_angle(process_id);
 
     // Select angle view:
-    if (between(abs(angle), 10000, 20000)) ret++; end
-    if (between(abs(angle), 20000, 30000)) ret += 2; end
-    if (abs(angle) > 30000) ret += 3; end
+    switch (abs(angle))
+        case     0.. 7500: ret = 0;  end
+        case  7500..15000: ret ++;   end
+        case 15000..22500: ret += 2; end
+        case 22500..30000: ret += 3; end
+        default:           ret += 4; end
+    end
 
-    // Select right views if angle is under -10ß:
-    if (angle < -10000) ret += 10; end
+    // Select right views if angle is under -7.5 degrees:
+    if (angle <= -7500)    ret += 10; end
 
     // Select height view:
-    if (between(process_id.height, -200, -64)) ret += 100; end
-    if (between(process_id.height, 12, 100)) ret += 200; end
-
-//    log("Angle: " + itoa(angle) + ", Graph: " + itoa(ret));
+    switch (process_id.height)
+        case   60.. 100: ret += 100; end
+        case  -10..  60: ret += 200; end
+        case  -60.. -10: ret += 300; end
+        case -100.. -60: ret += 400; end
+        case -150..-100: ret += 500; end
+        case -200..-150: ret += 600; end
+    end
 
     return (ret);
 end
@@ -887,8 +903,8 @@ begin
 
         if (input_down(_input_shoot)) player_shoot(); end
 
-//        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
-//            " a" + itoa(m7_get_angle(id)));
+        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
+            " a" + itoa(m7_get_angle(id)));
 
         frame;
     end
