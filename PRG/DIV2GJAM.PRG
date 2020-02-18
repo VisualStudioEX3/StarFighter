@@ -20,7 +20,6 @@ const
     _restore_mode           = no_restore;
     _show_console_at_start  = 1;
     _show_fps_counter       = 1;
-// ============================================================================
 
 // Input Manager
 // ============================================================================
@@ -56,40 +55,35 @@ const
     _joy_button2    = 105;
     _joy_button3    = 106;
     _joy_button4    = 107;
-// ============================================================================
 
 // Log console
 // ============================================================================
-    _log_buffer_size = 512;             // The log buffer size.
-    _log_to_file = 1;                   // The log can write to file in disk.
-    _log_filename = "console.log";      // Filename to write the log (if _log_to_file == 1).
-    _console_width = 640;               // This value varies for desired video mode.
-    _console_text_offset_x = 5;         // Offset X value in write() calls.
-    _console_text_offset_y = 5;         // Offset Y value in write() calls.
-    _console_background_color = 1;      // Black (DIV.PAL: 1).
-    _console_border_color = 223;        // White (DIV.PAL: 15).
-    _console_text_lines = 15;           // Number of visible lines in console.
-// ============================================================================
+    _log_buffer_size            = 512;              // The log buffer size.
+    _log_to_file                = 1;                // The log can write to file in disk.
+    _log_filename               = "console.log";    // Filename to write the log (if _log_to_file == 1).
+    _console_width              = 640;              // This value varies for desired video mode.
+    _console_text_offset_x      = 5;                // Offset X value in write() calls.
+    _console_text_offset_y      = 5;                // Offset Y value in write() calls.
+    _console_background_color   = 1;                // Black (DIV.PAL: 1).
+    _console_border_color       = 223;              // White (DIV.PAL: 15).
+    _console_text_lines         = 15;               // Number of visible lines in console.
 
 // Advanced timers
 // ============================================================================
     _max_xtimers = 31;
-// ============================================================================
 
 // Mode7 starfield
 // ============================================================================
-    _starfield_max_stars = 100;
-    _starfield_width = 30;
-    _starfield_height = 100;
-// ============================================================================
+    _starfield_max_stars    = 100;
+    _starfield_width        = 30;
+    _starfield_height       = 100;
 
 // Game scene
 // ============================================================================
-    _scene_size_left = -60;
-    _scene_size_top = -30;
-    _scene_size_right = 60;
-    _scene_size_bottom = -300;
-// ============================================================================
+    _scene_size_left        = -60;
+    _scene_size_top         = 100;
+    _scene_size_right       = 60;
+    _scene_size_bottom      = -200;
 
 global
 // Log console
@@ -111,7 +105,6 @@ global
         int line;                           // Line instance for bottom border.
         int height;                         // Height calculated by visible lines.
     end
-// ============================================================================
 
 // Input Manager
 // ============================================================================
@@ -129,7 +122,6 @@ global
             int up;             // Has been released the key/button?
         end
     end
-// ============================================================================
 
 // Advanced timers
 // ============================================================================
@@ -139,12 +131,10 @@ global
         int time;           // Time value (updated by update_xtimers()).
         int paused = 0;     // Is timer paused? (not changes this manually!)
     end
-// ============================================================================
 
 // Mode7 starfield
 // ============================================================================
     int starfield_speed;
-// ============================================================================
 
 // Resources
 // ============================================================================
@@ -156,13 +146,16 @@ global
     int fpg_player;
     int fpg_ui;
     int fpg_shoots;
-// ============================================================================
 
 local
 // Input Manager
 // ============================================================================
     struct pointer input_actions input_action_ptr;
+
+// Height Offset for mode7 objects
 // ============================================================================
+    int sprite;         // Uses to store the m7_graph() id.
+    int height_offset;
 
 // Main process
 // ============================================================================
@@ -178,7 +171,6 @@ begin
 
     exit("(C) Visual Studio EX3 - 2020", 0);
 end
-// ============================================================================
 
 // Initialization functions
 // ============================================================================
@@ -259,7 +251,6 @@ begin
     set_input_action(_input_shoot,      "SHOOT",    _control,   _space, _joy_button2);
     set_input_action(_input_special,    "SPECIAL",  _alt,       _e,     _joy_button1);
 end
-// ============================================================================
 
 // Math functions
 // ============================================================================
@@ -279,7 +270,6 @@ function max(a, b)
 begin
     if (a => b) return (a); else return (b); end
 end
-// ============================================================================
 
 // Input manager
 // ============================================================================
@@ -387,7 +377,6 @@ begin
 
     return (0);
 end
-// ============================================================================
 
 // Log console
 // ============================================================================
@@ -573,8 +562,6 @@ begin
 
     log_index = console_index = 0;
 end
-// ============================================================================
-
 
 // Advanced timers
 // ============================================================================
@@ -613,8 +600,9 @@ begin
     xtimer[index].pause_delta = 0;
     xtimer[index].paused = paused;
 end
-// ============================================================================
 
+// // // // // // // // // // // // // // // // // // // // // // // // // // //
+// G A M E   C O D E   S T A R T S   H E R E
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
 // Scrolled background
@@ -664,7 +652,6 @@ begin
     scroll.x1 += x;
     scroll.y1 += y;
 end
-// ============================================================================
 
 // Mode7 Starfield
 // ============================================================================
@@ -704,7 +691,6 @@ begin
         x = distance + m7.camera.x + m7.distance;
     end
 end
-// ============================================================================
 
 // Game scene
 // ============================================================================
@@ -766,7 +752,18 @@ begin
 
 end
 
-// ============================================================================
+// Uses as child process of the entity to place in mode7 scene to fix the height position:
+process m7_graph(file, graph, height_offset)
+begin
+    ctype = c_m7;
+
+    loop
+        x = father.x;
+        y = father.y;
+        height = father.height + height_offset;
+        frame;
+    end
+end
 
 // Hyper-space effect background (maybe need to be optimized in graphic sizes)
 // ============================================================================
@@ -787,7 +784,6 @@ begin
         frame();
     end
 end
-// ============================================================================
 
 // Test player ship process (used to test heights and playground dimensions)
 // ============================================================================
@@ -801,11 +797,11 @@ private
 
 begin
     ctype = c_m7;
-    file = fpg_player;
-    graph = 1;
     x = 100;
     y = 0;
     height = _default_height;
+
+    sprite = m7_graph(fpg_player, 1, -120);
 
     player_aim_sight();
 
@@ -827,10 +823,10 @@ begin
             if (height > _scene_size_bottom) move_background(0, 1); end
         end
 
-        //if (input_down(_input_shoot)) shoot(); end
+        if (input_down(_input_shoot)) player_shoot(); end
 
-//        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
-//            " a" + itoa(fget_angle(m7.camera.x, m7.camera.y, x, y)));
+        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
+            " a" + itoa(fget_angle(m7.camera.x, m7.camera.y, x, y)));
 
         frame;
     end
@@ -838,37 +834,34 @@ end
 
 process player_aim_sight()
 begin
-    file = fpg_ui;
-    graph = 1;
-    size = 600;
     ctype = c_m7;
     x = father.x + 300;
+
+    m7_graph(fpg_ui, 1, -80).size = 600;
 
     loop
         y = father.y;
         height = father.height;
-
-        if (input_down(_input_shoot)) shoot(); end
-
         frame;
     end
 end
 
-process shoot()
+process player_shoot()
 private
     int i;
 
 begin
-    file = fpg_shoots;
-    graph = 1;
     ctype = c_m7;
-    x = father.x;
+    x = father.x + 1;
     y = father.y;
     height = father.height;
 
+    sprite = m7_graph(fpg_shoots, 1, -12);
+
     from i = 0 to 600;
-        x += 100;
-        frame;
+        x++;
+        frame(5);
     end
+
+    signal(sprite, s_kill);
 end
-// ============================================================================
