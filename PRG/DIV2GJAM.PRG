@@ -85,6 +85,10 @@ const
     _scene_size_right       = 60;
     _scene_size_bottom      = -200;
 
+// Player
+// ============================================================================
+    _max_player_shoots      = 3;
+
 global
 // Log console
 // ============================================================================
@@ -146,6 +150,10 @@ global
     int fpg_player;
     int fpg_ui;
     int fpg_shoots;
+
+// Player shoots
+// ============================================================================
+    int player_shoots;
 
 local
 // Input Manager
@@ -269,6 +277,11 @@ end
 function max(a, b)
 begin
     if (a => b) return (a); else return (b); end
+end
+
+function between(v, min_v, max_v)
+begin
+    return (v >= min_v && v <= max_v);
 end
 
 // Input manager
@@ -728,9 +741,9 @@ begin
     end
 
     signal(type space_background, s_kill);
-    signal(type starfield, s_kill);
+    signal(type starfield, s_kill_tree);
     signal(type hyperspace, s_kill);
-    signal(type player, s_kill);
+    signal(type player, s_kill_tree);
 
     stop_mode7(0);
 
@@ -744,23 +757,70 @@ begin
     m7.camera = camera_id;
 end
 
-function get_angle_m7(process_id)
+// Get angle between mode7 camera and process_id:
+function m7_get_angle(process_id)
 begin
-    angle = fget_angle(m7.camera.x, m7.camera.y, process_id.x, process_id.y);
+    return (fget_angle(m7.camera.x, m7.camera.y, process_id.x, process_id.y));
+end
 
-//    if (angle <
+// Custom xgraph logic to determine the sprite to show in each height and angle:
+function m7_xgraph(process_id)
+private
+    int ret = 100; // By default, the centered sprite.
 
+begin
+    // This table defines how the different angle sprites must be store in the FPG:
+    //              30§  20§  10§  0§   -10§ -22§ -30§
+    // Upper level: 303, 302, 301, 300, 311, 312, 313
+    // Midle level: 103, 102, 101, 100, 111, 112, 113
+    // Lower level: 203, 202, 201, 200, 211, 212, 213
+
+    // This list defines how the different heights sprites must be store in the FPG:
+    // Upper level: 100 to 12
+    // Midle level: 12  to -64
+    // Lower level: -64 to -200
+
+    angle = m7_get_angle(process_id);
+
+    // Select angle view:
+    if (between(abs(angle), 10000, 20000)) ret++; end
+    if (between(abs(angle), 20000, 30000)) ret += 2; end
+    if (abs(angle) > 30000) ret += 3; end
+
+    // Select right views if angle is under -10§:
+    if (angle < -10000) ret += 10; end
+
+    // Select height view:
+    if (between(process_id.height, -200, -64)) ret += 100; end
+    if (between(process_id.height, 12, 100)) ret += 200; end
+
+//    log("Angle: " + itoa(angle) + ", Graph: " + itoa(ret));
+
+    return (ret);
 end
 
 // Uses as child process of the entity to place in mode7 scene to fix the height position:
+// Set graph = -1 enables internal m7_xgraph() call.
 process m7_graph(file, graph, height_offset)
+private
+    int use_m7_xgraph = false;
+
 begin
     ctype = c_m7;
+
+    if (graph < 0)
+        use_m7_xgraph = true;
+    end
 
     loop
         x = father.x;
         y = father.y;
         height = father.height + height_offset;
+
+        if (use_m7_xgraph)
+            graph = m7_xgraph(father);
+        end
+
         frame;
     end
 end
@@ -801,7 +861,9 @@ begin
     y = 0;
     height = _default_height;
 
-    sprite = m7_graph(fpg_player, 1, -120);
+    player_shoots = 0;
+
+    sprite = m7_graph(fpg_player, -1, -120);
 
     player_aim_sight();
 
@@ -825,8 +887,8 @@ begin
 
         if (input_down(_input_shoot)) player_shoot(); end
 
-        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
-            " a" + itoa(fget_angle(m7.camera.x, m7.camera.y, x, y)));
+//        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
+//            " a" + itoa(m7_get_angle(id)));
 
         frame;
     end
@@ -851,6 +913,8 @@ private
     int i;
 
 begin
+    if (player_shoots == _max_player_shoots) return; end
+
     ctype = c_m7;
     x = father.x + 1;
     y = father.y;
@@ -858,10 +922,13 @@ begin
 
     sprite = m7_graph(fpg_shoots, 1, -12);
 
+    player_shoots++;
+
     from i = 0 to 600;
         x++;
         frame(5);
     end
 
+    player_shoots--;
     signal(sprite, s_kill);
 end
