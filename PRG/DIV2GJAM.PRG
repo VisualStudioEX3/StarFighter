@@ -156,12 +156,30 @@ global
 // ============================================================================
     int player_shoots;
 
+// Level definition
+// ============================================================================
+    struct level_data       // Level data. Stores events to spawn entities:
+        int lenght;             // Scene lenght. When the player reach the end, finish the level.
+        byte events;            // Number of events to invoke entities (max 64 per level).
+        struct event[63]        // Level events:
+            int position;           // Position in the level lenght.
+            byte entities;          // Number of entities in this event (max 8 per event).
+            struct entity[7]        // Entity definition:
+                byte e_type;            // Entity id type.
+                int x, y;               // Position in scene (Y and Height in this mode7 setup).
+            end
+        end
+    end
+
+    int level_position = 0;     // Current level position.
+    int level_speed = 1;        // Level speed, setup by player speed.
+
 local
 // Input Manager
 // ============================================================================
     struct pointer input_actions input_action_ptr;
 
-// Height Offset for mode7 objects
+// Mode7 entity locals
 // ============================================================================
     int sprite;         // Uses to store the m7_graph() id.
     int height_offset;
