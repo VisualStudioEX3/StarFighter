@@ -84,6 +84,7 @@ const
     _scene_size_top         = 100;
     _scene_size_right       = 60;
     _scene_size_bottom      = -200;
+    _scene_max_distance     = 500;  // Draw distance in mode7.
 
 // Player
 // ============================================================================
@@ -164,6 +165,7 @@ local
 // ============================================================================
     int sprite;         // Uses to store the m7_graph() id.
     int height_offset;
+    int life;           // Entity life.
 
 // Main process
 // ============================================================================
@@ -749,7 +751,7 @@ begin
 
 end
 
-function init_mode7(camera_id)
+function init_mode7(int camera_id)
 begin
     start_mode7(0, 0, black_pixel, 0, 0, 175);
 
@@ -758,25 +760,25 @@ begin
 end
 
 // Get angle between mode7 camera and process_id:
-function m7_get_angle(process_id)
+function m7_get_angle(int process_id)
 begin
     return (fget_angle(m7.camera.x, m7.camera.y, process_id.x, process_id.y));
 end
 
 // Custom xgraph logic to determine the sprite to show in each height and angle:
-function m7_xgraph(process_id)
+function m7_xgraph(int process_id)
 private
     int ret;
 
 begin
-    // This table defines how the different angle sprites must be store in the FPG:
+    // This table defines how the different angle sprites must be stored in the FPG:
     //  --------------------------------------------------------------
     // | Angles |  30 | 22.5|  15 | 7.5 |  0  |-7.5 | -15 |-22.5| -30 |
     // |--------+-----+-----+-----+-----+-----+-----+-----+-----+-----|
     // | Graphs | 104 | 103 | 102 | 101 | 100 | 111 | 112 | 113 | 114 |
     //  --------------------------------------------------------------
 
-    // This list defines how the different heights sprites must be store in the FPG:
+    // This list defines how the different heights sprites must be stored in the FPG:
     //  -------------------
     // | Height    | Range |
     // |-----------+-------|
@@ -817,7 +819,7 @@ end
 
 // Uses as child process of the entity to place in mode7 scene to fix the height position:
 // Set graph = -1 enables internal m7_xgraph() call.
-process m7_graph(file, graph, height_offset)
+process m7_graph(int file, int graph, int height_offset)
 private
     int use_m7_xgraph = false;
 
@@ -841,6 +843,18 @@ begin
     end
 end
 
+// Process A collides with process B in mode7?
+// This functions uses distance in 3D between A and B, and the radius local var of B.
+function m7_collision(int a, int b)
+private
+    int d;
+
+begin
+    d = sqrt((b.x - a.x) * 2 + (b.y - a.y) * 2 + (b.height - a.height) * 2);
+
+    return (d <= b.radius);
+end
+
 // Hyper-space effect background (maybe need to be optimized in graphic sizes)
 // ============================================================================
 process hyperspace()
@@ -848,10 +862,10 @@ private
     int i = 1;
 
 begin
+    ctype = c_m7;
     x = 100;
     size = 130;
     height = -350;
-    ctype = c_m7;
     file = fpg_hyperspace;
 
     loop
@@ -940,7 +954,7 @@ begin
 
     player_shoots++;
 
-    from i = 0 to 600;
+    from i = 0 to _scene_max_distance;
         x++;
         frame(5);
     end
