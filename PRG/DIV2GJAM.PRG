@@ -160,12 +160,12 @@ global
 // ============================================================================
     struct level_data       // Level data. Stores events to spawn entities:
         int lenght;             // Scene lenght. When the player reach the end, finish the level.
-        byte events;            // Number of events to invoke entities (max 64 per level).
+        int events;             // Number of events to invoke entities (max 64 per level).
         struct event[63]        // Level events:
             int position;           // Position in the level lenght.
-            byte entities;          // Number of entities in this event (max 8 per event).
+            int entities;           // Number of entities in this event (max 8 per event).
             struct entity[7]        // Entity definition:
-                byte e_type;            // Entity id type.
+                int e_type;             // Entity id type.
                 int x, y;               // Position in scene (Y and Height in this mode7 setup).
             end
         end
