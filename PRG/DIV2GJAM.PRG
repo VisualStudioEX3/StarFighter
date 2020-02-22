@@ -15,7 +15,9 @@ const
 // ============================================================================
     _working_path_dev       = "projects/div2gjam/";
     _working_path_prod      = "ex3/div2gjam/";
+    _log_enable             = 0;
     _max_fps                = 60;
+    _skip_fps               = 1;
     _vsync                  = 1;
     _restore_mode           = no_restore;
     _show_console_at_start  = 1;
@@ -77,6 +79,7 @@ const
     _starfield_max_stars    = 100;
     _starfield_width        = 30;
     _starfield_height       = 100;
+    _starfield_max_distance = 300;
 
 // Game scene
 // ============================================================================
@@ -84,7 +87,7 @@ const
     _scene_size_top         = 100;
     _scene_size_right       = 60;
     _scene_size_bottom      = -200;
-    _scene_max_distance     = 500;  // Draw distance in mode7.
+    _scene_max_distance     = 3000;  // Draw distance in mode7.
 
 // Player
 // ============================================================================
@@ -137,10 +140,6 @@ global
         int paused = 0;     // Is timer paused? (not changes this manually!)
     end
 
-// Mode7 starfield
-// ============================================================================
-    int starfield_speed;
-
 // Resources
 // ============================================================================
     int black_pixel;
@@ -151,6 +150,8 @@ global
     int fpg_player;
     int fpg_ui;
     int fpg_shoots;
+    int fpg_asteroid[3];
+    int fpg_enemy[2];
 
 // Player shoots
 // ============================================================================
@@ -218,14 +219,16 @@ end
 
 function create_log_console()
 begin
-    log("> Initializating log console...");
-    console_id = log_console();
+    if (_log_enable)
+        log("> Initializating log console...");
+        console_id = log_console();
+    end
 end
 
 function setup_video_mode()
 begin
     set_mode(m640x400);
-    set_fps(_max_fps, 0);
+    set_fps(_max_fps, _skip_fps);
     vsync = _vsync;
     restore_type = _restore_mode;
 
@@ -233,6 +236,9 @@ begin
 end
 
 function load_resources()
+private
+    int i;
+
 begin
     // Resolve working path:
     if (chdir(_working_path_dev))
@@ -253,6 +259,14 @@ begin
     fpg_ui          = load_fpg("fpg/ui.fpg");
     fpg_shoots      = load_fpg("fpg/shoots.fpg");
 
+    from i = 1 to 4;
+        fpg_asteroid[i - 1] = load_fpg("fpg/asterod" + itoa(i) + ".fpg");
+    end
+
+    from i = 1 to 3;
+        fpg_enemy[i - 1] = load_fpg("fpg/enemy" + itoa(i) + ".fpg");
+        break;
+    end
 end
 
 function set_default_input()
@@ -476,6 +490,8 @@ private
     int i, read_line;
 
 begin
+    if (!_log_enable) return; end
+
     read_line = clamp(console_index - (_console_text_lines + 1), 0, _log_buffer_size);
 
     from i = 0 to _console_text_lines;
@@ -487,6 +503,8 @@ end
 // Allow to navigate one previous line in historic.
 function console_nav_line_up()
 begin
+    if (!_log_enable) return; end
+
     console_index = clamp(--console_index, _console_text_lines, _log_buffer_size);
 
     console_update();
@@ -495,6 +513,8 @@ end
 // Allow to navigate one later line in historic.
 function console_nav_line_down()
 begin
+    if (!_log_enable) return; end
+
     console_index = clamp(++console_index, 0, log_index);
 
     console_update();
@@ -503,6 +523,8 @@ end
 // Allow to navigate one previous page in historic.
 function console_nav_page_up()
 begin
+    if (!_log_enable) return; end
+
     console_index -= _console_text_lines;
     console_index = clamp(console_index, _console_text_lines, _log_buffer_size);
 
@@ -512,6 +534,8 @@ end
 // Allow to navigate one later page in historic.
 function console_nav_page_down()
 begin
+    if (!_log_enable) return; end
+
     console_index += _console_text_lines;
     console_index = clamp(console_index, 0, log_index);
 
@@ -524,6 +548,8 @@ private
     int i;
 
 begin
+    if (!_log_enable) return; end
+
     from i = 0 to _console_text_lines;
         move_text(console_ui.text[i].obj, _console_text_offset_x, (i * 10) + _console_text_offset_y);
     end
@@ -541,6 +567,8 @@ private
     int i;
 
 begin
+    if (!_log_enable) return; end
+
     from i = 0 to _console_text_lines;
         move_text(console_ui.text[i].obj, 0, -10);
     end
@@ -557,6 +585,8 @@ private
 
     string echo_output;
 begin
+    if (!_log_enable) return; end
+
     if (_log_to_file)
         echo_output = message;
         // Avoid "ECHO IS ON" when write empty strings:
@@ -679,11 +709,14 @@ begin
     if (y < 0) y = -1; end
     if (y > 0) y = 1; end
 
-    scroll.x0 += x * 2;
-    scroll.y0 += y * 2;
+    scroll.x0 += x;// * 2;
+    scroll.y0 += y;// * 2;
 
-    scroll.x1 += x;
-    scroll.y1 += y;
+    //scroll.x1 -= x;
+    //scroll.y1 -= y;
+
+    //m7.camera.y -= x * 2;
+    m7.camera.height -= y * 2;
 end
 
 // Mode7 Starfield
@@ -704,9 +737,6 @@ begin
 end
 
 process star()
-private
-    int distance = 200;
-
 begin
     graph = white_pixel;
     flags = 4;
@@ -717,27 +747,31 @@ begin
 
     loop
         repeat
-            x -= starfield_speed;
+            x -= level_speed;
             frame();
         until(m7.camera.x > x + m7.distance);
 
-        x = distance + m7.camera.x + m7.distance;
+        x = _starfield_max_distance + m7.camera.x + m7.distance;
     end
 end
 
 // Game scene
 // ============================================================================
 process game_scene()
+private
+    int i;
+
 begin
     init_mode7(id);
 
     space_background();
     starfield();
 
-    //hyperspace();
+//    hyperspace();
     player();
+    create_background_asteroids();
 
-    starfield_speed = 3;
+    level_speed = 5;
 
     loop
         /*if (input_pressed(_input_right))
@@ -830,6 +864,10 @@ begin
         case -100.. -60: ret += 400; end
         case -150..-100: ret += 500; end
         case -200..-150: ret += 600; end
+        default:
+            // Uses this case for objects out of game play range (e.g. atrezzo asteroids):
+            if (process_id.height < 100) ret = 100; else ret = 600; end
+        end
     end
 
     return (ret);
@@ -974,9 +1012,123 @@ begin
 
     from i = 0 to _scene_max_distance;
         x++;
-        frame(5);
+        frame(3);
     end
 
     player_shoots--;
+    signal(sprite, s_kill);
+end
+
+function create_background_asteroids()
+private
+    int i;
+
+begin
+    from i = 0 to 25;
+        background_asteroid();
+    end
+end
+
+function destroy_background_asteroids()
+begin
+    signal(type background_asteroid, s_kill);
+end
+
+process background_asteroid()
+begin
+    ctype = c_m7;
+
+    set_background_asteroid_random_position(id);
+    x = rand(m7.camera.x + m7.distance, _scene_max_distance);
+
+    sprite = m7_graph(fpg_asteroid[rand(0, 2)], get_random_view_index(), -64);
+    sprite.size = rand(100, 300);
+
+    loop
+        repeat
+            x -= level_speed;
+            frame();
+        until(m7.camera.x > x + m7.distance);
+
+        set_background_asteroid_random_position(id);
+    end
+end
+
+function get_random_view_index()
+private
+    int i = 0;
+
+begin
+    loop
+        switch (i)
+            case 100..104, 111..114,
+                 200..204, 211..214,
+                 300..304, 311..314,
+                 400..404, 411..414,
+                 500..504, 511..514,
+                 600..604, 611..614:
+                    return (i);
+                end
+            default:
+                i = rand(100, 614);
+            end
+        end
+    end
+end
+
+function set_background_asteroid_random_position(process_id)
+private
+    struct _max
+        int x = 300;
+        int y = 500;
+    end
+
+begin
+    process_id.x        = m7.camera.x + m7.distance + _scene_max_distance;
+    process_id.height   = rand(_scene_size_bottom - _max.y, _scene_size_top + _max.y);
+
+    if (rand(0, 10))
+        process_id.y = rand(_scene_size_left - _max.x, _scene_size_left - (_max.x / 2));
+
+    else
+        process_id.y = rand(_scene_size_right + (_max.x / 2), _scene_size_right + _max.x);
+    end
+end
+
+// Asteroid obstacle:
+process asteroid(x, y)
+begin
+    ctype = c_m7;
+    height = y;
+    y = x;
+    x = m7.camera.x + m7.distance + _scene_max_distance;
+
+    sprite = m7_graph(fpg_asteroid[rand(0, 2)], -1, -64);
+
+    repeat
+        // TODO: Check collision if reach player position.
+        x -= level_speed;
+        frame;
+    until(m7.camera.x > x + m7.distance);
+
+    signal(sprite, s_kill);
+end
+
+// Enemy type 1;
+process enemy1(x, y)
+begin
+    ctype = c_m7;
+    height = y;
+    y = x;
+    x = m7.camera.x + m7.distance + _scene_max_distance;
+
+    sprite = m7_graph(fpg_enemy[0], -1, -128);
+
+    repeat
+        // TODO: Check collision if reach player position.
+        x -= level_speed;
+        frame;
+    until(m7.camera.x > x + m7.distance);
+
     signal(sprite, s_kill);
 end
