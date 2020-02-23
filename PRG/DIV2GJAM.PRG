@@ -971,12 +971,28 @@ begin
             if (height > _scene_size_bottom) move_background(0, 1); end
         end
 
+        if (input_down(_input_special))
+            create_enemies();
+        end
+
         if (input_down(_input_shoot)) player_shoot(); end
 
         log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
             " a" + itoa(m7_get_angle(id)));
 
         frame;
+    end
+end
+
+process create_enemies()
+private
+    int i;
+
+begin
+    from i = 0 to 5;
+        enemy1(rand(_scene_size_left, _scene_size_right),
+               rand(_scene_size_top, _scene_size_bottom));
+        frame(250);
     end
 end
 
