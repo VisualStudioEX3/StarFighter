@@ -87,7 +87,7 @@ const
     _scene_size_top         = 100;
     _scene_size_right       = 60;
     _scene_size_bottom      = -200;
-    _scene_max_distance     = 3000;  // Draw distance in mode7.
+    _scene_max_distance     = 2000;  // Draw distance in mode7.
 
 // Player
 // ----------------------------------------------------------------------------
@@ -153,8 +153,9 @@ global
     int fpg_asteroid[3];
     int fpg_enemy[2];
 
-// Player shoots
+// Player
 // ----------------------------------------------------------------------------
+    int player_id;
     int player_shoots;
 
 // Level definition
@@ -823,51 +824,83 @@ private
     int ret;
 
 begin
-    // This table defines how the different angle sprites must be stored in the FPG:
-    //  --------------------------------------------------------------
+    // This tables defines how the different angle sprites must be stored in the FPG:
+    // +--------------------------------------------------------------+
+    // | Player                                                       |
+    // |--------------------------------------------------------------|
     // | Angles |  30 | 22.5|  15 | 7.5 |  0  |-7.5 | -15 |-22.5| -30 |
     // |--------+-----+-----+-----+-----+-----+-----+-----+-----+-----|
     // | Graphs | 104 | 103 | 102 | 101 | 100 | 111 | 112 | 113 | 114 |
-    //  --------------------------------------------------------------
+    // +--------------------------------------------------------------+
 
-    // This list defines how the different heights sprites must be stored in the FPG:
-    //  -------------------
-    // | Height    | Range |
-    // |-----------+-------|
-    // | 100 :  60 |  100  |
-    // |  60 : -10 |  200  |
-    // | -10 : -60 |  300  |
-    // | -60 :-100 |  400  |
-    // |-100 :-150 |  500  |
-    // |-150 :-200 |  600  |
-    //  -------------------
+    // +--------------------------------------+
+    // | Others                               |
+    // |--------------------------------------|
+    // | Angles |  30 |  20 |   0 | -20 | -30 |
+    // |--------+-----+-----+-----+-----+-----|
+    // | Graphs | 102 | 101 | 100 | 111 | 112 |
+    // +--------------------------------------+
+
+    // This lists defines how the different heights sprites must be stored in the FPG:
+    // +---------------------------------------|
+    // |      Player       |      Others       |
+    // |-------------------+-------------------|
+    // | Height    | Range | Height    | Range |
+    // |-----------+-------+-----------+-------|
+    // | 100 :  60 |  100  | 100 :  50 |  200  |
+    // |  60 : -10 |  200  |  50 : -80 |  300  |
+    // | -10 : -60 |  300  | -80 :-170 |  400  |
+    // | -60 :-100 |  400  |-170 :-200 |  500  |
+    // |-100 :-150 |  500  |           |       |
+    // |-150 :-200 |  600  |           |       |
+    // +-------------------+-------------------+
 
     angle = m7_get_angle(process_id);
 
-    // Select angle view:
-    switch (abs(angle))
-        case     0.. 7500: ret = 0;  end
-        case  7500..15000: ret ++;   end
-        case 15000..22500: ret += 2; end
-        case 22500..30000: ret += 3; end
-        default:           ret += 4; end
-    end
+    if (process_id == player_id)
 
-    // Select right views if angle is under -7.5 degrees:
-    if (angle <= -7500)    ret += 10; end
-
-    // Select height view:
-    switch (process_id.height)
-        case   60.. 100: ret += 100; end
-        case  -10..  60: ret += 200; end
-        case  -60.. -10: ret += 300; end
-        case -100.. -60: ret += 400; end
-        case -150..-100: ret += 500; end
-        case -200..-150: ret += 600; end
-        default:
-            // Uses this case for objects out of game play range (e.g. atrezzo asteroids):
-            if (process_id.height < 100) ret = 100; else ret = 600; end
+        // Select angle view:
+        switch (abs(angle))
+            case     0.. 7500: ret = 0;  end
+            case  7500..15000: ret ++;   end
+            case 15000..22500: ret += 2; end
+            case 22500..30000: ret += 3; end
+            default:           ret += 4; end
         end
+
+        // Select right views if angle is under -7.5 degrees:
+        if (angle <= -7500) ret += 10; end
+
+        // Select height view:
+        switch (process_id.height)
+            case   60.. 100: ret += 100; end
+            case  -10..  60: ret += 200; end
+            case  -60.. -10: ret += 300; end
+            case -100.. -60: ret += 400; end
+            case -150..-100: ret += 500; end
+            case -200..-150: ret += 600; end
+        end
+
+    else
+
+        // Select angle view:
+        switch (abs(angle))
+            case     0..20000: ret = 0;  end
+            case 20000..30000: ret ++;   end
+            default:           ret += 2; end
+        end
+
+        // Select right views if angle is under -15 degrees:
+        if (angle <= -20000) ret += 10; end
+
+        // Select height view:
+        switch (process_id.height)
+            case   50.. 100: ret += 200; end
+            case  -80..  50: ret += 300; end
+            case -170.. -80: ret += 400; end
+            case -200..-170: ret += 500; end
+        end
+
     end
 
     return (ret);
@@ -947,6 +980,8 @@ begin
     y = 0;
     height = _default_height;
 
+    player_id = id;
+
     player_shoots = 0;
 
     sprite = m7_graph(fpg_player, -1, -120);
@@ -989,7 +1024,7 @@ private
     int i;
 
 begin
-    from i = 0 to 5;
+    from i = 1 to 3;
         enemy1(rand(_scene_size_left, _scene_size_right),
                rand(_scene_size_top, _scene_size_bottom));
         frame(250);
