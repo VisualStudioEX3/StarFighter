@@ -1,18 +1,18 @@
-/* ============================================================================
+/* ----------------------------------------------------------------------------
  * DIV2 GAME JAM Project
  *
  * A "Space Shoot 'Em Up" developed in Div Game Studio 2 'vanilla'.
  *
  * <project_name> (C) VisualStudioEX3, Jos‚ Miguel S nchez Fern ndez - 2020
  * Div Game Studio 2 (C) Hammer Technologies - 1998 - 1999
- * ============================================================================
+ * ----------------------------------------------------------------------------
  */
 
 program DIV2_GAME_JAM_PROJECT;
 
 const
 // System setup
-// ============================================================================
+// ----------------------------------------------------------------------------
     _working_path_dev       = "projects/div2gjam/";
     _working_path_prod      = "ex3/div2gjam/";
     _log_enable             = 0;
@@ -24,7 +24,7 @@ const
     _show_fps_counter       = 1;
 
 // Input Manager
-// ============================================================================
+// ----------------------------------------------------------------------------
     _max_input_actions = 15;
 
     // Input action list:
@@ -59,7 +59,7 @@ const
     _joy_button4    = 107;
 
 // Log console
-// ============================================================================
+// ----------------------------------------------------------------------------
     _log_buffer_size            = 512;              // The log buffer size.
     _log_to_file                = 1;                // The log can write to file in disk.
     _log_filename               = "console.log";    // Filename to write the log (if _log_to_file == 1).
@@ -71,18 +71,18 @@ const
     _console_text_lines         = 15;               // Number of visible lines in console.
 
 // Advanced timers
-// ============================================================================
+// ----------------------------------------------------------------------------
     _max_xtimers = 31;
 
 // Mode7 starfield
-// ============================================================================
+// ----------------------------------------------------------------------------
     _starfield_max_stars    = 100;
     _starfield_width        = 30;
     _starfield_height       = 100;
     _starfield_max_distance = 300;
 
 // Game scene
-// ============================================================================
+// ----------------------------------------------------------------------------
     _scene_size_left        = -60;
     _scene_size_top         = 100;
     _scene_size_right       = 60;
@@ -90,12 +90,12 @@ const
     _scene_max_distance     = 3000;  // Draw distance in mode7.
 
 // Player
-// ============================================================================
+// ----------------------------------------------------------------------------
     _max_player_shoots      = 3;
 
 global
 // Log console
-// ============================================================================
+// ----------------------------------------------------------------------------
     int log_index = 0;                  // Index of the next log entry.
     struct log_buffer[_log_buffer_size] // String array to store log entries.
         string value;
@@ -115,7 +115,7 @@ global
     end
 
 // Input Manager
-// ============================================================================
+// ----------------------------------------------------------------------------
     // Input action definitions:
     struct input_actions[_max_input_actions]
         string name;            // Action name.
@@ -132,7 +132,7 @@ global
     end
 
 // Advanced timers
-// ============================================================================
+// ----------------------------------------------------------------------------
     struct xtimer[_max_xtimers]
         int start_time;
         int pause_delta;
@@ -141,7 +141,7 @@ global
     end
 
 // Resources
-// ============================================================================
+// ----------------------------------------------------------------------------
     int black_pixel;
     int white_pixel;
 
@@ -154,11 +154,11 @@ global
     int fpg_enemy[2];
 
 // Player shoots
-// ============================================================================
+// ----------------------------------------------------------------------------
     int player_shoots;
 
 // Level definition
-// ============================================================================
+// ----------------------------------------------------------------------------
     struct level_data       // Level data. Stores events to spawn entities:
         int lenght;             // Scene lenght. When the player reach the end, finish the level.
         int events;             // Number of events to invoke entities (max 64 per level).
@@ -177,17 +177,17 @@ global
 
 local
 // Input Manager
-// ============================================================================
+// ----------------------------------------------------------------------------
     struct pointer input_actions input_action_ptr;
 
 // Mode7 entity locals
-// ============================================================================
+// ----------------------------------------------------------------------------
     int sprite;         // Uses to store the m7_graph() id.
     int height_offset;
     int life;           // Entity life.
 
 // Main process
-// ============================================================================
+// ----------------------------------------------------------------------------
 begin
     initialize();
 
@@ -202,7 +202,7 @@ begin
 end
 
 // Initialization functions
-// ============================================================================
+// ----------------------------------------------------------------------------
 function initialize()
 begin
     log("Initializating systems...");
@@ -295,7 +295,7 @@ begin
 end
 
 // Math functions
-// ============================================================================
+// ----------------------------------------------------------------------------
 function clamp(v, min_v, max_v)
 begin
     if (v < min_v) return (min_v); end
@@ -319,7 +319,7 @@ begin
 end
 
 // Input manager
-// ============================================================================
+// ----------------------------------------------------------------------------
 // Setup an input action bindings and name:
 function set_input_action(int index, string name, int key_primary, int key_secondary, int joy_button)
 begin
@@ -426,7 +426,7 @@ begin
 end
 
 // Log console
-// ============================================================================
+// ----------------------------------------------------------------------------
 // Create an instance of log console.
 process log_console()
 private
@@ -627,7 +627,7 @@ begin
 end
 
 // Advanced timers
-// ============================================================================
+// ----------------------------------------------------------------------------
 function update_xtimers()
 private
     int i;
@@ -669,7 +669,7 @@ end
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
 // Scrolled background
-// ============================================================================
+// ----------------------------------------------------------------------------
 // Create the scrollable background process:
 process space_background()
 private
@@ -720,7 +720,7 @@ begin
 end
 
 // Mode7 Starfield
-// ============================================================================
+// ----------------------------------------------------------------------------
 // Creates a particle system to simulate speed and movement in the void.
 process starfield()
 private
@@ -756,7 +756,7 @@ begin
 end
 
 // Game scene
-// ============================================================================
+// ----------------------------------------------------------------------------
 process game_scene()
 private
     int i;
@@ -912,7 +912,7 @@ begin
 end
 
 // Hyper-space effect background (maybe need to be optimized in graphic sizes)
-// ============================================================================
+// ----------------------------------------------------------------------------
 process hyperspace()
 private
     int i = 1;
@@ -932,7 +932,7 @@ begin
 end
 
 // Test player ship process (used to test heights and playground dimensions)
-// ============================================================================
+// ----------------------------------------------------------------------------
 process player()
 private
     struct _move_speed
