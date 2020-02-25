@@ -861,11 +861,11 @@ begin
 
         // Select angle view:
         switch (abs(angle))
-            case     0.. 7500: ret = 0;  end
-            case  7500..15000: ret ++;   end
-            case 15000..22500: ret += 2; end
-            case 22500..30000: ret += 3; end
-            default:           ret += 4; end
+            case     0.. 7500: ret = 0; end
+            case  7500..15000: ret = 1; end
+            case 15000..22500: ret = 2; end
+            case 22500..30000: ret = 3; end
+            default:           ret = 4; end
         end
 
         // Select right views if angle is under -7.5 degrees:
@@ -885,9 +885,9 @@ begin
 
         // Select angle view:
         switch (abs(angle))
-            case     0..20000: ret = 0;  end
-            case 20000..30000: ret ++;   end
-            default:           ret += 2; end
+            case     0..20000: ret = 0; end
+            case 20000..30000: ret = 1; end
+            default:           ret = 2; end
         end
 
         // Select right views if angle is under -15 degrees:
