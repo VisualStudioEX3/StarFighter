@@ -4,7 +4,7 @@
  * A "Space Shoot 'Em Up" developed in Div Game Studio 2 'vanilla'.
  *
  * <project_name> (C) VisualStudioEX3, Jos‚ Miguel S nchez Fern ndez - 2020
- * Div Game Studio 2 (C) Hammer Technologies - 1998 - 1999
+ * Div Game Studio 2 (C) Hammer Technologies - 1998, 1999
  * ----------------------------------------------------------------------------
  */
 
@@ -49,14 +49,14 @@ const
     _input_special              = 15;
 
     // Joystick button constants:
-    _joy_left       = 100;
-    _joy_up         = 101;
-    _joy_right      = 102;
-    _joy_down       = 103;
-    _joy_button1    = 104;
-    _joy_button2    = 105;
-    _joy_button3    = 106;
-    _joy_button4    = 107;
+    _joy_left                   = 100;
+    _joy_up                     = 101;
+    _joy_right                  = 102;
+    _joy_down                   = 103;
+    _joy_button1                = 104;
+    _joy_button2                = 105;
+    _joy_button3                = 106;
+    _joy_button4                = 107;
 
 // Log console
 // ----------------------------------------------------------------------------
@@ -72,26 +72,26 @@ const
 
 // Advanced timers
 // ----------------------------------------------------------------------------
-    _max_xtimers = 31;
+    _max_xtimers                = 31;
 
 // Mode7 starfield
 // ----------------------------------------------------------------------------
-    _starfield_max_stars    = 100;
-    _starfield_width        = 30;
-    _starfield_height       = 100;
-    _starfield_max_distance = 300;
+    _starfield_max_stars        = 100;
+    _starfield_width            = 30;
+    _starfield_height           = 100;
+    _starfield_max_distance     = 300;
 
 // Game scene
 // ----------------------------------------------------------------------------
-    _scene_size_left        = -60;
-    _scene_size_top         = 100;
-    _scene_size_right       = 60;
-    _scene_size_bottom      = -200;
-    _scene_max_distance     = 2000;  // Draw distance in mode7.
+    _scene_size_left            = -60;
+    _scene_size_top             = 100;
+    _scene_size_right           = 60;
+    _scene_size_bottom          = -200;
+    _scene_max_distance         = 2000;  // Draw distance in mode7.
 
 // Player
 // ----------------------------------------------------------------------------
-    _max_player_shoots      = 3;
+    _max_player_shoots          = 8;
 
 global
 // Log console
@@ -133,7 +133,7 @@ global
 
 // Advanced timers
 // ----------------------------------------------------------------------------
-    struct xtimer[_max_xtimers]
+    struct xtimer_data[_max_xtimers] // Not access directly to this structure. Use xtimer* functions.
         int start_time;
         int pause_delta;
         int time;           // Time value (updated by update_xtimers()).
@@ -149,7 +149,7 @@ global
     int fpg_hyperspace;
     int fpg_player;
     int fpg_ui;
-    int fpg_shoots;
+    int fpg_player_shoots;
     int fpg_asteroid[3];
     int fpg_enemy[2];
 
@@ -176,6 +176,10 @@ global
     int level_position = 0;     // Current level position.
     int level_speed = 1;        // Level speed, setup by player speed.
 
+// Hyper-space
+// ----------------------------------------------------------------------------
+    int in_hyperspace;
+
 local
 // Input Manager
 // ----------------------------------------------------------------------------
@@ -196,6 +200,8 @@ begin
 
     repeat
         process_input();
+        xtimer_update();
+
         frame;
     until(input_down(_input_menu));
 
@@ -251,14 +257,14 @@ begin
 
     load_pal("space.pal");
 
-    black_pixel     = new_map(1, 1, 0, 0, 0);
-    white_pixel     = new_map(1, 1, 0, 0, 223);
+    black_pixel         = new_map(1, 1, 0, 0, 0);
+    white_pixel         = new_map(1, 1, 0, 0, 223);
 
-    fpg_background  = load_fpg("fpg/space.fpg");
-    fpg_hyperspace  = load_fpg("fpg/hyperspc.fpg");
-    fpg_player      = load_fpg("fpg/player.fpg");
-    fpg_ui          = load_fpg("fpg/ui.fpg");
-    fpg_shoots      = load_fpg("fpg/shoots.fpg");
+    fpg_background      = load_fpg("fpg/space.fpg");
+    fpg_hyperspace      = load_fpg("fpg/hyperspc.fpg");
+    fpg_player          = load_fpg("fpg/player.fpg");
+    fpg_ui              = load_fpg("fpg/ui.fpg");
+    fpg_player_shoots   = load_fpg("fpg/plyshoot.fpg");
 
     from i = 1 to 4;
         fpg_asteroid[i - 1] = load_fpg("fpg/asterod" + itoa(i) + ".fpg");
@@ -266,7 +272,7 @@ begin
 
     from i = 1 to 3;
         fpg_enemy[i - 1] = load_fpg("fpg/enemy" + itoa(i) + ".fpg");
-        break;
+        break; // Until complete the enemy fpg left, only load the first.
     end
 end
 
@@ -317,6 +323,26 @@ end
 function between(v, min_v, max_v)
 begin
     return (v >= min_v && v <= max_v);
+end
+
+// Process functions
+// ----------------------------------------------------------------------------
+function typeof(int process_id)
+begin
+    if (process_id)
+        return (process_id.reserved.process_type);
+    else
+        return (0);
+    end
+end
+
+// Graphics functions
+// ----------------------------------------------------------------------------
+process flash(int red, int green, int blue, int speed)
+begin
+    fade(red, green, blue, 64); frame; // Setup instatly the flash color.
+    fade(100, 100, 100, speed); // Smooth restoring the original colors.
+    while (fading) frame; end
 end
 
 // Input manager
@@ -401,7 +427,7 @@ begin
 end
 
 // Returns the pressed key or joystick button:
-function read_input()
+function read_keyboard_input()
 private
     int i;
 
@@ -410,6 +436,14 @@ begin
         if (key(i)) return (i); end
     end
 
+    return (0);
+end
+
+function read_joystick_input()
+private
+    int i;
+
+begin
     from i = _joy_left to _joy_button4;
         switch (i)
             case _joy_left:     if (joy.left)       return (_joy_left);     end end
@@ -629,40 +663,45 @@ end
 
 // Advanced timers
 // ----------------------------------------------------------------------------
-function update_xtimers()
+function xtimer_update()
 private
     int i;
 begin
     from i = 0 to _max_xtimers;
-        if (!xtimer[i].paused)
-            xtimer[i].time = timer[0] - xtimer[i].start_time;
+        if (!xtimer_data[i].paused)
+            xtimer_data[i].time = timer[0] - xtimer_data[i].start_time;
         else
-            xtimer[i].time = xtimer[i].pause_delta - xtimer[i].start_time;
+            xtimer_data[i].time = xtimer_data[i].pause_delta - xtimer_data[i].start_time;
         end
     end
 end
 
-function pause_xtimer(int index)
+function xtimer(int index)
 begin
-    if (!xtimer[index].paused)
-        xtimer[index].pause_delta = timer[0];
-        xtimer[index].paused = true;
+    return (xtimer_data[index].time);
+end
+
+function xtimer_pause(int index)
+begin
+    if (!xtimer_data[index].paused)
+        xtimer_data[index].pause_delta = timer[0];
+        xtimer_data[index].paused = true;
     end
 end
 
-function resume_xtimer(int index)
+function xtimer_resume(int index)
 begin
-    if (xtimer[index].paused)
-        xtimer[index].start_time += timer[0] - xtimer[index].pause_delta;
-        xtimer[index].paused = false;
+    if (xtimer_data[index].paused)
+        xtimer_data[index].start_time += timer[0] - xtimer_data[index].pause_delta;
+        xtimer_data[index].paused = false;
     end
 end
 
-function reset_xtimer(int index, int paused)
+function xtimer_reset(int index, int paused)
 begin
-    xtimer[index].start_time = timer[0];
-    xtimer[index].pause_delta = 0;
-    xtimer[index].paused = paused;
+    xtimer_data[index].start_time = timer[0];
+    xtimer_data[index].pause_delta = 0;
+    xtimer_data[index].paused = paused;
 end
 
 // // // // // // // // // // // // // // // // // // // // // // // // // // //
@@ -681,9 +720,9 @@ private
           80,  40;
 
 begin
-    start_scroll(0, fpg_background, 2, 1, 0, 15);
-
     ctype = c_scroll;
+
+    start_scroll(0, fpg_background, 2, 1, 0, 15);
 
     scroll.x0 = plane[0].width / 2; scroll.y0 = plane[0].height / 2;
     scroll.x1 = plane[1].width / 2; scroll.y1 = plane[1].height / 2;
@@ -696,9 +735,7 @@ begin
         scroll.y1 = clamp(scroll.y1, 0, plane[1].height);
 
         frame;
-    end // TODO: Define exit condition.
-
-    stop_scroll(0);
+    end
 end
 
 // Move background in single steps:
@@ -723,17 +760,13 @@ end
 // Mode7 Starfield
 // ----------------------------------------------------------------------------
 // Creates a particle system to simulate speed and movement in the void.
-process starfield()
+function starfield()
 private
     int i;
 
 begin
-    from i = 0 to _starfield_max_stars;
+    from i = 0 to 10; // _starfield_max_stars;  // TODO: Check process count. Maybe we reach the 256 limit using m7_graph and functions.
         star();
-    end
-
-    loop
-        frame;
     end
 end
 
@@ -767,41 +800,21 @@ begin
 
     space_background();
     starfield();
-
-//    hyperspace();
     player();
     create_background_asteroids();
 
-    level_speed = 5;
+//    hyperspace();
 
     loop
-        /*if (input_pressed(_input_right))
-            angle+=22500;
-            move_background(1, 0);
-        end
-        if (input_pressed(_input_left))
-            angle-=22500;
-            move_background(-1, 0);
-        end
-        if (input_pressed(_input_down))
-            move_background(0, 1);
-        end
-        if (input_pressed(_input_up))
-            move_background(0, -1);
-        end*/
-
-        //log("GameScene x" + itoa(x) + " y" + itoa(y) + ", angle: " + itoa(angle));
-
         frame;
     end
 
     signal(type space_background, s_kill);
-    signal(type starfield, s_kill_tree);
+    signal(type star, s_kill_tree);
     signal(type hyperspace, s_kill);
     signal(type player, s_kill_tree);
 
     stop_mode7(0);
-
 end
 
 function init_mode7(int camera_id)
@@ -842,7 +855,7 @@ begin
     // +--------------------------------------+
 
     // This lists defines how the different heights sprites must be stored in the FPG:
-    // +---------------------------------------|
+    // +---------------------------------------+
     // |      Player       |      Others       |
     // |-------------------+-------------------|
     // | Height    | Range | Height    | Range |
@@ -857,50 +870,54 @@ begin
 
     angle = m7_get_angle(process_id);
 
-    if (process_id == player_id)
+    switch (typeof(process_id))
+        case type player,
+             type player_shoot:
 
-        // Select angle view:
-        switch (abs(angle))
-            case     0.. 7500: ret = 0; end
-            case  7500..15000: ret = 1; end
-            case 15000..22500: ret = 2; end
-            case 22500..30000: ret = 3; end
-            default:           ret = 4; end
+            // Select angle view:
+            switch (abs(angle))
+                case     0.. 7500: ret = 0; end
+                case  7500..15000: ret = 1; end
+                case 15000..22500: ret = 2; end
+                case 22500..30000: ret = 3; end
+                default:           ret = 4; end
+            end
+
+            // Select right views if angle is under -7.5 degrees:
+            if (angle <= -7500) ret += 10; end
+
+            // Select height view:
+            switch (process_id.height)
+                case   60.. 100: ret += 100; end
+                case  -10..  60: ret += 200; end
+                case  -60.. -10: ret += 300; end
+                case -100.. -60: ret += 400; end
+                case -150..-100: ret += 500; end
+                case -200..-150: ret += 600; end
+            end
+
         end
+        default:
 
-        // Select right views if angle is under -7.5 degrees:
-        if (angle <= -7500) ret += 10; end
+            // Select angle view:
+            switch (abs(angle))
+                case     0..20000: ret = 0; end
+                case 20000..30000: ret = 1; end
+                default:           ret = 2; end
+            end
 
-        // Select height view:
-        switch (process_id.height)
-            case   60.. 100: ret += 100; end
-            case  -10..  60: ret += 200; end
-            case  -60.. -10: ret += 300; end
-            case -100.. -60: ret += 400; end
-            case -150..-100: ret += 500; end
-            case -200..-150: ret += 600; end
+            // Select right views if angle is under -15 degrees:
+            if (angle <= -20000) ret += 10; end
+
+            // Select height view:
+            switch (process_id.height)
+                case   50.. 100: ret += 200; end
+                case  -80..  50: ret += 300; end
+                case -170.. -80: ret += 400; end
+                case -200..-170: ret += 500; end
+            end
+
         end
-
-    else
-
-        // Select angle view:
-        switch (abs(angle))
-            case     0..20000: ret = 0; end
-            case 20000..30000: ret = 1; end
-            default:           ret = 2; end
-        end
-
-        // Select right views if angle is under -15 degrees:
-        if (angle <= -20000) ret += 10; end
-
-        // Select height view:
-        switch (process_id.height)
-            case   50.. 100: ret += 200; end
-            case  -80..  50: ret += 300; end
-            case -170.. -80: ret += 400; end
-            case -200..-170: ret += 500; end
-        end
-
     end
 
     return (ret);
@@ -928,7 +945,7 @@ begin
             graph = m7_xgraph(father);
         end
 
-        frame;
+        frame(200);
     end
 end
 
@@ -944,27 +961,113 @@ begin
     return (d <= b.radius);
 end
 
-// Hyper-space effect background (maybe need to be optimized in graphic sizes)
+// Hyper-space effect background
 // ----------------------------------------------------------------------------
 process hyperspace()
 private
     int i = 1;
+    int hud_animation_id;
 
 begin
     ctype = c_m7;
-    x = 100;
+    x = 101;
     size = 130;
     height = -350;
     file = fpg_hyperspace;
 
+    in_hyperspace = true;
+    level_speed = 3;
+
+    hyperspace_hud_animation();
+
     loop
         graph = i;
         if (++i == 10) i = 1; end
-        frame();
+        frame;
     end
 end
 
-// Test player ship process (used to test heights and playground dimensions)
+process hyperspace_hud_animation()
+private
+    int _max_messages = 14;
+    int _xtimer_id = 15;
+
+    int i;
+    int msg_len;
+    int msg_index;
+
+    struct messages[14]
+        string content;         // Message content to show.
+        string message;         // Message showed in write instance (animated composed character to character).
+        int wait;               // Wait after show message to jump to the next.
+        int text_id;            // Write instance.
+        int exit;               // Flag to call hyperspace_exit_effect() process.
+    end = "Warning! Arriving to target coordinates...", "", 30, 0, false,
+          "Start countdown to exit hyperspace:", "", 10, 0, false,
+          " 5", "", 100, 0, false,
+          " 4", "", 100, 0, false,
+          " 3", "", 100, 0, false,
+          " 2", "", 100, 0, false,
+          " 1", "", 100, 0, false,
+          "Exiting hyperspace...", "", 20, 0, true,
+          "Target reached: 'Sector 24, Argos asteroid fields'", "", 100, 0, false,
+          "Checking systems:", "", 50, 0, false,
+          " Impulse engines: Ok", "", 5, 0, false,
+          " Laser weapons: Ok", "", 5, 0, false,
+          " Combat HUD: Ok", "", 500, 0, false,
+          "Warning! Enemy targets detected in 0.0050 parsecs", "", 500, 0, false;
+
+    struct pointer messages m;
+
+begin
+    // Creates all text instances:
+    for (i = 0; i < _max_messages; i++)
+        m = offset messages[i];
+        m.text_id = write(0, 10, (i + 1) * 10, 0, m.message);
+    end
+
+    // Loop animated messages:
+    for (i = 0; i < _max_messages; i++)
+        m = offset messages[i];
+
+        if (m.exit)
+            hyperspace_exit_effect();
+        end
+
+        // Typewriter effect:
+        for (msg_index = 0; msg_index < strlen(m.content); msg_index++)
+            if (msg_index > 1) m.message--; end
+
+            m.message += m.content[msg_index];
+
+            if (msg_index > 0) m.message += ""; end
+
+            frame(100);
+        end
+
+        m.message--;
+
+        xtimer_reset(_xtimer_id, false);
+        repeat
+            frame;
+        until(xtimer(_xtimer_id) > m.wait);
+    end
+
+    // Destroy all text instances:
+    for (i = 0; i < _max_messages; i++)
+        delete_text(messages[i].text_id);
+    end
+end
+
+function hyperspace_exit_effect()
+begin
+    flash(200, 200, 200, 16);
+    signal(type hyperspace, s_kill);
+    in_hyperspace = false;
+    level_speed = 5;
+end
+
+// Player
 // ----------------------------------------------------------------------------
 process player()
 private
@@ -980,40 +1083,41 @@ begin
     y = 0;
     height = _default_height;
 
-    player_id = id;
-
-    player_shoots = 0;
-
     sprite = m7_graph(fpg_player, -1, -120);
+
+    player_id = id;
+    player_shoots = 0;
 
     player_aim_sight();
 
     loop
-        if (input_pressed(_input_right))
-            y = min(y + _move_speed.x, _scene_size_right);
-            if (y < _scene_size_right) move_background(1, 0); end
-        end
-        if (input_pressed(_input_left))
-            y = max(y - _move_speed.x, _scene_size_left);
-            if (y > _scene_size_left) move_background(-1, 0); end
-        end
-        if (input_pressed(_input_up))
-            height = min(height + _move_speed.y, _scene_size_top);
-            if (height < _scene_size_top) move_background(0, -1); end
-        end
-        if (input_pressed(_input_down))
-            height = max(height - _move_speed.y, _scene_size_bottom);
-            if (height > _scene_size_bottom) move_background(0, 1); end
+        if (!in_hyperspace)
+            if (input_pressed(_input_right))
+                y = min(y + _move_speed.x, _scene_size_right);
+                if (y < _scene_size_right) move_background(1, 0); end
+            end
+            if (input_pressed(_input_left))
+                y = max(y - _move_speed.x, _scene_size_left);
+                if (y > _scene_size_left) move_background(-1, 0); end
+            end
+            if (input_pressed(_input_up))
+                height = min(height + _move_speed.y, _scene_size_top);
+                if (height < _scene_size_top) move_background(0, -1); end
+            end
+            if (input_pressed(_input_down))
+                height = max(height - _move_speed.y, _scene_size_bottom);
+                if (height > _scene_size_bottom) move_background(0, 1); end
+            end
+
+            if (input_down(_input_special))
+                create_enemies();
+            end
+
+            if (input_down(_input_shoot)) player_shoot_spawner(); end
         end
 
-        if (input_down(_input_special))
-            create_enemies();
-        end
-
-        if (input_down(_input_shoot)) player_shoot(); end
-
-        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
-            " a" + itoa(m7_get_angle(id)));
+//        log("Player x" + itoa(x) + " y" + itoa(y) + " h" + itoa(height) +
+//            " a" + itoa(m7_get_angle(id)));
 
         frame;
     end
@@ -1041,29 +1145,40 @@ begin
     loop
         y = father.y;
         height = father.height;
-        frame;
+        frame (200);
     end
 end
 
-process player_shoot()
+function player_shoot_spawner()
+private
+    int _offset = 10;
+begin
+    player_shoot(father.x + 1, father.y + _offset, father.height);
+    player_shoot(father.x + 1, father.y - _offset, father.height);
+end
+
+process player_shoot(int x, int y, int height)
 private
     int i;
+    int _step = 20;
+    int _max_distance = 1000;
+    int _max_steps = 0;
 
 begin
-    if (player_shoots == _max_player_shoots) return; end
+    _max_steps = _max_distance / _step;
 
     ctype = c_m7;
-    x = father.x + 1;
-    y = father.y;
-    height = father.height;
 
-    sprite = m7_graph(fpg_shoots, 1, -12);
+    if (player_shoots == _max_player_shoots) return; end
+
+    sprite = m7_graph(fpg_player_shoots, -1, -85);
+    sprite.size = 150;
 
     player_shoots++;
 
-    from i = 0 to _scene_max_distance;
-        x++;
-        frame(3);
+    for (i = 0; i < _max_steps; i++)
+        x += _step;
+        frame;
     end
 
     player_shoots--;
@@ -1075,7 +1190,7 @@ private
     int i;
 
 begin
-    from i = 0 to 25;
+    from i = 0 to 5; //25; // TODO: Check process count. Maybe we reach the 256 limit using m7_graph and functions.
         background_asteroid();
     end
 end
