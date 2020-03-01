@@ -4,24 +4,25 @@
  * A "Space Shoot 'Em Up" developed in Div Game Studio 2 'vanilla'.
  *
  * <project_name> (C) VisualStudioEX3, Jos‚ Miguel S nchez Fern ndez - 2020
- * Div Game Studio 2 (C) Hammer Technologies - 1998, 1999
- * ----------------------------------------------------------------------------
- */
+ * DIV Game Studio 2 (C) Hammer Technologies - 1998, 1999
+ * ---------------------------------------------------------------------------- */
+
+compiler_options _max_process = 1024, _case_sensitive;
 
 program DIV2_GAME_JAM_PROJECT;
 
 const
 // System setup
 // ----------------------------------------------------------------------------
-    _working_path_dev       = "projects/div2gjam/";
-    _working_path_prod      = "ex3/div2gjam/";
-    _log_enable             = 0;
-    _max_fps                = 60;
-    _skip_fps               = 1;
-    _vsync                  = 1;
-    _restore_mode           = no_restore;
-    _show_console_at_start  = 1;
-    _show_fps_counter       = 1;
+    _working_path_dev           = "projects/div2gjam/";
+    _working_path_prod          = "ex3/div2gjam/";
+    _log_enable                 = 1;
+    _max_fps                    = 60;
+    _skip_fps                   = 1;
+    _vsync                      = 1;
+    _restore_mode               = no_restore;
+    _show_console_at_start      = 0;
+    _show_fps_counter           = 1;
 
 // Input Manager
 // ----------------------------------------------------------------------------
@@ -81,13 +82,17 @@ const
     _starfield_height           = 100;
     _starfield_max_distance     = 300;
 
+// Mode7 background asteroids
+// ----------------------------------------------------------------------------
+    _max_background_asteroids   = 30;
+
 // Game scene
 // ----------------------------------------------------------------------------
     _scene_size_left            = -60;
     _scene_size_top             = 100;
     _scene_size_right           = 60;
     _scene_size_bottom          = -200;
-    _scene_max_distance         = 2000;  // Draw distance in mode7.
+    _scene_max_distance         = 2000;             // Default draw distance in mode7.
 
 // Player
 // ----------------------------------------------------------------------------
@@ -203,7 +208,7 @@ begin
         xtimer_update();
 
         frame;
-    until(input_down(_input_menu));
+    until (input_down(_input_menu));
 
     exit("(C) Visual Studio EX3 - 2020", 0);
 end
@@ -236,8 +241,9 @@ function setup_video_mode()
 begin
     set_mode(m640x400);
     set_fps(_max_fps, _skip_fps);
-    vsync = _vsync;
-    restore_type = _restore_mode;
+
+    vsync           = _vsync;
+    restore_type    = _restore_mode;
 
     log("> Initialized video mode at 640x400, " + itoa(_max_fps) + "fps, vsync: " + itoa(_vsync) + ", restore mode: " + itoa(_restore_mode));
 end
@@ -272,7 +278,7 @@ begin
 
     from i = 1 to 3;
         fpg_enemy[i - 1] = load_fpg("fpg/enemy" + itoa(i) + ".fpg");
-        break; // Until complete the enemy fpg left, only load the first.
+        break; // Until complete the enemy fpg lefts, only load the first.
     end
 end
 
@@ -280,25 +286,25 @@ function set_default_input()
 begin
     log("> Set default input bindings...");
 
-    set_input_action(_input_left,       "LEFT",     _left,      _a,     _joy_left);
-    set_input_action(_input_up,         "UP",       _up,        _w,     _joy_up);
-    set_input_action(_input_right,      "RIGHT",    _right,     _d,     _joy_right);
-    set_input_action(_input_down,       "DOWN",     _down,      _s,     _joy_down);
+    set_input_action(_input_left,               "LEFT",             _left,      _a,     _joy_left);
+    set_input_action(_input_up,                 "UP",               _up,        _w,     _joy_up);
+    set_input_action(_input_right,              "RIGHT",            _right,     _d,     _joy_right);
+    set_input_action(_input_down,               "DOWN",             _down,      _s,     _joy_down);
 
-    set_input_action(_input_submit,     "SUBMIT",   _enter,     _space, _joy_button1);
-    set_input_action(_input_back,       "BACK",     _esc,       0,      _joy_button2);
-    set_input_action(_input_menu,       "MENU",     _esc,       0,      _joy_button4);
-    set_input_action(_input_mode,       "MODE",     _tab,       0,      _joy_button3);
+    set_input_action(_input_submit,             "SUBMIT",           _enter,     _space, _joy_button1);
+    set_input_action(_input_back,               "BACK",             _esc,       0,      _joy_button2);
+    set_input_action(_input_menu,               "MENU",             _esc,       0,      _joy_button4);
+    set_input_action(_input_mode,               "MODE",             _tab,       0,      _joy_button3);
 
-    set_input_action(_input_console,            "CONSOLE",          _wave,  0,  0);
-    set_input_action(_input_console_up,         "CONSOLE_UP",       _up,    0,  0);
-    set_input_action(_input_console_down,       "CONSOLE_DOWN",     _down,  0,  0);
-    set_input_action(_input_console_page_up,    "CONSOLE_PGUP",     _pgup,  0,  0);
-    set_input_action(_input_console_page_down,  "CONSOLE_PGDN",     _pgdn,  0,  0);
-    set_input_action(_input_console_clear,      "CONSOLE_CLEAR",    _del,   0,  0);
+    set_input_action(_input_console,            "CONSOLE",          _wave,      0,      0);
+    set_input_action(_input_console_up,         "CONSOLE_UP",       _up,        0,      0);
+    set_input_action(_input_console_down,       "CONSOLE_DOWN",     _down,      0,      0);
+    set_input_action(_input_console_page_up,    "CONSOLE_PGUP",     _pgup,      0,      0);
+    set_input_action(_input_console_page_down,  "CONSOLE_PGDN",     _pgdn,      0,      0);
+    set_input_action(_input_console_clear,      "CONSOLE_CLEAR",    _del,       0,      0);
 
-    set_input_action(_input_shoot,      "SHOOT",    _control,   _space, _joy_button2);
-    set_input_action(_input_special,    "SPECIAL",  _alt,       _e,     _joy_button1);
+    set_input_action(_input_shoot,              "SHOOT",            _control,   _space, _joy_button2);
+    set_input_action(_input_special,            "SPECIAL",          _alt,       _e,     _joy_button1);
 end
 
 // Math functions
@@ -334,15 +340,6 @@ begin
     else
         return (0);
     end
-end
-
-// Graphics functions
-// ----------------------------------------------------------------------------
-process flash(int red, int green, int blue, int speed)
-begin
-    fade(red, green, blue, 64); frame; // Setup instatly the flash color.
-    fade(100, 100, 100, speed); // Smooth restoring the original colors.
-    while (fading) frame; end
 end
 
 // Input manager
@@ -535,7 +532,7 @@ begin
     end
 end
 
-// Allow to navigate one previous line in historic.
+// Allow to navigate one previous line in log historic.
 function console_nav_line_up()
 begin
     if (!_log_enable) return; end
@@ -545,7 +542,7 @@ begin
     console_update();
 end
 
-// Allow to navigate one later line in historic.
+// Allow to navigate one later line in log historic.
 function console_nav_line_down()
 begin
     if (!_log_enable) return; end
@@ -555,7 +552,7 @@ begin
     console_update();
 end
 
-// Allow to navigate one previous page in historic.
+// Allow to navigate one previous page in log historic.
 function console_nav_page_up()
 begin
     if (!_log_enable) return; end
@@ -566,7 +563,7 @@ begin
     console_update();
 end
 
-// Allow to navigate one later page in historic.
+// Allow to navigate one later page in log historic.
 function console_nav_page_down()
 begin
     if (!_log_enable) return; end
@@ -765,7 +762,7 @@ private
     int i;
 
 begin
-    from i = 0 to 10; // _starfield_max_stars;  // TODO: Check process count. Maybe we reach the 256 limit using m7_graph and functions.
+    from i = 0 to _starfield_max_stars;
         star();
     end
 end
@@ -803,7 +800,7 @@ begin
     player();
     create_background_asteroids();
 
-//    hyperspace();
+    hyperspace();
 
     loop
         frame;
@@ -945,7 +942,7 @@ begin
             graph = m7_xgraph(father);
         end
 
-        frame(200);
+        frame (200);
     end
 end
 
@@ -964,10 +961,6 @@ end
 // Hyper-space effect background
 // ----------------------------------------------------------------------------
 process hyperspace()
-private
-    int i = 1;
-    int hud_animation_id;
-
 begin
     ctype = c_m7;
     x = 101;
@@ -976,59 +969,71 @@ begin
     file = fpg_hyperspace;
 
     in_hyperspace = true;
-    level_speed = 3;
+    level_speed = 50;
 
     hyperspace_hud_animation();
 
-    loop
-        graph = i;
-        if (++i == 10) i = 1; end
+    repeat
+        if (++graph == 10) graph = 1; end
         frame;
-    end
+    until (!in_hyperspace);
 end
 
 process hyperspace_hud_animation()
 private
-    int _max_messages = 14;
+    int _max_messages = 20;
+    int _max_text_lines = 5;
     int _xtimer_id = 15;
 
-    int i;
+    int i, j;
     int msg_len;
     int msg_index;
 
-    struct messages[14]
-        string content;         // Message content to show.
-        string message;         // Message showed in write instance (animated composed character to character).
-        int wait;               // Wait after show message to jump to the next.
-        int text_id;            // Write instance.
-        int exit;               // Flag to call hyperspace_exit_effect() process.
-    end = "Warning! Arriving to target coordinates...", "", 30, 0, false,
-          "Start countdown to exit hyperspace:", "", 10, 0, false,
-          " 5", "", 100, 0, false,
-          " 4", "", 100, 0, false,
-          " 3", "", 100, 0, false,
-          " 2", "", 100, 0, false,
-          " 1", "", 100, 0, false,
-          "Exiting hyperspace...", "", 20, 0, true,
-          "Target reached: 'Sector 24, Argos asteroid fields'", "", 100, 0, false,
-          "Checking systems:", "", 50, 0, false,
-          " Impulse engines: Ok", "", 5, 0, false,
-          " Laser weapons: Ok", "", 5, 0, false,
-          " Combat HUD: Ok", "", 500, 0, false,
-          "Warning! Enemy targets detected in 0.0050 parsecs", "", 500, 0, false;
+    int write_id[4];        // Write instances.
+    struct write_text[4]    // String array for Write instances.
+        string text;
+    end
 
+    struct messages[19]     // Messages to show in HUD:
+        int line;               // Line to write the message.
+        int wait;               // Wait after show message to jump to the next.
+        int exit;               // Flag to call hyperspace_exit_effect() process.
+        int clear;              // Clear all text lines after write the current message and complete the wait.
+        string content;         // Message content to show.
+    end =   0, 50,  false, false, "Warning!",
+            0, 30,  false, false, " Arriving to target coordinates (333.25, 0.507, 99.257)",
+            1, 10,  false, false, "Start countdown to exit hyperspace:",
+            1, 100, false, false, " 5",
+            1, 100, false, false, ", 4",
+            1, 100, false, false, ", 3",
+            1, 100, false, false, ", 2",
+            1, 100, false, true,  ", 1",
+            0, 20,  true,  false, "Hyperdrive deactivated...",
+            1, 100, false, false, "Target reached:",
+            1, 250, false, true,  " ""Sector 24, Argos asteroid fields""",
+            0, 50,  false, false, "Checking systems:",
+            1, 10,  false, false, " Impulse engines:",
+            1, 15,  false, false, " ................... OK",
+            2, 10,  false, false, " Laser weapons:  ",
+            2, 15,  false, false, " ................... OK",
+            3, 10,  false, false, " Combat HUD:     ",
+            3, 250, false, true,  " ................... OK",
+            0, 50,  false, false, "Warning!",
+            0, 250, false, false, " Enemy targets detected in 0.0050 parsecs...";
+
+    struct pointer write_text t;
     struct pointer messages m;
 
 begin
     // Creates all text instances:
-    for (i = 0; i < _max_messages; i++)
-        m = offset messages[i];
-        m.text_id = write(0, 10, (i + 1) * 10, 0, m.message);
+    for (i = 0; i < _max_text_lines; i++);
+        write_id[i] = write(0, 10, (i + 1) * 10, 0, write_text[i].text);
     end
 
     // Loop animated messages:
     for (i = 0; i < _max_messages; i++)
         m = offset messages[i];
+        t = offset write_text[m.line];
 
         if (m.exit)
             hyperspace_exit_effect();
@@ -1036,35 +1041,65 @@ begin
 
         // Typewriter effect:
         for (msg_index = 0; msg_index < strlen(m.content); msg_index++)
-            if (msg_index > 1) m.message--; end
+            if (msg_index > 1) t.text--; end
+            t.text += m.content[msg_index];
+            if (msg_index > 0) t.text += ""; end
 
-            m.message += m.content[msg_index];
-
-            if (msg_index > 0) m.message += ""; end
-
-            frame(100);
+            frame (100);
         end
 
-        m.message--;
+        t.text--;
 
+        // Apply wait before jump to the next message:
         xtimer_reset(_xtimer_id, false);
         repeat
             frame;
-        until(xtimer(_xtimer_id) > m.wait);
+        until (xtimer(_xtimer_id) > m.wait);
+
+        // Clear all text lines:
+        if (m.clear)
+            for (j = 0; j < _max_text_lines; j++);
+                write_text[j].text = "";
+                frame;
+            end
+        end
     end
 
     // Destroy all text instances:
-    for (i = 0; i < _max_messages; i++)
-        delete_text(messages[i].text_id);
+    for (i = 0; i < _max_text_lines; i++)
+        delete_text(write_id[i]);
     end
 end
 
 function hyperspace_exit_effect()
+private
+    int i;
+
 begin
-    flash(200, 200, 200, 16);
-    signal(type hyperspace, s_kill);
+    fade(200, 200, 200, 24);
+
+    from i = 256 to 512;
+        m7.focus = i;
+        frame (5);
+    end
+
     in_hyperspace = false;
-    level_speed = 5;
+
+    fade(100, 100, 100, 8);
+
+    from i = 0 to 256;
+        m7.focus = i;
+        frame (5);
+    end
+
+    from i = 50 to 5 step -1;
+        level_speed = i;
+        frame;
+    end
+
+    while (fading)
+        frame;
+    end
 end
 
 // Player
@@ -1088,7 +1123,7 @@ begin
     player_id = id;
     player_shoots = 0;
 
-    player_aim_sight();
+//    player_aim_sight();
 
     loop
         if (!in_hyperspace)
@@ -1140,7 +1175,7 @@ begin
     ctype = c_m7;
     x = father.x + 300;
 
-    m7_graph(fpg_ui, 1, -80).size = 600;
+    m7_graph(fpg_ui, 1, -80).size = 400;
 
     loop
         y = father.y;
@@ -1152,6 +1187,7 @@ end
 function player_shoot_spawner()
 private
     int _offset = 10;
+
 begin
     player_shoot(father.x + 1, father.y + _offset, father.height);
     player_shoot(father.x + 1, father.y - _offset, father.height);
@@ -1159,10 +1195,11 @@ end
 
 process player_shoot(int x, int y, int height)
 private
-    int i;
     int _step = 20;
     int _max_distance = 1000;
     int _max_steps = 0;
+
+    int i;
 
 begin
     _max_steps = _max_distance / _step;
@@ -1190,7 +1227,7 @@ private
     int i;
 
 begin
-    from i = 0 to 5; //25; // TODO: Check process count. Maybe we reach the 256 limit using m7_graph and functions.
+    from i = 0 to _max_background_asteroids;
         background_asteroid();
     end
 end
@@ -1207,8 +1244,9 @@ begin
     set_background_asteroid_random_position(id);
     x = rand(m7.camera.x + m7.distance, _scene_max_distance);
 
-    sprite = m7_graph(fpg_asteroid[rand(0, 2)], get_random_view_index(), -64);
-    sprite.size = rand(100, 300);
+    file = fpg_asteroid[rand(0, 2)];
+    graph = get_random_view_index();
+    size = rand(100, 300);
 
     loop
         repeat
@@ -1245,12 +1283,12 @@ end
 function set_background_asteroid_random_position(process_id)
 private
     struct _max
-        int x = 300;
-        int y = 500;
+        int x = 600;
+        int y = 800;
     end
 
 begin
-    process_id.x        = m7.camera.x + m7.distance + _scene_max_distance;
+    process_id.x        = m7.camera.x + m7.distance + _scene_max_distance + _max.x;
     process_id.height   = rand(_scene_size_bottom - _max.y, _scene_size_top + _max.y);
 
     if (rand(0, 10))
