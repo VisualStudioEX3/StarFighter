@@ -744,8 +744,8 @@ begin
     if (y < 0) y = -1; end
     if (y > 0) y = 1; end
 
-    scroll.x0 += x;// * 2;
-    scroll.y0 += y;// * 2;
+    scroll.x0 += x; // * 2;
+    scroll.y0 += y; // * 2;
 
     //scroll.x1 -= x;
     //scroll.y1 -= y;
@@ -779,6 +779,7 @@ begin
     loop
         repeat
             x -= level_speed;
+            if (in_hyperspace) size = 0; else size = 100; end
             frame();
         until(m7.camera.x > x + m7.distance);
 
@@ -807,8 +808,7 @@ begin
     end
 
     signal(type space_background, s_kill);
-    signal(type star, s_kill_tree);
-    signal(type hyperspace, s_kill);
+    signal(type star, s_kill);
     signal(type player, s_kill_tree);
 
     stop_mode7(0);
@@ -851,7 +851,7 @@ begin
     // | Graphs | 102 | 101 | 100 | 111 | 112 |
     // +--------------------------------------+
 
-    // This lists defines how the different heights sprites must be stored in the FPG:
+    // This lists defines how the different height sprites must be stored in the FPG:
     // +---------------------------------------+
     // |      Player       |      Others       |
     // |-------------------+-------------------|
@@ -981,7 +981,7 @@ end
 
 process hyperspace_hud_animation()
 private
-    int _max_messages = 20;
+    int _max_messages = 18;
     int _max_text_lines = 5;
     int _xtimer_id = 15;
 
@@ -994,7 +994,7 @@ private
         string text;
     end
 
-    struct messages[19]     // Messages to show in HUD:
+    struct messages[17]     // Messages to show in HUD:
         int line;               // Line to write the message.
         int wait;               // Wait after show message to jump to the next.
         int exit;               // Flag to call hyperspace_exit_effect() process.
@@ -1003,9 +1003,7 @@ private
     end =   0, 50,  false, false, "Warning!",
             0, 30,  false, false, " Arriving to target coordinates (333.25, 0.507, 99.257)",
             1, 10,  false, false, "Start countdown to exit hyperspace:",
-            1, 100, false, false, " 5",
-            1, 100, false, false, ", 4",
-            1, 100, false, false, ", 3",
+            1, 100, false, false, " 3",
             1, 100, false, false, ", 2",
             1, 100, false, true,  ", 1",
             0, 20,  true,  false, "Hyperdrive deactivated...",
@@ -1032,10 +1030,10 @@ begin
 
     // Loop animated messages:
     for (i = 0; i < _max_messages; i++)
-        m = offset messages[i];
-        t = offset write_text[m.line];
+        m = offset messages[i];         // Message to print.
+        t = offset write_text[m.line];  // Line to show the message.
 
-        if (m.exit)
+        if (m.exit) // If exit is enabled, call hyperspace exit effect function:
             hyperspace_exit_effect();
         end
 
@@ -1043,12 +1041,12 @@ begin
         for (msg_index = 0; msg_index < strlen(m.content); msg_index++)
             if (msg_index > 1) t.text--; end
             t.text += m.content[msg_index];
-            if (msg_index > 0) t.text += ""; end
+            if (msg_index > 0) t.text += "Û"; end // Print cursor at the end of line.
 
             frame (100);
         end
 
-        t.text--;
+        t.text--; // Removed the text cursor at the end.
 
         // Apply wait before jump to the next message:
         xtimer_reset(_xtimer_id, false);
@@ -1076,27 +1074,41 @@ private
     int i;
 
 begin
+    // Scaling the hyperspace vortex:
+    from i = 130 to 200;
+        father.father.size = i;
+        father.father.height -= 3;
+        frame (5);
+    end
+
+    // Start flash effect:
     fade(200, 200, 200, 24);
 
+    // Altering camera focus:
     from i = 256 to 512;
         m7.focus = i;
         frame (5);
     end
 
+    // Disable hyperspace vortex:
     in_hyperspace = false;
 
+    // Restoring the flash colors to normal pallete:
     fade(100, 100, 100, 8);
 
+    // Restoring the camera focus:
     from i = 0 to 256;
         m7.focus = i;
         frame (5);
     end
 
+    // Restoring the normal scene speed:
     from i = 50 to 5 step -1;
         level_speed = i;
         frame;
     end
 
+    // Waiting for end fading colors:
     while (fading)
         frame;
     end
