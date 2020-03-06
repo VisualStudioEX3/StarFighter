@@ -1,21 +1,21 @@
 /* ----------------------------------------------------------------------------
- * DIV2 GAME JAM Project
+ * Star Fighter - A DIV Game Studio 2 Game Jam Project
  *
  * A "Space Shoot 'Em Up" developed in Div Game Studio 2 'vanilla'.
  *
- * <project_name> (C) VisualStudioEX3, Jos‚ Miguel S nchez Fern ndez - 2020
+ * Star Fighter (C) VisualStudioEX3, Jos‚ Miguel S nchez Fern ndez - 2020
  * DIV Game Studio 2 (C) Hammer Technologies - 1998, 1999
  * ---------------------------------------------------------------------------- */
 
 compiler_options _max_process = 1024, _case_sensitive;
 
-program DIV2_GAME_JAM_PROJECT;
+program StarFighter;
 
 const
 // System setup
 // ----------------------------------------------------------------------------
-    _working_path_dev           = "projects/div2gjam/";
-    _working_path_prod          = "ex3/div2gjam/";
+    _working_path_dev           = "projects/strfight/";
+    _working_path_prod          = "ex3/strfight/";
     _log_enable                 = 1;
     _max_fps                    = 60;
     _skip_fps                   = 1;
