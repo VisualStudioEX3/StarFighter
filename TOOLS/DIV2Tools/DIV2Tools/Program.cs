@@ -11,8 +11,7 @@ namespace DIV2Tools
             var map = new MAP();
             map.GraphId = 69;
             map.Description = "Test MAP file.";
-            map.ImportPallete("SPACE.PAL");
-            map.ImportPNG("PLAYER.PNG");
+            map.ImportPNG("PLAYER.PNG", "SPACE.PAL");
             map.AddControlPoint(128, 128);
             map.AddControlPoint(255, 255);
             map.AddControlPoint(64, 64);

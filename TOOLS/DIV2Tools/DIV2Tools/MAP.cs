@@ -106,7 +106,7 @@ namespace DIV2Tools
 
         #region Internal vars
         Header _header;
-        PAL.Color[] _colors = new PAL.Color[256];
+        PAL.Color[] _pallete = new PAL.Color[256];
         PAL.ColorRange[] _colorRanges = new PAL.ColorRange[16];
         List<ControlPoint> _controlPoints;
         byte[] _pixels;
@@ -142,7 +142,7 @@ namespace DIV2Tools
                 this._header.description = value.PadRight(32);
             }
         }
-        public IReadOnlyList<PAL.Color> Pallete => this._colors;
+        public IReadOnlyList<PAL.Color> Pallete => this._pallete;
         public IReadOnlyList<PAL.ColorRange> Ranges => this._colorRanges;
         public IReadOnlyList<ControlPoint> ControlPoints => this._controlPoints;
         public ReadOnlyMemory<byte> Pixels => this._pixels;
@@ -170,8 +170,8 @@ namespace DIV2Tools
 
                 if (this._header.Check())
                 {
-                    this._colors = PAL.ReadPallete(file);
-                    Helper.Log(PAL.PrintPallete(this._colors), verbose);
+                    this._pallete = PAL.ReadPallete(file);
+                    Helper.Log(PAL.PrintPallete(this._pallete), verbose);
 
                     this._colorRanges = PAL.ReadColorRanges(file);
                     Helper.Log(PAL.PrintColorRanges(this._colorRanges), verbose);
@@ -187,45 +187,50 @@ namespace DIV2Tools
                     throw new FormatException("Invalid MAP file!");
                 }
             }
-        } 
+        }
+        #endregion
 
+        #region Methods & Functions
         /// <summary>
-        /// Import an external pallete to use in this MAP.
+        /// Import an external PAL file to use in this MAP.
         /// </summary>
         /// <param name="filename">PAL file to import.</param>
         public void ImportPallete(string filename)
         {
             var pal = new PAL(filename, false);
-            this._colors = (PAL.Color[])pal.Pallete;
+            this._pallete = (PAL.Color[])pal.Pallete;
             this._colorRanges = (PAL.ColorRange[])pal.Ranges;
         }
 
         /// <summary>
         /// Convert PNG to PCX format in memory and import it as MAP format.
         /// </summary>
-        /// <param name="filename">PNG file.</param>
-        public void ImportPNG(string filename)
+        /// <param name="pcxfile">PNG file to convert to 256 color indexed PCX image.</param>
+        /// <param name="palfile">PAL file uses to adapt PCX pallete.</param>
+        public void ImportPNG(string pcxfile, string palfile)
         {
-            using (MagickImage png = new MagickImage(filename))
+            using (MagickImage png = new MagickImage(pcxfile))
             {
                 png.ColorType = ColorType.Palette;
                 png.Format = MagickFormat.Pcx;
 
                 using (MagickImage pcx = new MagickImage(png.ToByteArray()))
                 {
-                    byte[] data = pcx.GetPixels().ToArray();
-                    
-                    int writeIndex = 0;
-                    
                     this._header.width = (short)pcx.Width;
                     this._header.height = (short)pcx.Height;
                     this._pixels = new byte[this._header.width * this._header.height];
 
-                    for (int readIndex = 0; readIndex < data.Length; readIndex += 4)
+                    int writeIndex = 0;
+                    byte[] pixels = pcx.GetPixels().ToArray(); // Returns a 4-color-component array. The indexed value is stored in the 3rd byte of each 4-component group.
+                    for (int readIndex = 0; readIndex < pixels.Length; readIndex += 4)
                     {
-                        this._pixels[writeIndex] = data[readIndex + 2];
+                        this._pixels[writeIndex] = pixels[readIndex + 2];
                         writeIndex++;
                     }
+
+                    this.ImportPallete(palfile); // Imports external PAL file and stored in MAP structure.
+                    PAL.Color[] colors = PAL.ReadPalleteFromPCXFile(pcx.ToByteArray()); // Extract raw color pallete from PCX, to adapt to DIV PAL values.
+                    this._pallete = PAL.Convert(colors, this._pallete); // TODO: Create function in PAL class to adapt PCX colors to DIV PAL colors.
                 }
             }
         }
@@ -249,7 +254,7 @@ namespace DIV2Tools
             using (var file = new BinaryWriter(File.OpenWrite(filename)))
             {
                 this._header.Write(file);
-                foreach (var color in this._colors) color.Write(file);
+                foreach (var color in this._pallete) color.Write(file);
                 foreach (var range in this._colorRanges) range.Write(file);
                 file.Write((short)this._controlPoints.Count);
                 foreach (var point in this._controlPoints) point.Write(file);

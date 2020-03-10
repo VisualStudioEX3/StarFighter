@@ -64,23 +64,35 @@ namespace DIV2Tools
             #region Constructor
             public Color(BinaryReader file)
             {
-                this.r = file.ReadByte();
-                this.g = file.ReadByte();
-                this.b = file.ReadByte();
+                this.r = Color.Clamp(file.ReadByte());
+                this.g = Color.Clamp(file.ReadByte());
+                this.b = Color.Clamp(file.ReadByte());
+            }
+
+            public Color(byte r, byte g, byte b)
+            {
+                this.r = Color.Clamp(r);
+                this.g = Color.Clamp(g);
+                this.b = Color.Clamp(b);
             }
             #endregion
 
             #region Methods & Functions
+            static byte Clamp(byte value)
+            {
+                return Math.Clamp(value, (byte)0, (byte)63);
+            }
+
             public void Write(BinaryWriter file)
             {
-                file.Write(this.r);
-                file.Write(this.g);
-                file.Write(this.b);
+                file.Write(Color.Clamp(this.r));
+                file.Write(Color.Clamp(this.g));
+                file.Write(Color.Clamp(this.b));
             }
 
             public override string ToString()
             {
-                return $"[{this.r:00}.{this.g:00}.{this.b:00}]";
+                return $"[{Color.Clamp(this.r):00}.{Color.Clamp(this.g):00}.{Color.Clamp(this.b):00}]";
             } 
             #endregion
         }
@@ -95,7 +107,7 @@ namespace DIV2Tools
             public byte type;
             public bool isFixed;
             public byte blackColor;
-            public byte[] colorRanges; // 32 bytes. 
+            public byte[] colorRanges; // 32 bytes.
             #endregion
 
             #region Constructor
@@ -143,12 +155,12 @@ namespace DIV2Tools
 
         #region Internal vars
         Header _header;
-        Color[] _colors = new Color[256];
+        Color[] _pallete = new Color[256];
         ColorRange[] _colorRanges = new ColorRange[16];
         #endregion
 
         #region Properties
-        public IReadOnlyList<Color> Pallete => this._colors;
+        public IReadOnlyList<Color> Pallete => this._pallete;
         public IReadOnlyList<ColorRange> Ranges => this._colorRanges;
         #endregion
 
@@ -169,8 +181,8 @@ namespace DIV2Tools
 
                 if (this._header.Check())
                 {
-                    this._colors = PAL.ReadPallete(file);
-                    Helper.Log(PAL.PrintPallete(this._colors), verbose);
+                    this._pallete = PAL.ReadPallete(file);
+                    Helper.Log(PAL.PrintPallete(this._pallete), verbose);
 
                     this._colorRanges = PAL.ReadColorRanges(file);
                     Helper.Log(PAL.PrintColorRanges(this._colorRanges), verbose);
@@ -197,6 +209,34 @@ namespace DIV2Tools
             for (int i = 0; i < 256; i++)
             {
                 colors[i] = new Color(file);
+            }
+
+            return colors;
+        }
+
+        /// <summary>
+        /// Read all colors from a 256 colors PCX image.
+        /// </summary>
+        /// <param name="file"><see cref="byte"/> array with the content of a PCX file.</param>
+        /// <returns>Returns all 256 colors from pallete in a <see cref="Color"/> array.</returns>
+        /// <remarks>The PCX must be a 256 color indexed format.</remarks>
+        public static Color[] ReadPalleteFromPCXFile(byte[] file)
+        {
+            const int PAL_LENGTH = 768;
+            const byte PAL_MARKER = 0x0C;
+
+            int index = (file.Length - PAL_LENGTH) - 1;
+            var colors = new Color[256];
+
+            // Check if PCX is 256 color indexed:
+            if (file[3] != 8 && file[index] != PAL_MARKER)
+            {
+                throw new FormatException("The PCX file readed not is a 256 color indexed PCX image and not contain a 8 bit color pallete at the end of file to read.");
+            }
+
+            for (int i = 0; i < 256; i++)
+            {
+                colors[i] = new Color(file[++index], file[++index], file[++index]);
             }
 
             return colors;
@@ -261,6 +301,17 @@ namespace DIV2Tools
 
             return sb.ToString();
         } 
+
+        /// <summary>
+        /// Convert pallete colors from source pallete to destiny pallete.
+        /// </summary>
+        /// <param name="source">Colors to adapt.</param>
+        /// <param name="dest">Colors model to adapt source.</param>
+        /// <returns>Returns the new <see cref="Color"/> array pallete.</returns>
+        public static Color[] Convert(Color[] source, Color[] dest)
+        {
+            throw new NotImplementedException();
+        }
         #endregion
     }
 }
