@@ -9,13 +9,15 @@ namespace DIV2Tools
         {
             // Create new MAP by original PNG file and using existent PAL file:
             var map = new MAP();
-            map.GraphId = 69;
-            map.Description = "Test MAP file.";
-            map.ImportPNG("PLAYER.PNG", "SPACE.PAL");
-            map.AddControlPoint(128, 128);
-            map.AddControlPoint(255, 255);
-            map.AddControlPoint(64, 64);
-            map.Write("TEST.MAP");
+            {
+                map.GraphId = 123;
+                map.Description = "Test MAP file.";
+                map.ImportPNG("PLAYER.PNG", "SPACE.PAL");
+                map.ControlPoints.Add(128, 128);
+                map.ControlPoints.Add(255, 255);
+                map.ControlPoints.Add(64, 64);
+                map.Write("TEST.MAP");
+            }
 
             new MAP("TEST.MAP"); // Check new MAP created.
 

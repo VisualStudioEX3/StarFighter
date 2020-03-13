@@ -102,13 +102,100 @@ namespace DIV2Tools
             }
             #endregion
         }
+
+        public class ControlPointList
+        {
+            #region Internal vars
+            List<ControlPoint> _points;
+            #endregion
+
+            #region Properties
+            public int Length => this._points.Count;
+
+            public ControlPoint this[int index]
+            {
+                get { return this._points[index]; }
+                set { this._points[index] = value; }
+            }
+            #endregion
+
+            #region Constructor
+            public ControlPointList()
+            {
+                this._points = new List<ControlPoint>();
+            }
+
+            /// <summary>
+            /// Read the control point array.
+            /// </summary>
+            /// <param name="file"><see cref="BinaryReader"/> instance of the MAP or FPG file format that contain control point array data.</param>
+            /// <remarks>The <see cref="BinaryReader"/> instance must be setup in the byte of the control point counter value.</remarks>
+            public ControlPointList(BinaryReader file)
+            {
+                this._points = new List<ControlPoint>(file.ReadInt16());
+
+                for (int i = 0; i < this._points.Capacity; i++)
+                {
+                    this._points.Add(new ControlPoint(file));
+                }
+            }
+            #endregion
+
+            #region Methods & Functions
+            public void Add(short x, short y)
+            {
+                this._points.Add(new ControlPoint() { x = x, y = y });
+            }
+
+            public void Remove(int index)
+            {
+                this._points.RemoveAt(index);
+            }
+
+            public void Write(BinaryWriter file)
+            {
+                file.Write((short)this._points.Count);
+
+                foreach (var point in this._points)
+                {
+                    point.Write(file);
+                }
+            }
+
+            public override string ToString()
+            {
+                if (this._points.Count == 0)
+                {
+                    return "The MAP not contain control points.";
+                }
+
+                var sb = new StringBuilder();
+                sb.AppendLine($"Control points:");
+
+                int column = 0;
+                for (int i = 0; i < this._points.Count; i++)
+                {
+                    sb.Append($"{i:000}:{this._points[i].ToString()} ");
+                    if (++column == 6)
+                    {
+                        column = 0;
+                        sb.AppendLine();
+                    }
+                }
+
+                sb.AppendLine();
+
+                return sb.ToString();
+            } 
+            #endregion
+        }
         #endregion
 
         #region Internal vars
         Header _header;
-        PAL.Color[] _pallete = new PAL.Color[256];
-        PAL.ColorRange[] _colorRanges = new PAL.ColorRange[16];
-        List<ControlPoint> _controlPoints;
+        PAL.ColorPallete _pallete;
+        PAL.ColorRangeTable _colorRanges;
+        ControlPointList _controlPoints;
         byte[] _pixels;
         #endregion
 
@@ -139,19 +226,20 @@ namespace DIV2Tools
             }
             set
             {
+                string description = value.Length > 32 ? value.Substring(0, 32) : value;
                 this._header.description = value.PadRight(32);
             }
         }
-        public IReadOnlyList<PAL.Color> Pallete => this._pallete;
-        public IReadOnlyList<PAL.ColorRange> Ranges => this._colorRanges;
-        public IReadOnlyList<ControlPoint> ControlPoints => this._controlPoints;
+        public PAL.ColorPallete Pallete => this._pallete;
+        public PAL.ColorRangeTable Ranges => this._colorRanges;
+        public ControlPointList ControlPoints => this._controlPoints;
         public ReadOnlyMemory<byte> Pixels => this._pixels;
         #endregion
 
         #region Constructor
         public MAP()
         {
-            this._controlPoints = new List<ControlPoint>();
+            this._controlPoints = new ControlPointList();
         }
 
         /// <summary>
@@ -170,14 +258,14 @@ namespace DIV2Tools
 
                 if (this._header.Check())
                 {
-                    this._pallete = PAL.ReadPallete(file);
-                    Helper.Log(PAL.PrintPallete(this._pallete), verbose);
+                    this._pallete = new PAL.ColorPallete(file);
+                    Helper.Log(this._pallete.ToString(), verbose);
 
-                    this._colorRanges = PAL.ReadColorRanges(file);
-                    Helper.Log(PAL.PrintColorRanges(this._colorRanges), verbose);
+                    this._colorRanges = new PAL.ColorRangeTable(file);
+                    Helper.Log(this._colorRanges.ToString(), verbose);
 
-                    this._controlPoints = MAP.ReadControlPoints(file);
-                    Helper.Log(MAP.PrintControlPoints(this._controlPoints), verbose);
+                    this._controlPoints = new ControlPointList(file);
+                    Helper.Log(this._controlPoints.ToString(), verbose);
 
                     this._pixels = file.ReadBytes(this._header.width * this._header.height);
                     Helper.Log($"Readed {this._pixels.Length} pixels in MAP.", verbose);
@@ -198,8 +286,8 @@ namespace DIV2Tools
         public void ImportPallete(string filename)
         {
             var pal = new PAL(filename, false);
-            this._pallete = (PAL.Color[])pal.Pallete;
-            this._colorRanges = (PAL.ColorRange[])pal.Ranges;
+            this._pallete = pal.Pallete;
+            this._colorRanges = pal.Ranges;
         }
 
         /// <summary>
@@ -229,20 +317,11 @@ namespace DIV2Tools
                     }
 
                     this.ImportPallete(palfile); // Imports external PAL file and stored in MAP structure.
-                    PAL.Color[] colors = PAL.ReadPalleteFromPCXFile(pcx.ToByteArray()); // Extract raw color pallete from PCX, to adapt to DIV PAL values.
-                    this._pallete = PAL.Convert(colors, this._pallete); // TODO: Create function in PAL class to adapt PCX colors to DIV PAL colors.
+                    this._pixels = PAL.Convert(this._pixels, PAL.ColorPallete.ReadPalleteFromPCXFile(pcx.ToByteArray()), this._pallete);
+
+                    // TODO: Not need to change the PCX pallete, need to changes the pixel pallete references to DIV pallete, using equivalences between 2 palletes.
                 }
             }
-        }
-
-        public void AddControlPoint(short x, short y)
-        {
-            this._controlPoints.Add(new ControlPoint() { x = x, y = y });
-        }
-
-        public void RemoveControlPoint(int index)
-        {
-            this._controlPoints.RemoveAt(index);
         }
 
         /// <summary>
@@ -254,61 +333,11 @@ namespace DIV2Tools
             using (var file = new BinaryWriter(File.OpenWrite(filename)))
             {
                 this._header.Write(file);
-                foreach (var color in this._pallete) color.Write(file);
-                foreach (var range in this._colorRanges) range.Write(file);
-                file.Write((short)this._controlPoints.Count);
-                foreach (var point in this._controlPoints) point.Write(file);
+                this._pallete.Write(file);
+                this._colorRanges.Write(file);
+                this._controlPoints.Write(file);
                 file.Write(this._pixels);
             }
-        }
-
-        /// <summary>
-        /// Read the control point array.
-        /// </summary>
-        /// <param name="file"><see cref="BinaryReader"/> instance of the MAP or FPG file format that contain control point array data.</param>
-        /// <returns>Returns the all control point array from a MAP or FPG in a <see cref="ControlPoint"/> array.</returns>
-        /// <remarks>The <see cref="BinaryReader"/> instance must be setup in the byte of the control point counter value.</remarks>
-        public static List<ControlPoint> ReadControlPoints(BinaryReader file)
-        {
-            var controlPoints = new List<ControlPoint>(file.ReadInt16());
-            
-            for (int i = 0; i < controlPoints.Capacity; i++)
-            {
-                controlPoints.Add(new ControlPoint(file));
-            }
-
-            return controlPoints;
-        }
-
-        /// <summary>
-        /// String representation of the control point array.
-        /// </summary>
-        /// <param name="pallete"><see cref="ControlPoint"/> array.</param>
-        /// <returns>Returns a formatted string table representation of the control point array to print in console.</returns>
-        public static string PrintControlPoints(List<ControlPoint> points)
-        {
-            if (points.Count == 0)
-            {
-                return "The MAP not contain control points.";
-            }
-
-            var sb = new StringBuilder();
-            sb.AppendLine($"Control points:");
-
-            int column = 0;
-            for (int i = 0; i < points.Count; i++)
-            {
-                sb.Append($"{i:000}:{points[i].ToString()} ");
-                if (++column == 6)
-                {
-                    column = 0;
-                    sb.AppendLine();
-                }
-            }
-
-            sb.AppendLine();
-
-            return sb.ToString();
         }
         #endregion
     }
