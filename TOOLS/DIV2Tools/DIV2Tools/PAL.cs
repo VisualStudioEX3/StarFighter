@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Linq;
 
 namespace DIV2Tools
 {
@@ -412,19 +413,33 @@ namespace DIV2Tools
             var sourceColors = sourcePal.ToInt32Array();
             var destColors = destPal.ToInt32Array();
 
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                newPixels[i] = PAL.GetNearColor(sourceColors[pixels[i]], destColors);
+            }
 
             return newPixels;
         }
 
-        static int SearchNearSourceColorInDestPallete(byte color, Color[] sourcePal, Color[] destPal)
+        static byte GetNearColor(int color, int[] pal)
         {
-            throw new NotImplementedException();
+            int lastDiff = 0;
+            int index = 0;
 
-            // TODO: Implement logic to get a similar color:
             for (int i = 0; i < 256; i++)
             {
+                if (color == pal[i]) return (byte)i;
 
+                int currentDiff = Math.Abs(color - pal[i]);
+
+                if (i == 0 || currentDiff < lastDiff)
+                {
+                    lastDiff = currentDiff;
+                    index = i;
+                }
             }
+
+            return (byte)index;
         }
         #endregion
     }
