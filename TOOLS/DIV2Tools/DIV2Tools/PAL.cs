@@ -130,7 +130,7 @@ namespace DIV2Tools
         /// <summary>
         /// 256 length-positions Color table.
         /// </summary>
-        public class ColorPallete
+        public class ColorPalette
         {
             #region Constants
             public const int LENGTH = 256; 
@@ -148,16 +148,21 @@ namespace DIV2Tools
             }
             #endregion
 
-            #region Constructor
-            /// <summary>
-            /// Read all colors from a pallete.
-            /// </summary>
-            /// <param name="file"><see cref="BinaryReader"/> instance of the PAL or compatible file format that contain pallete data.</param>
-            /// <remarks>The <see cref="BinaryReader"/> instance must be setup in the first byte of the pallete array in the opened file.</remarks>
-            public ColorPallete(BinaryReader file)
+            #region Constructors
+            public ColorPalette()
             {
-                this._colors = new Color[ColorPallete.LENGTH];
-                for (int i = 0; i < ColorPallete.LENGTH; i++)
+                this._colors = new Color[ColorPalette.LENGTH];
+            }
+
+            /// <summary>
+            /// Read all colors from a palette.
+            /// </summary>
+            /// <param name="file"><see cref="BinaryReader"/> instance of the PAL or compatible file format that contain palette data.</param>
+            /// <remarks>The <see cref="BinaryReader"/> instance must be setup in the first byte of the palette array in the opened file.</remarks>
+            public ColorPalette(BinaryReader file)
+            {
+                this._colors = new Color[ColorPalette.LENGTH];
+                for (int i = 0; i < ColorPalette.LENGTH; i++)
                 {
                     this._colors[i] = new Color(file);
                 }
@@ -165,32 +170,27 @@ namespace DIV2Tools
             #endregion
 
             #region Methods & Functions
-            public ColorPallete()
-            {
-                this._colors = new Color[ColorPallete.LENGTH];
-            }
-
             /// <summary>
             /// Read all colors from a 256 colors PCX image.
             /// </summary>
             /// <param name="file"><see cref="byte"/> array with the content of a PCX file.</param>
-            /// <returns>Returns a new instance of <see cref="ColorPallete"/> with all 256 colors.</returns>
+            /// <returns>Returns a new instance of <see cref="ColorPalette"/> with all 256 colors.</returns>
             /// <remarks>The PCX must be a 256 color indexed format.</remarks>
-            public static ColorPallete ReadPalleteFromPCXFile(byte[] file)
+            public static ColorPalette ReadpaletteFromPCXFile(byte[] file)
             {
                 const int PAL_LENGTH = 768;
                 const byte PAL_MARKER = 0x0C;
 
                 int index = (file.Length - PAL_LENGTH) - 1;
-                var colors = new ColorPallete();
+                var colors = new ColorPalette();
 
                 // Check if PCX is 256 color indexed:
                 if (file[3] != 8 && file[index] != PAL_MARKER)
                 {
-                    throw new FormatException("The PCX file readed not is a 256 color indexed PCX image and not contain a 8 bit color pallete at the end of file to read.");
+                    throw new FormatException("The PCX file readed not is a 256 color indexed PCX image and not contain a 8 bit color palette at the end of file to read.");
                 }
 
-                for (int i = 0; i < ColorPallete.LENGTH; i++)
+                for (int i = 0; i < ColorPalette.LENGTH; i++)
                 {
                     colors[i] = new Color(file[++index], file[++index], file[++index]);
                 }
@@ -208,9 +208,9 @@ namespace DIV2Tools
 
             public int[] ToInt32Array()
             {
-                var values = new int[ColorPallete.LENGTH];
+                var values = new int[ColorPalette.LENGTH];
 
-                for (int i = 0; i < ColorPallete.LENGTH; i++)
+                for (int i = 0; i < ColorPalette.LENGTH; i++)
                 {
                     values[i] = this._colors[i].ToInt32();
                 }
@@ -224,7 +224,7 @@ namespace DIV2Tools
                 sb.AppendLine($"Color table:");
 
                 int column = 0;
-                for (int i = 0; i < ColorPallete.LENGTH; i++)
+                for (int i = 0; i < ColorPalette.LENGTH; i++)
                 {
                     sb.Append($"{i:000}:{this._colors[i].ToString()} ");
                     if (++column == 8)
@@ -317,7 +317,7 @@ namespace DIV2Tools
 
             #region Constructor
             /// <summary>
-            /// Read the 16 color ranges associated to a color pallete.
+            /// Read the 16 color ranges associated to a color palette.
             /// </summary>
             /// <param name="file"><see cref="BinaryReader"/> instance of the PAL or compatible file format that contain color range array data.</param>
             /// <remarks>The <see cref="BinaryReader"/> instance must be setup in the first byte of the first color range structure in the opened file.</remarks>
@@ -359,12 +359,12 @@ namespace DIV2Tools
 
         #region Internal vars
         Header _header;
-        ColorPallete _pallete;
+        ColorPalette _palette;
         ColorRangeTable _colorRanges;
         #endregion
 
         #region Properties
-        public ColorPallete Pallete => this._pallete;
+        public ColorPalette Palette => this._palette;
         public ColorRangeTable Ranges => this._colorRanges;
         #endregion
 
@@ -385,8 +385,8 @@ namespace DIV2Tools
 
                 if (this._header.Check())
                 {
-                    this._pallete = new ColorPallete(file);
-                    Helper.Log(this._pallete.ToString(), verbose);
+                    this._palette = new ColorPalette(file);
+                    Helper.Log(this._palette.ToString(), verbose);
 
                     this._colorRanges = new ColorRangeTable(file);
                     Helper.Log(this._colorRanges.ToString(), verbose);
@@ -401,19 +401,19 @@ namespace DIV2Tools
 
         #region Methods & Functions
         /// <summary>
-        /// Convert pixel colors from source pallete to destiny pallete.
+        /// Convert pixel colors from source palette to destiny palette.
         /// </summary>
         /// <param name="pixels"><see cref="byte"/> array that contain the pixels to adapt to DIV PAL.</param>
-        /// <param name="sourcePal">Original pixels pallete.</param>
-        /// <param name="destPal">Pallete model to adapt pixels.</param>
+        /// <param name="sourcePal">Original pixels palette.</param>
+        /// <param name="destPal">palette model to adapt pixels.</param>
         /// <returns>Returns a new <see cref="byte"/> array with adapted pixels.</returns>
-        public static byte[] Convert(byte[] pixels, ColorPallete sourcePal, ColorPallete destPal)
+        public static MAP.Bitmap Convert(MAP.Bitmap pixels, ColorPalette sourcePal, ColorPalette destPal)
         {
-            var newPixels = new byte[pixels.Length];
+            var newPixels = new MAP.Bitmap(pixels.Width, pixels.Height);
             var sourceColors = sourcePal.ToInt32Array();
             var destColors = destPal.ToInt32Array();
 
-            for (int i = 0; i < pixels.Length; i++)
+            for (int i = 0; i < pixels.Count; i++)
             {
                 newPixels[i] = PAL.GetNearColor(sourceColors[pixels[i]], destColors);
             }

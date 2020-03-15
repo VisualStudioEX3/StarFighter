@@ -189,14 +189,80 @@ namespace DIV2Tools
             } 
             #endregion
         }
+
+        /// <summary>
+        /// Represents the all pixels from a MAP.
+        /// </summary>
+        public class Bitmap
+        {
+            #region Internal vars
+            byte[] _pixels;
+            #endregion
+
+            #region Properties
+            public byte this[int index]
+            {
+                get { return this._pixels[index]; }
+                set { this._pixels[index] = value; }
+            }
+
+            public byte this[int x, int y]
+            {
+                get { return this._pixels[this.GetIndex(x, y)]; }
+                set { this._pixels[this.GetIndex(x, y)] = value; }
+            }
+
+            public int Width { get; private set; }
+            public int Height { get; private set; }
+            public int Count => this._pixels.Length;
+            #endregion
+
+            #region Constructors
+            public Bitmap(int width, int height)
+            {
+                this.Width = width;
+                this.Height = height;
+                this._pixels = new byte[width * height];
+            }
+
+            /// <summary>
+            /// Reads all pixels from a MAP file.
+            /// </summary>
+            /// <param name="width">Width of the MAP.</param>
+            /// <param name="height">Height of the MAP.</param>
+            /// <param name="file"><see cref="BinaryReader"/> instance of the MAP or FPG file format that contain pixel array data.</param>
+            /// <remarks>The <see cref="BinaryReader"/> instance must be setup in the byte of the first pixel.</remarks>
+            public Bitmap(int width, int height, BinaryReader file) : this(width, height)
+            {
+                this._pixels = file.ReadBytes(this._pixels.Length);
+            }
+            #endregion
+
+            #region Methods & Functions
+            int GetIndex(int x, int y)
+            {
+                return (this.Width * y) + x;
+            }
+
+            public void Write(BinaryWriter file)
+            {
+                file.Write(this._pixels);
+            } 
+
+            public byte[] ToByteArray()
+            {
+                return this._pixels;
+            }
+            #endregion
+        }
         #endregion
 
         #region Internal vars
         Header _header;
-        PAL.ColorPallete _pallete;
+        PAL.ColorPalette _palette;
         PAL.ColorRangeTable _colorRanges;
         ControlPointList _controlPoints;
-        byte[] _pixels;
+        Bitmap _pixels;
         #endregion
 
         #region Properties
@@ -230,10 +296,10 @@ namespace DIV2Tools
                 this._header.description = value.PadRight(32);
             }
         }
-        public PAL.ColorPallete Pallete => this._pallete;
+        public PAL.ColorPalette Palette => this._palette;
         public PAL.ColorRangeTable Ranges => this._colorRanges;
         public ControlPointList ControlPoints => this._controlPoints;
-        public ReadOnlyMemory<byte> Pixels => this._pixels;
+        public Bitmap Pixels => this._pixels;
         #endregion
 
         #region Constructor
@@ -258,8 +324,8 @@ namespace DIV2Tools
 
                 if (this._header.Check())
                 {
-                    this._pallete = new PAL.ColorPallete(file);
-                    Helper.Log(this._pallete.ToString(), verbose);
+                    this._palette = new PAL.ColorPalette(file);
+                    Helper.Log(this._palette.ToString(), verbose);
 
                     this._colorRanges = new PAL.ColorRangeTable(file);
                     Helper.Log(this._colorRanges.ToString(), verbose);
@@ -267,8 +333,8 @@ namespace DIV2Tools
                     this._controlPoints = new ControlPointList(file);
                     Helper.Log(this._controlPoints.ToString(), verbose);
 
-                    this._pixels = file.ReadBytes(this._header.width * this._header.height);
-                    Helper.Log($"Readed {this._pixels.Length} pixels in MAP.", verbose);
+                    this._pixels = new Bitmap(this._header.width, this._header.height, file);
+                    Helper.Log($"Readed {this._pixels.Count} pixels in MAP.", verbose);
                 }
                 else
                 {
@@ -283,10 +349,10 @@ namespace DIV2Tools
         /// Import an external PAL file to use in this MAP.
         /// </summary>
         /// <param name="filename">PAL file to import.</param>
-        public void ImportPallete(string filename)
+        public void ImportPalette(string filename)
         {
             var pal = new PAL(filename, false);
-            this._pallete = pal.Pallete;
+            this._palette = pal.Palette;
             this._colorRanges = pal.Ranges;
         }
 
@@ -294,7 +360,7 @@ namespace DIV2Tools
         /// Convert PNG to PCX format in memory and import it as MAP format.
         /// </summary>
         /// <param name="pcxfile">PNG file to convert to 256 color indexed PCX image.</param>
-        /// <param name="palfile">PAL file uses to adapt PCX pallete.</param>
+        /// <param name="palfile">PAL file uses to adapt PCX palette.</param>
         public void ImportPNG(string pcxfile, string palfile)
         {
             using (MagickImage png = new MagickImage(pcxfile))
@@ -306,7 +372,7 @@ namespace DIV2Tools
                 {
                     this._header.width = (short)pcx.Width;
                     this._header.height = (short)pcx.Height;
-                    this._pixels = new byte[this._header.width * this._header.height];
+                    this._pixels = new Bitmap(this._header.width, this._header.height);
 
                     int writeIndex = 0;
                     byte[] pixels = pcx.GetPixels().ToArray(); // Returns a 4-color-component array. The indexed value is stored in the 3rd byte of each 4-component group.
@@ -316,10 +382,8 @@ namespace DIV2Tools
                         writeIndex++;
                     }
 
-                    this.ImportPallete(palfile); // Imports external PAL file and stored in MAP structure.
-                    this._pixels = PAL.Convert(this._pixels, PAL.ColorPallete.ReadPalleteFromPCXFile(pcx.ToByteArray()), this._pallete);
-
-                    // TODO: Not need to change the PCX pallete, need to changes the pixel pallete references to DIV pallete, using equivalences between 2 palletes.
+                    this.ImportPalette(palfile); // Imports external PAL file and stored in MAP structure.
+                    this._pixels = PAL.Convert(this._pixels, PAL.ColorPalette.ReadpaletteFromPCXFile(pcx.ToByteArray()), this._palette);
                 }
             }
         }
@@ -333,10 +397,10 @@ namespace DIV2Tools
             using (var file = new BinaryWriter(File.OpenWrite(filename)))
             {
                 this._header.Write(file);
-                this._pallete.Write(file);
+                this._palette.Write(file);
                 this._colorRanges.Write(file);
                 this._controlPoints.Write(file);
-                file.Write(this._pixels);
+                this._pixels.Write(file);
             }
         }
         #endregion
