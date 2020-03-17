@@ -20,5 +20,10 @@ namespace DIV2Tools
             do { len++; } while (len < buffer.Length && buffer[len] != 0);
             return Encoding.ASCII.GetString(buffer, 0, len);
         }
+
+        public static byte Map(byte value, byte inMin, byte inMax, byte outMin, byte outMax)
+        {
+            return (byte)((value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin);
+        }
     }
 }

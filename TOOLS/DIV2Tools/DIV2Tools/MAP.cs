@@ -11,63 +11,55 @@ namespace DIV2Tools
     /// </summary>
     public class MAP
     {
-        #region Constants
-        const string HEADER_ID = "map";
-        static readonly byte[] HEADER_SIGNATURE = { 0x1A, 0x0D, 0x0A, 0x00 };
-        const byte HEADER_VERSION = 0;
-        #endregion
-
         #region Structs
-        struct Header // 48 bytes.
+        class Header : DIVFormatBaseHeader // 48 bytes.
         {
+            #region Constants
+            const string HEADER_ID = "map";
+            #endregion
+
             #region Public vars
-            public char[] id;           // 3 bytes.
-            public byte[] signature;    // 4 bytes.
-            public byte version;
-            
-            public short width;         // 1 word (2 bytes)
-            public short height;        // 1 word (2 bytes)
-            public int graphId;         // 1 doble word (4 bytes)
-            public string description;  // 32 bytes (ASCII)
+            public short Width { get; set; }        // 1 word (2 bytes)
+            public short Height { get; set; }       // 1 word (2 bytes)
+            public int GraphId { get; set; }        // 1 doble word (4 bytes)
+            public string Description { get; set; } // 32 bytes (ASCII)
             #endregion
 
             #region Constructor
-            public Header(BinaryReader file)
+            public Header() : base(Header.HEADER_ID)
             {
-                this.id = file.ReadChars(3);
-                this.signature = file.ReadBytes(4);
-                this.version = file.ReadByte();
+            }
 
-                this.width = file.ReadInt16();
-                this.height = file.ReadInt16();
-                this.graphId = file.ReadInt32();
-                this.description = Helper.GetNullTerminatedASCIIString(file.ReadBytes(32));
+            public Header(short width, short height, short graphId, string description) : base(Header.HEADER_ID)
+            {
+                this.Width = width;
+                this.Height = height;
+                this.GraphId = graphId;
+                this.Description = description;
+            }
+
+            public Header(BinaryReader file) : base(Header.HEADER_ID, file)
+            {
+                this.Width = file.ReadInt16();
+                this.Height = file.ReadInt16();
+                this.GraphId = file.ReadInt32();
+                this.Description = Helper.GetNullTerminatedASCIIString(file.ReadBytes(32));
             }
             #endregion
 
             #region Methods & Functions
-            public bool Check()
+            public override void Write(BinaryWriter file)
             {
-                return new string(this.id).Equals(MAP.HEADER_ID) &&
-                       BitConverter.ToUInt32(this.signature) == BitConverter.ToUInt32(MAP.HEADER_SIGNATURE) &&
-                       this.version == MAP.HEADER_VERSION;
-            }
-
-            public void Write(BinaryWriter file)
-            {
-                file.Write(Encoding.ASCII.GetBytes(MAP.HEADER_ID));
-                file.Write(MAP.HEADER_SIGNATURE);
-                file.Write(MAP.HEADER_VERSION);
-
-                file.Write(this.width);
-                file.Write(this.height);
-                file.Write(this.graphId);
-                file.Write(Encoding.ASCII.GetBytes(this.description), 0, 32);
+                base.Write(file);
+                file.Write(this.Width);
+                file.Write(this.Height);
+                file.Write(this.GraphId);
+                file.Write(Encoding.ASCII.GetBytes(this.Description), 0, 32);
             }
 
             public override string ToString()
             {
-                return $"MAP Header:\n- Id: {new string(this.id)}\n- Signature: {BitConverter.ToString(this.signature)}\n- Version: {this.version}\n- Width: {this.width}\n- Height: {this.height}\n- Graph Id: {this.graphId}\n- Description: {this.description}\n";
+                return $"{base.ToString()}\n- Width: {this.Width}\n- Height: {this.Height}\n- Graph Id: {this.GraphId}\n- Description: {this.Description}\n";
             }
             #endregion
         }
@@ -266,13 +258,13 @@ namespace DIV2Tools
         #endregion
 
         #region Properties
-        public short Width => this._header.width;
-        public short Height => this._header.height;
+        public short Width => this._header.Width;
+        public short Height => this._header.Height;
         public int GraphId
         {
             get
             { 
-                return this._header.graphId; 
+                return this._header.GraphId; 
             }
             set
             {
@@ -281,19 +273,19 @@ namespace DIV2Tools
                     throw new ArgumentOutOfRangeException("The GraphID must be a value between 1 and 999.");
                 }
 
-                this._header.graphId = value;
+                this._header.GraphId = value;
             }
         }
         public string Description 
         { 
             get
             {
-                return this._header.description;
+                return this._header.Description;
             }
             set
             {
                 string description = value.Length > 32 ? value.Substring(0, 32) : value;
-                this._header.description = value.PadRight(32);
+                this._header.Description = value.PadRight(32);
             }
         }
         public PAL.ColorPalette Palette => this._palette;
@@ -305,6 +297,7 @@ namespace DIV2Tools
         #region Constructor
         public MAP()
         {
+            this._header = new Header();
             this._controlPoints = new ControlPointList();
         }
 
@@ -333,7 +326,7 @@ namespace DIV2Tools
                     this._controlPoints = new ControlPointList(file);
                     Helper.Log(this._controlPoints.ToString(), verbose);
 
-                    this._pixels = new Bitmap(this._header.width, this._header.height, file);
+                    this._pixels = new Bitmap(this._header.Width, this._header.Height, file);
                     Helper.Log($"Readed {this._pixels.Count} pixels in MAP.", verbose);
                 }
                 else
@@ -360,8 +353,7 @@ namespace DIV2Tools
         /// Convert PNG to PCX format in memory and import it as MAP format.
         /// </summary>
         /// <param name="pcxfile">PNG file to convert to 256 color indexed PCX image.</param>
-        /// <param name="palfile">PAL file uses to adapt PCX palette.</param>
-        public void ImportPNG(string pcxfile, string palfile)
+        public void ImportPNG(string pcxfile)
         {
             using (MagickImage png = new MagickImage(pcxfile))
             {
@@ -370,9 +362,9 @@ namespace DIV2Tools
 
                 using (MagickImage pcx = new MagickImage(png.ToByteArray()))
                 {
-                    this._header.width = (short)pcx.Width;
-                    this._header.height = (short)pcx.Height;
-                    this._pixels = new Bitmap(this._header.width, this._header.height);
+                    this._header.Width = (short)pcx.Width;
+                    this._header.Height = (short)pcx.Height;
+                    this._pixels = new Bitmap(this._header.Width, this._header.Height);
 
                     int writeIndex = 0;
                     byte[] pixels = pcx.GetPixels().ToArray(); // Returns a 4-color-component array. The indexed value is stored in the 3rd byte of each 4-component group.
@@ -382,8 +374,11 @@ namespace DIV2Tools
                         writeIndex++;
                     }
 
-                    this.ImportPalette(palfile); // Imports external PAL file and stored in MAP structure.
-                    this._pixels = PAL.Convert(this._pixels, PAL.ColorPalette.ReadpaletteFromPCXFile(pcx.ToByteArray()), this._palette);
+                    this._palette = PAL.ColorPalette.ReadPaletteFromPCXFile(pcx.ToByteArray());
+                    this._colorRanges = new PAL.ColorRangeTable();
+
+                    // Fixed PCX color indexes to MAP palette:
+                    //this._pixels = PAL.Convert(this._pixels, PAL.ColorPalette.ReadPaletteFromPCXFile(pcx.ToByteArray()), this._palette);
                 }
             }
         }
@@ -391,7 +386,7 @@ namespace DIV2Tools
         /// <summary>
         /// Write all data in a file.
         /// </summary>
-        /// <param name="filename">MAP filename.</param>
+        /// <param name="filename"><see cref="MAP"/> filename.</param>
         public void Write(string filename)
         {
             using (var file = new BinaryWriter(File.OpenWrite(filename)))

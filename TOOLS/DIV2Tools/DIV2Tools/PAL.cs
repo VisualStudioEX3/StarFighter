@@ -11,44 +11,30 @@ namespace DIV2Tools
     /// </summary>
     public class PAL
     {
-        #region Constants
-        const string HEADER_ID = "pal";
-        static readonly byte[] HEADER_SIGNATURE = { 0x1A, 0x0D, 0x0A, 0x00 };
-        const byte HEADER_VERSION = 0;
-        #endregion
-
         #region Structs
         /// <summary>
         /// Header description.
         /// </summary>
-        struct Header // 8 bytes.
+        class Header : DIVFormatBaseHeader
         {
-            #region Public vars
-            public char[] id;           // 3 bytes.
-            public byte[] signature;    // 4 bytes.
-            public byte version;
+            #region Constants
+            const string HEADER_ID = "pal";
             #endregion
 
             #region Constructor
-            public Header(BinaryReader file)
+            public Header() : base(Header.HEADER_ID)
             {
-                this.id = file.ReadChars(3);
-                this.signature = file.ReadBytes(4);
-                this.version = file.ReadByte();
+            }
+
+            public Header(BinaryReader file) : base(Header.HEADER_ID, file)
+            {
             }
             #endregion
 
             #region Methods & Functions
-            public bool Check()
-            {
-                return new string(this.id).Equals(PAL.HEADER_ID) &&
-                       BitConverter.ToUInt32(this.signature) == BitConverter.ToUInt32(PAL.HEADER_SIGNATURE) &&
-                       this.version == PAL.HEADER_VERSION;
-            }
-
             public override string ToString()
             {
-                return $"PAL Header:\n- Id: {new string(this.id)}\n- Signature: {BitConverter.ToString(this.signature)}\n- Version: {this.version}\n";
+                return $"{base.ToString()}\n";
             }
             #endregion
         }
@@ -133,7 +119,7 @@ namespace DIV2Tools
         public class ColorPalette
         {
             #region Constants
-            public const int LENGTH = 256; 
+            public const int LENGTH = 256;
             #endregion
 
             #region Internal vars
@@ -145,6 +131,23 @@ namespace DIV2Tools
             {
                 get { return this._colors[index]; }
                 set { this._colors[index] = value; }
+            }
+            #endregion
+
+            #region Operators
+            public static bool operator ==(ColorPalette a, ColorPalette b)
+            {
+                for (int i = 0; i < ColorPalette.LENGTH; i++)
+                {
+                    if (a[i] != b[i]) return false;
+                }
+
+                return true;
+            }
+
+            public static bool operator !=(ColorPalette a, ColorPalette b)
+            {
+                return !(a == b);
             }
             #endregion
 
@@ -176,7 +179,7 @@ namespace DIV2Tools
             /// <param name="file"><see cref="byte"/> array with the content of a PCX file.</param>
             /// <returns>Returns a new instance of <see cref="ColorPalette"/> with all 256 colors.</returns>
             /// <remarks>The PCX must be a 256 color indexed format.</remarks>
-            public static ColorPalette ReadpaletteFromPCXFile(byte[] file)
+            public static ColorPalette ReadPaletteFromPCXFile(byte[] file)
             {
                 const int PAL_LENGTH = 768;
                 const byte PAL_MARKER = 0x0C;
@@ -190,12 +193,26 @@ namespace DIV2Tools
                     throw new FormatException("The PCX file readed not is a 256 color indexed PCX image and not contain a 8 bit color palette at the end of file to read.");
                 }
 
+                // Function to fixed color range values from PCX range to DIV range (from 0-255 to 0-63):
+                Func<byte, byte> Map = value => Helper.Map(value, 0, 255, 0, 63);
+
                 for (int i = 0; i < ColorPalette.LENGTH; i++)
                 {
-                    colors[i] = new Color(file[++index], file[++index], file[++index]);
+                    colors[i] = new Color(Map(file[++index]), Map(file[++index]), Map(file[++index]));
                 }
 
                 return colors;
+            }
+
+            /// <summary>
+            /// Read all colors from a 256 colors PCX image.
+            /// </summary>
+            /// <param name="filename">PCX filename to read.</param>
+            /// <returns>Returns a new instance of <see cref="ColorPalette"/> with all 256 colors.</returns>
+            /// <remarks>The PCX must be a 256 color indexed format.</remarks>
+            public static ColorPalette ReadPaletteFromPCXFile(string filename)
+            {
+                return ColorPalette.ReadPaletteFromPCXFile(File.ReadAllBytes(filename));
             }
 
             public void Write(BinaryWriter file)
@@ -204,6 +221,16 @@ namespace DIV2Tools
                 {
                     color.Write(file);
                 }
+            }
+
+            public override bool Equals(object obj)
+            {
+                return this == (ColorPalette)obj;
+            }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
             }
 
             public int[] ToInt32Array()
@@ -244,43 +271,121 @@ namespace DIV2Tools
         /// </summary>
         public struct ColorRange // 36 bytes.
         {
-            #region Public vars
-            public byte colors;
-            public byte type;
-            public bool isFixed;
-            public byte blackColor;
-            public byte[] colorRanges; // 32 bytes.
+            #region Constants
+            const int DEFAULT_COLORS = 16;
+            const int DEFAULT_RANGE_REPETITIONS = 16;
+            const int RANGE_LENGTH = 32;
+            #endregion
+
+            #region Properties
+            /// <summary>
+            /// Number of colors. Possible values: 8, 16 or 32.
+            /// </summary>
+            public byte Colors { get; private set; }
+
+            /// <summary>
+            /// Range type. Possible values are: 0 - direct; 1, 2, 4 or 8 - editable each n colors.
+            /// </summary>
+            public byte Type { get; private set; }
+
+            /// <summary>
+            /// Is fixed?
+            /// </summary>
+            public bool IsFixed { get; private set; }
+
+            /// <summary>
+            /// Index of black color.
+            /// </summary>
+            public byte BlackColor { get; private set; }
+
+            /// <summary>
+            /// Color ranges.
+            /// </summary>
+            public byte[] ColorRanges { get; private set; }
+            #endregion
+
+            #region Operators
+            public static bool operator ==(ColorRange a, ColorRange b)
+            {
+                return a.Colors == b.Colors &&
+                       a.Type == b.Type &&
+                       a.IsFixed == b.IsFixed &&
+                       a.BlackColor == b.BlackColor &&
+                       new Func<bool>(() =>
+                       {
+                           for (int i = 0; i < ColorRange.RANGE_LENGTH; i++)
+                           {
+                               if (a.ColorRanges[i] != b.ColorRanges[i]) return false;
+                           }
+                           return true;
+                       }).Invoke();
+            }
+
+            public static bool operator !=(ColorRange a, ColorRange b)
+            {
+                return !(a == b);
+            }
             #endregion
 
             #region Constructor
             public ColorRange(BinaryReader file)
             {
-                this.colors = file.ReadByte();
-                this.type = file.ReadByte();
-                this.isFixed = file.ReadBoolean();
-                this.blackColor = file.ReadByte();
-                this.colorRanges = file.ReadBytes(32);
+                this.Colors = file.ReadByte();
+                this.Type = file.ReadByte();
+                this.IsFixed = file.ReadBoolean();
+                this.BlackColor = file.ReadByte();
+                this.ColorRanges = file.ReadBytes(ColorRange.RANGE_LENGTH);
             }
             #endregion
 
             #region Method & Functions
+            public static ColorRange CreateDefaultRanges(byte rangeValue)
+            {
+                return new ColorRange()
+                {
+                    Colors = ColorRange.DEFAULT_COLORS,
+                    Type = 0,
+                    IsFixed = false,
+                    BlackColor = 0,
+                    ColorRanges = new Func<byte[]>(() =>
+                    {
+                        var ranges = new byte[ColorRange.RANGE_LENGTH];
+                        for (int i = 0; i < ColorRange.DEFAULT_RANGE_REPETITIONS; i++)
+                        {
+                            ranges[i] = rangeValue;
+                        }
+                        return ranges;
+                    }).Invoke()
+                };
+            }
+
             public void Write(BinaryWriter file)
             {
-                file.Write(this.colors);
-                file.Write(this.type);
-                file.Write(this.isFixed);
-                file.Write(this.blackColor);
-                file.Write(this.colorRanges);
+                file.Write(this.Colors);
+                file.Write(this.Type);
+                file.Write(this.IsFixed);
+                file.Write(this.BlackColor);
+                file.Write(this.ColorRanges);
+            }
+
+            public override bool Equals(object obj)
+            {
+                return this == (ColorRange)obj;
+            }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
             }
 
             public override string ToString()
             {
                 var sb = new StringBuilder();
-                sb.Append($"- Colors: {this.colors}\n- Type: {this.type}\n- Fixed: {this.isFixed}\n- Black color: {this.blackColor}\n");
+                sb.Append($"- Colors: {this.Colors}\n- Type: {this.Type}\n- Fixed: {this.IsFixed}\n- Black color: {this.BlackColor}\n");
 
                 sb.Append("- Color Ranges:\n");
                 int column = 0;
-                foreach (byte color in this.colorRanges)
+                foreach (byte color in this.ColorRanges)
                 {
                     sb.Append($"{color:000} ");
                     if (++column == 8)
@@ -315,7 +420,40 @@ namespace DIV2Tools
             }
             #endregion
 
+            #region Operators
+            public static bool operator ==(ColorRangeTable a, ColorRangeTable b)
+            {
+                for (int i = 0; i < ColorRangeTable.LENGTH; i++)
+                {
+                    if (a[i] != b[i]) return false;
+                }
+
+                return true;
+            }
+
+            public static bool operator !=(ColorRangeTable a, ColorRangeTable b)
+            {
+                return !(a == b);
+            }
+            #endregion
+
             #region Constructor
+            /// <summary>
+            /// Creates a default ColorRanges for a palette.
+            /// </summary>
+            public ColorRangeTable()
+            {
+                byte range = 0;
+
+                this._ranges = new ColorRange[ColorRangeTable.LENGTH];
+
+                for (int i = 0; i < ColorRangeTable.LENGTH; i++)
+                {
+                    this._ranges[i] = ColorRange.CreateDefaultRanges(range);
+                    range += 16;
+                }
+            }
+
             /// <summary>
             /// Read the 16 color ranges associated to a color palette.
             /// </summary>
@@ -341,6 +479,16 @@ namespace DIV2Tools
                 }
             }
 
+            public override bool Equals(object obj)
+            {
+                return this == (ColorRangeTable)obj;
+            }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
+
             public override string ToString()
             {
                 var sb = new StringBuilder();
@@ -352,7 +500,7 @@ namespace DIV2Tools
                 }
 
                 return sb.ToString();
-            } 
+            }
             #endregion
         }
         #endregion
@@ -368,7 +516,27 @@ namespace DIV2Tools
         public ColorRangeTable Ranges => this._colorRanges;
         #endregion
 
+        #region Operators
+        public static bool operator ==(PAL a, PAL b)
+        {
+            return a.Palette == b.Palette &&
+                   a.Ranges == b.Ranges;
+        }
+
+        public static bool operator !=(PAL a, PAL b)
+        {
+            return !(a == b);
+        }
+        #endregion
+
         #region Constructor
+        PAL()
+        {
+            this._header = new Header();
+            this._palette = new ColorPalette();
+            this._colorRanges = new ColorRangeTable();
+        }
+
         /// <summary>
         /// Import a PAL file.
         /// </summary>
@@ -401,6 +569,33 @@ namespace DIV2Tools
 
         #region Methods & Functions
         /// <summary>
+        /// Creates a <see cref="PAL"/> instance using the palette data from PCX image.
+        /// </summary>
+        /// <param name="filename">PCX filename.</param>
+        /// <returns>Returns a new <see cref="PAL"/> instance with the PCX palette data.</returns>
+        public static PAL CreateFromPCX(string filename)
+        {
+            var pal = new PAL();
+            pal._palette = PAL.ColorPalette.ReadPaletteFromPCXFile(filename);
+
+            return pal;
+        }
+
+        /// <summary>
+        /// Write all data in a file.
+        /// </summary>
+        /// <param name="filename"><see cref="PAL"/> filename.</param>
+        public void Write(string filename)
+        {
+            using (var file = new BinaryWriter(File.OpenWrite(filename)))
+            {
+                this._header.Write(file);
+                this._palette.Write(file);
+                this._colorRanges.Write(file);
+            }
+        }
+
+        /// <summary>
         /// Convert pixel colors from source palette to destiny palette.
         /// </summary>
         /// <param name="pixels"><see cref="byte"/> array that contain the pixels to adapt to DIV PAL.</param>
@@ -421,12 +616,24 @@ namespace DIV2Tools
             return newPixels;
         }
 
+        /// <summary>
+        /// Compare 2 <see cref="PAL"/> instances with option to ignore <see cref="ColorRangeTable"/> comparasion.
+        /// </summary>
+        /// <param name="a">The first <see cref="PAL"/> to compare.</param>
+        /// <param name="b">The second <see cref="PAL"/> to compare.</param>
+        /// <param name="ignoreColorRanges">Ignore <see cref="ColorRangeTable"/> in comparation process. By default is <see cref="true"/>.</param>
+        /// <returns>Returns <see cref="true"/> if the 2 <see cref="PAL"/> instances are equal.</returns>
+        public static bool Compare(PAL a, PAL b, bool ignoreColorRanges = true)
+        {
+            return (a.Palette == b.Palette) && (ignoreColorRanges ? true : a.Ranges == b.Ranges);
+        }
+
         static byte GetNearColor(int color, int[] pal)
         {
             int lastDiff = 0;
             int index = 0;
 
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < ColorPalette.LENGTH; i++)
             {
                 if (color == pal[i]) return (byte)i;
 
@@ -440,6 +647,16 @@ namespace DIV2Tools
             }
 
             return (byte)index;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return this == (PAL)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
         #endregion
     }
