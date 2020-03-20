@@ -7,19 +7,20 @@ namespace DIV2Tools
     {
         static void Main(string[] args)
         {
-            //for (int i = 0; i < 255; i++)
-            //{
-            //    Console.WriteLine($"{i} - {Helper.Map((byte)i, 0, 255, 0, 63)}"); 
-            //}
-
             //new PAL("SPACE.PAL");
 
+            ImportPCXTest("PLAYER.PCX");
             //CreatePALTest();
-            ComparePALTest();
+            //ComparePALTest();
             //CreateMAPTest();
 
             Console.Beep();
             Console.ReadKey();
+        }
+
+        static void ImportPCXTest(string filename)
+        {
+            new PCX(filename);
         }
 
         static void CreatePALTest()
@@ -35,7 +36,24 @@ namespace DIV2Tools
         static void ComparePALTest()
         {
             //Console.WriteLine($"Compare palettes: {PAL.CreateFromPCX("PLAYER.PCX") == new PAL("TEST.PAL", false)}");
-            Console.WriteLine($"Compare palettes: {PAL.Compare(PAL.CreateFromPCX("PLAYER.PCX"), new PAL("TEST.PAL", false))}");
+            //Console.WriteLine($"Compare palettes: {PAL.Compare(PAL.CreateFromPCX("PLAYER.PCX"), new PAL("TEST.PAL", false))}");
+            var player = new PAL("PLAYER.PAL", false);
+            var test = new PAL("TEST.PAL", false);
+
+            PAL.Color a, b;
+            int coincidences = 0;
+
+            for (int i = 0; i < 256; i++)
+            {
+                a = player.Palette[i];
+                b = test.Palette[i];
+
+                if (a == b) coincidences++;
+
+                Console.WriteLine($"{i:000}: {a.ToString()} : {b.ToString()} = {a == b}");
+            }
+
+            Console.WriteLine($"\nAre palettes equal: {PAL.Compare(player, test)} ({coincidences} coincidences of 256)");
         }
 
         static void CreateMAPTest()

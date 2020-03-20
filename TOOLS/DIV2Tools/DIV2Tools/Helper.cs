@@ -23,7 +23,7 @@ namespace DIV2Tools
 
         public static byte Map(byte value, byte inMin, byte inMax, byte outMin, byte outMax)
         {
-            return (byte)((value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin);
+            return (byte)((value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin); // Arduino implementation.
         }
-    }
+	}
 }

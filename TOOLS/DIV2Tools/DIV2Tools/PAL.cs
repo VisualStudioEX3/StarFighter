@@ -181,6 +181,8 @@ namespace DIV2Tools
             /// <remarks>The PCX must be a 256 color indexed format.</remarks>
             public static ColorPalette ReadPaletteFromPCXFile(byte[] file)
             {
+                // TODO: Uses new PCX class to import palette.
+
                 const int PAL_LENGTH = 768;
                 const byte PAL_MARKER = 0x0C;
 
@@ -193,12 +195,9 @@ namespace DIV2Tools
                     throw new FormatException("The PCX file readed not is a 256 color indexed PCX image and not contain a 8 bit color palette at the end of file to read.");
                 }
 
-                // Function to fixed color range values from PCX range to DIV range (from 0-255 to 0-63):
-                Func<byte, byte> Map = value => Helper.Map(value, 0, 255, 0, 63);
-
                 for (int i = 0; i < ColorPalette.LENGTH; i++)
                 {
-                    colors[i] = new Color(Map(file[++index]), Map(file[++index]), Map(file[++index]));
+                    colors[i] = new Color((byte)(file[++index] / 4), (byte)(file[++index] / 4), (byte)(file[++index] / 4)); // Divide each component by 4 to map to DIV format (0-63 color range).
                 }
 
                 return colors;
@@ -617,11 +616,11 @@ namespace DIV2Tools
         }
 
         /// <summary>
-        /// Compare 2 <see cref="PAL"/> instances with option to ignore <see cref="ColorRangeTable"/> comparasion.
+        /// Compare 2 <see cref="PAL"/> instances with option to ignore <see cref="ColorRangeTable"/> comparison.
         /// </summary>
         /// <param name="a">The first <see cref="PAL"/> to compare.</param>
         /// <param name="b">The second <see cref="PAL"/> to compare.</param>
-        /// <param name="ignoreColorRanges">Ignore <see cref="ColorRangeTable"/> in comparation process. By default is <see cref="true"/>.</param>
+        /// <param name="ignoreColorRanges">Ignore <see cref="ColorRangeTable"/> in comparison process. By default is <see cref="true"/>.</param>
         /// <returns>Returns <see cref="true"/> if the 2 <see cref="PAL"/> instances are equal.</returns>
         public static bool Compare(PAL a, PAL b, bool ignoreColorRanges = true)
         {

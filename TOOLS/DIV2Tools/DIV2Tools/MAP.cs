@@ -362,6 +362,8 @@ namespace DIV2Tools
 
                 using (MagickImage pcx = new MagickImage(png.ToByteArray()))
                 {
+                    // TODO: Uses new PCX class to read the pixels.
+
                     this._header.Width = (short)pcx.Width;
                     this._header.Height = (short)pcx.Height;
                     this._pixels = new Bitmap(this._header.Width, this._header.Height);
@@ -374,6 +376,7 @@ namespace DIV2Tools
                         writeIndex++;
                     }
 
+                    // TODO: Uses new PCX class to read the palette and creates function in PAL class to create palette object.
                     this._palette = PAL.ColorPalette.ReadPaletteFromPCXFile(pcx.ToByteArray());
                     this._colorRanges = new PAL.ColorRangeTable();
 
