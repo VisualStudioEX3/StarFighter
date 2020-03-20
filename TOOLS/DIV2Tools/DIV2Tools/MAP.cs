@@ -217,6 +217,18 @@ namespace DIV2Tools
                 this._pixels = new byte[width * height];
             }
 
+            public Bitmap(int width, int height, byte[] pixels) : this(width, height)
+            {
+                if (this._pixels.Length == pixels.Length)
+                {
+                    this._pixels = pixels;
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException(nameof(pixels), $"The {nameof(pixels)} array length not match with the Bitmap size ({this._pixels.Length}).");
+                }
+            }
+
             /// <summary>
             /// Reads all pixels from a MAP file.
             /// </summary>
@@ -305,7 +317,7 @@ namespace DIV2Tools
         /// Import a MAP file.
         /// </summary>
         /// <param name="filename">MAP file.</param>
-        /// <param name="verbose">Log MAP import data in console. By default is true.</param>
+        /// <param name="verbose">Log <see cref="MAP"/> import data in console. By default is <see cref="true"/>.</param>
         public MAP(string filename, bool verbose = true)
         {
             using (var file = new BinaryReader(File.OpenRead(filename)))
@@ -339,9 +351,9 @@ namespace DIV2Tools
 
         #region Methods & Functions
         /// <summary>
-        /// Import an external PAL file to use in this MAP.
+        /// Import an external <see cref="PAL"/> file to use in this <see cref="MAP"/>.
         /// </summary>
-        /// <param name="filename">PAL file to import.</param>
+        /// <param name="filename"><see cref="PAL"/> file to import.</param>
         public void ImportPalette(string filename)
         {
             var pal = new PAL(filename, false);
@@ -350,39 +362,44 @@ namespace DIV2Tools
         }
 
         /// <summary>
-        /// Convert PNG to PCX format in memory and import it as MAP format.
+        /// Convert PNG to <see cref="PCX"/> format in memory and import it as <see cref="MAP"/> format.
         /// </summary>
-        /// <param name="pcxfile">PNG file to convert to 256 color indexed PCX image.</param>
-        public void ImportPNG(string pcxfile)
+        /// <param name="pngfile">PNG file to convert to 256 color indexed <see cref="PCX"/> image.</param>
+        public void ImportPNG(string pngfile)
         {
-            using (MagickImage png = new MagickImage(pcxfile))
+            using (MagickImage png = new MagickImage(pngfile))
             {
                 png.ColorType = ColorType.Palette;
                 png.Format = MagickFormat.Pcx;
 
-                using (MagickImage pcx = new MagickImage(png.ToByteArray()))
+                var pcx = new PCX(new MagickImage(png.ToByteArray()).ToByteArray(), false);
                 {
-                    // TODO: Uses new PCX class to read the pixels.
-
-                    this._header.Width = (short)pcx.Width;
-                    this._header.Height = (short)pcx.Height;
-                    this._pixels = new Bitmap(this._header.Width, this._header.Height);
-
-                    int writeIndex = 0;
-                    byte[] pixels = pcx.GetPixels().ToArray(); // Returns a 4-color-component array. The indexed value is stored in the 3rd byte of each 4-component group.
-                    for (int readIndex = 0; readIndex < pixels.Length; readIndex += 4)
-                    {
-                        this._pixels[writeIndex] = pixels[readIndex + 2];
-                        writeIndex++;
-                    }
-
-                    // TODO: Uses new PCX class to read the palette and creates function in PAL class to create palette object.
-                    this._palette = PAL.ColorPalette.ReadPaletteFromPCXFile(pcx.ToByteArray());
-                    this._colorRanges = new PAL.ColorRangeTable();
-
-                    // Fixed PCX color indexes to MAP palette:
-                    //this._pixels = PAL.Convert(this._pixels, PAL.ColorPalette.ReadPaletteFromPCXFile(pcx.ToByteArray()), this._palette);
+                    this._header.Width = pcx.Width;
+                    this._header.Height = pcx.Height;
+                    this._pixels = new Bitmap(this._header.Width, this._header.Height, pcx.Pixels);
+                    this._palette = PAL.ColorPalette.ReadPaletteFromPCX(pcx);
                 }
+
+                //using (MagickImage pcx = new MagickImage(png.ToByteArray()))
+                //{
+                //    this._header.Width = (short)pcx.Width;
+                //    this._header.Height = (short)pcx.Height;
+                //    this._pixels = new Bitmap(this._header.Width, this._header.Height);
+
+                //    int writeIndex = 0;
+                //    byte[] pixels = pcx.GetPixels().ToArray(); // Returns a 4-color-component array. The indexed value is stored in the 3rd byte of each 4-component group.
+                //    for (int readIndex = 0; readIndex < pixels.Length; readIndex += 4)
+                //    {
+                //        this._pixels[writeIndex] = pixels[readIndex + 2];
+                //        writeIndex++;
+                //    }
+
+                //    this._palette = PAL.ColorPalette.ReadPaletteFromPCX(pcx.ToByteArray());
+                //    this._colorRanges = new PAL.ColorRangeTable();
+
+                //    // Fixed PCX color indexes to MAP palette:
+                //    //this._pixels = PAL.Convert(this._pixels, PAL.ColorPalette.ReadPaletteFromPCXFile(pcx.ToByteArray()), this._palette);
+                //}
             }
         }
 

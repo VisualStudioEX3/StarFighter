@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace DIV2Tools
@@ -24,6 +25,11 @@ namespace DIV2Tools
         public static byte Map(byte value, byte inMin, byte inMax, byte outMin, byte outMax)
         {
             return (byte)((value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin); // Arduino implementation.
+        }
+
+        public static void AdvanceReadPosition(this BinaryReader stream, int bytes)
+        {
+            stream.BaseStream.Position += bytes;
         }
 	}
 }

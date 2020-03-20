@@ -8,7 +8,6 @@ namespace DIV2Tools
         static void Main(string[] args)
         {
             //new PAL("SPACE.PAL");
-
             ImportPCXTest("PLAYER.PCX");
             //CreatePALTest();
             //ComparePALTest();

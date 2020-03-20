@@ -9,11 +9,6 @@ namespace DIV2Tools
     /// </summary>
     public class PCX
     {
-        #region Constants
-        const int PALETTE_LENGTH = 768;
-        const byte PALETTE_MARKER = 0x0C;
-        #endregion
-
         #region Structures
         struct Header // 128 bytes:
         {
@@ -24,6 +19,12 @@ namespace DIV2Tools
             const byte NUMBER_OF_PLANES = 1;
             const byte HEADER_INTERPRETATION = 1;
 
+            const int HEADER_PALETTE_LENGTH = 48;
+            const int HEADER_UNUSED_BYTES = 54;
+
+            /// <summary>
+            /// Header length.
+            /// </summary>
             public const int LENGTH = 128;
             #endregion
 
@@ -32,17 +33,25 @@ namespace DIV2Tools
             public readonly byte version;
             public readonly byte encoding;
             public readonly byte bpp;
-            public readonly short[] imageDimensions; // 8 bytes (4 shorts)
+            public readonly short xMin;
+            public readonly short yMin;
+            public readonly short xMax;
+            public readonly short yMax;
             public readonly short horizontalResolution;
             public readonly short verticalResolution;
-            public readonly byte[] headerPallete; // 48 bytes.
-            public readonly byte reserved; // Always 0.
+            public readonly byte reserved;
             public readonly byte numberOfPlanes;
             public readonly short bytesPerLine;
-            public readonly short headerInterpretation; // 01 or 02 values.
+            public readonly short headerInterpretation;
             public readonly short horizontalVideScreenSize;
             public readonly short verticalVideoScreenSize;
-            public readonly byte[] blanks; // 54 unused bytes. 
+            #endregion
+
+            #region Properties
+            /// <summary>
+            /// RLE compressed pixel array length.
+            /// </summary>
+            public int RLEPixelArrayLength { get; private set; } 
             #endregion
 
             #region Constructor
@@ -52,21 +61,22 @@ namespace DIV2Tools
                 this.version = file.ReadByte();
                 this.encoding = file.ReadByte();
                 this.bpp = file.ReadByte();
-                this.imageDimensions = new short[4];
-                for (int i = 0; i < this.imageDimensions.Length; i++)
-                {
-                    this.imageDimensions[i] = file.ReadInt16();
-                }
+                this.xMin = file.ReadInt16();
+                this.yMin = file.ReadInt16();
+                this.xMax = file.ReadInt16();
+                this.yMax = file.ReadInt16();
                 this.horizontalResolution = file.ReadInt16();
                 this.verticalResolution = file.ReadInt16();
-                this.headerPallete = file.ReadBytes(48);
+                file.AdvanceReadPosition(Header.HEADER_PALETTE_LENGTH); // Unused EGA/CGA palette format.
                 this.reserved = file.ReadByte();
                 this.numberOfPlanes = file.ReadByte();
                 this.bytesPerLine = file.ReadInt16();
                 this.headerInterpretation = file.ReadInt16();
                 this.horizontalVideScreenSize = file.ReadInt16();
                 this.verticalVideoScreenSize = file.ReadInt16();
-                this.blanks = file.ReadBytes(54);
+                file.AdvanceReadPosition(Header.HEADER_UNUSED_BYTES); // Unused bytes to fill the header length.
+
+                this.RLEPixelArrayLength = (int)file.BaseStream.Length - (Header.LENGTH + EOFPalette.FULL_LENGTH);
             }
             #endregion
 
@@ -89,36 +99,109 @@ namespace DIV2Tools
                 return $"ZSoft Id: {this.zSoftId} (usually 0x0A:10)\n" +
                        $"Version: {this.version} (256 colors must be version 5)\n" +
                        $"RLE Encoding: {this.encoding} (usually 1)\n" +
-                       $"Bits per pixel: {this.bpp} (256 colors must be 8 bits per pixel)\n" +
-                       $"Image dimensions: (xMin: {this.imageDimensions[0]}, yMin: {this.imageDimensions[1]}, xMax: {this.imageDimensions[2]}, yMax: {this.imageDimensions[2]}) Using xMax + 1 and xMin + 1 to get Width and Height.\n" +
+                       $"Bits Per Pixel: {this.bpp} (256 colors must be 8 bits per pixel)\n" +
+                       $"Image Dimensions: (xMin: {this.xMin}, yMin: {this.yMin}, xMax: {this.xMax}, yMax: {this.yMax}) Using xMax + 1 and xMin + 1 to get Width and Height.\n" +
                        $"Resolution: {this.horizontalResolution} x {this.verticalResolution}\n" +
                        $"Header palette: (48 bytes for unused EGA/CGA palette format)\n" +
                        $"Reserved: {this.reserved} (unused, always 0)\n" +
-                       $"Number of planes: {this.numberOfPlanes} (256 colors must be 1)\n" +
-                       $"Bytes per line: {this.bytesPerLine}\n" +
-                       $"Header interpretation: {this.headerInterpretation} (1 - Color or Black & White, 2 - Greyscale, 256 colors must be 1)\n" +
-                       $"Screen size: {this.horizontalVideScreenSize} x {this.verticalVideoScreenSize}\n" +
-                       $"Blanks: (54 unused bytes to fill header size)\n";
+                       $"Number Of Planes: {this.numberOfPlanes} (256 colors must be 1)\n" +
+                       $"Bytes Per Line: {this.bytesPerLine}\n" +
+                       $"Header Interpretation: {this.headerInterpretation} (1 - Color or Black & White, 2 - Greyscale, 256 colors must be 1)\n" +
+                       $"Screen Size: {this.horizontalVideScreenSize} x {this.verticalVideoScreenSize}\n\n" +
+                       $"RLE Pixel Array Length: {this.RLEPixelArrayLength}";
             }
             #endregion
         } 
+
+        struct RLEBitmap
+        {
+            #region Internal vars
+            byte[] _buffer;
+            #endregion
+
+            #region Properties
+            public int Length => this._buffer.Length;
+            #endregion
+
+            #region Constructor
+            public RLEBitmap(BinaryReader file, int length)
+            {
+                this._buffer = file.ReadBytes(length);
+            }
+            #endregion
+
+            #region Methods & Functions
+            public byte[] Decompress(int decompressedLength)
+            {
+                var pixels = new byte[decompressedLength];
+
+                // TODO: Implement RLE decoder function to decompress RLE pixels.
+
+                return pixels;
+            }
+            #endregion
+        }
+
+        struct EOFPalette
+        {
+            #region Constants
+            public const byte MARKER = 0x0C;
+            /// <summary>
+            /// Color array length.
+            /// </summary>
+            public const int PALETTE_LENGTH = 768;
+            /// <summary>
+            /// Full palette structure length (marker byte + color array length).
+            /// </summary>
+            public const int FULL_LENGTH = EOFPalette.PALETTE_LENGTH + 1;
+            #endregion
+
+            #region Public vars
+            public readonly byte marker;
+            public readonly byte[] colors;
+            #endregion
+
+            #region Constructor
+            public EOFPalette(BinaryReader file)
+            {
+                this.marker = file.ReadByte();
+
+                if (this.marker == EOFPalette.MARKER)
+                {
+                    this.colors = file.ReadBytes(EOFPalette.PALETTE_LENGTH);
+                }
+                else
+                {
+                    throw new FormatException("Error to read color palette. Palette byte marker not found.");
+                }
+            } 
+            #endregion
+        }
         #endregion
 
         #region Internal vars
         Header _header;
+        RLEBitmap _bitmap;
+        EOFPalette _palette;
         #endregion
 
         #region Properties
-        public short Width { get; private set; }
-        public short Height { get; private set; }
+        public short Width => (short)(this._header.xMax + 1);
+        public short Height => (short)(this._header.yMax + 1);
+        /// <summary>
+        /// Uncompressed pixels.
+        /// </summary>
         public byte[] Pixels { get; private set; }
-        public byte[] Palette { get; private set; }
+        /// <summary>
+        /// 256 color palette (3 bytes per color in RGB format).
+        /// </summary>
+        public byte[] Palette => this._palette.colors;
         #endregion
 
         #region Constructor
-        public PCX(string filename, bool verbose = true)
+        PCX(Stream stream, bool verbose)
         {
-            using (var file = new BinaryReader(File.OpenRead(filename)))
+            using (var file = new BinaryReader(stream))
             {
                 this._header = new Header(file);
                 Helper.Log(this._header.ToString(), verbose);
@@ -126,22 +209,8 @@ namespace DIV2Tools
                 if (this._header.Check())
                 {
                     // Read RLE pixels:
-                    int rleLenght = (int)file.BaseStream.Length - Header.LENGTH - PCX.PALETTE_LENGTH - 1;
-                    byte[] rlePixels = file.ReadBytes(rleLenght);
-
-                    // Read 256 color palette:
-                    if (file.ReadByte() == PCX.PALETTE_MARKER)
-                    {
-                        this.Palette = file.ReadBytes(PCX.PALETTE_LENGTH);
-                    }
-                    else
-                    {
-                        throw new FormatException("Error to read color palette. Palette byte marker not found.");
-                    }
-
-                    //int lenght = (this._header.imageDimensions[2] + 1) * (this._header.imageDimensions[3] + 1);
-                    //var pixels = new byte[lenght];
-                    //Helper.RLEDecompress(rlePixels, pixels, (uint)rleLenght);
+                    this._bitmap = new RLEBitmap(file, this._header.RLEPixelArrayLength);
+                    this.Pixels = this._bitmap.Decompress(this.Width * this.Height);
 
                     //int columns = 0;
                     //for (int i = 0; i < pixels.Length; i++)
@@ -155,17 +224,33 @@ namespace DIV2Tools
                     //}
                     //Console.WriteLine();
 
-                    //byte palFlag = file.ReadByte();
-                    //Console.WriteLine($"Palette flag: {palFlag} ({palFlag == 0x0C})"); 
+                    // Read 256 color palette at end of file:
+                    this._palette = new EOFPalette(file);
                 }
                 else
                 {
                     throw new FormatException("The PCX loaded is not valid.");
                 }
             }
-        } 
-        #endregion
+        }
 
-        // TODO: Implement RLE decoder function.
+        /// <summary>
+        /// Import PCX file.
+        /// </summary>
+        /// <param name="filename"><see cref="PCX"/> filename.</param>
+        /// <param name="verbose">Log <see cref="PCX"/> import data to console. By default is <see cref="true"/>.</param>
+        public PCX(string filename, bool verbose = true) : this(File.OpenRead(filename), verbose)
+        {
+        }
+
+        /// <summary>
+        /// Import PCX from <see cref="Byte"/> array.
+        /// </summary>
+        /// <param name="buffer"><see cref="Byte"/> array that contain <see cref="PCX"/> file data.</param>
+        /// <param name="verbose">Log <see cref="PCX"/> import data to console. By default is <see cref="true"/>.</param>
+        public PCX(byte[] buffer, bool verbose = true) : this(new MemoryStream(buffer), verbose)
+        {
+        }
+        #endregion
     }
 }

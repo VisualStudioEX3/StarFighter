@@ -174,44 +174,33 @@ namespace DIV2Tools
 
             #region Methods & Functions
             /// <summary>
-            /// Read all colors from a 256 colors PCX image.
+            /// Read all colors from a 256 colors <see cref="PCX"/> image.
             /// </summary>
-            /// <param name="file"><see cref="byte"/> array with the content of a PCX file.</param>
+            /// <param name="filename"><see cref="PCX"/> filename to read.</param>
             /// <returns>Returns a new instance of <see cref="ColorPalette"/> with all 256 colors.</returns>
-            /// <remarks>The PCX must be a 256 color indexed format.</remarks>
-            public static ColorPalette ReadPaletteFromPCXFile(byte[] file)
+            /// <remarks>The <see cref="PCX"/> must be a 256 color indexed format.</remarks>
+            public static ColorPalette ReadPaletteFromPCX(string filename)
             {
-                // TODO: Uses new PCX class to import palette.
-
-                const int PAL_LENGTH = 768;
-                const byte PAL_MARKER = 0x0C;
-
-                int index = (file.Length - PAL_LENGTH) - 1;
-                var colors = new ColorPalette();
-
-                // Check if PCX is 256 color indexed:
-                if (file[3] != 8 && file[index] != PAL_MARKER)
-                {
-                    throw new FormatException("The PCX file readed not is a 256 color indexed PCX image and not contain a 8 bit color palette at the end of file to read.");
-                }
-
-                for (int i = 0; i < ColorPalette.LENGTH; i++)
-                {
-                    colors[i] = new Color((byte)(file[++index] / 4), (byte)(file[++index] / 4), (byte)(file[++index] / 4)); // Divide each component by 4 to map to DIV format (0-63 color range).
-                }
-
-                return colors;
+                return ColorPalette.ReadPaletteFromPCX(new PCX(filename, false));
             }
 
             /// <summary>
-            /// Read all colors from a 256 colors PCX image.
+            /// Read all colors from a 256 colors <see cref="PCX"/> image.
             /// </summary>
-            /// <param name="filename">PCX filename to read.</param>
+            /// <param name="pcxImage"><see cref="PCX"/> instance.</param>
             /// <returns>Returns a new instance of <see cref="ColorPalette"/> with all 256 colors.</returns>
-            /// <remarks>The PCX must be a 256 color indexed format.</remarks>
-            public static ColorPalette ReadPaletteFromPCXFile(string filename)
+            /// <remarks>The <see cref="PCX"/> must be a 256 color indexed format.</remarks>
+            public static ColorPalette ReadPaletteFromPCX(PCX pcxImage)
             {
-                return ColorPalette.ReadPaletteFromPCXFile(File.ReadAllBytes(filename));
+                var colors = new ColorPalette();
+                int paletteIndex = -1;
+
+                for (int i = 0; i < ColorPalette.LENGTH; i++)
+                {
+                    colors[i] = new Color((byte)(pcxImage.Palette[++paletteIndex] / 4), (byte)(pcxImage.Palette[++paletteIndex] / 4), (byte)(pcxImage.Palette[++paletteIndex] / 4)); // Divide each component by 4 to map to VGA format (0-63 color range).
+                }
+
+                return colors;
             }
 
             public void Write(BinaryWriter file)
@@ -540,7 +529,7 @@ namespace DIV2Tools
         /// Import a PAL file.
         /// </summary>
         /// <param name="filename">PAL file.</param>
-        /// <param name="verbose">Log PAL import data to console. By default is true.</param>
+        /// <param name="verbose">Log <see cref="PAL"/> import data to console. By default is <see cref="true"/>.</param>
         public PAL(string filename, bool verbose = true)
         {
             using (var file = new BinaryReader(File.OpenRead(filename)))
@@ -575,7 +564,7 @@ namespace DIV2Tools
         public static PAL CreateFromPCX(string filename)
         {
             var pal = new PAL();
-            pal._palette = PAL.ColorPalette.ReadPaletteFromPCXFile(filename);
+            pal._palette = PAL.ColorPalette.ReadPaletteFromPCX(filename);
 
             return pal;
         }
