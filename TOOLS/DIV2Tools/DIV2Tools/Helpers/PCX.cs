@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using DIV2Tools.MethodExtensions;
 
-namespace DIV2Tools
+namespace DIV2Tools.Helpers
 {
     /// <summary>
     /// PCX importer for 256 color images.
@@ -120,6 +121,7 @@ namespace DIV2Tools
             #endregion
 
             #region Properties
+            public byte this[int index] => this._buffer[index];
             public int Length => this._buffer.Length;
             #endregion
 
@@ -133,11 +135,9 @@ namespace DIV2Tools
             #region Methods & Functions
             public byte[] Decompress(int decompressedLength)
             {
-                var pixels = new byte[decompressedLength];
+                throw new NotImplementedException();
 
-                // TODO: Implement RLE decoder function to decompress RLE pixels.
-
-                return pixels;
+                // TODO: Implements a RLE decompression algorithm that checks the 6ª and 7ª bit to get counters (ref: http://www.fysnet.net/pcxfile.htm)
             }
             #endregion
         }
@@ -210,22 +210,14 @@ namespace DIV2Tools
                 {
                     // Read RLE pixels:
                     this._bitmap = new RLEBitmap(file, this._header.RLEPixelArrayLength);
+                    
+                    // Decompress image:
                     this.Pixels = this._bitmap.Decompress(this.Width * this.Height);
-
-                    //int columns = 0;
-                    //for (int i = 0; i < pixels.Length; i++)
-                    //{
-                    //    Console.Write($"#{i:000000}:{pixels[i]:000} ");
-                    //    if (++columns == 18)
-                    //    {
-                    //        columns = 0;
-                    //        Console.WriteLine();
-                    //    }
-                    //}
-                    //Console.WriteLine();
-
+                    
                     // Read 256 color palette at end of file:
                     this._palette = new EOFPalette(file);
+
+                    Helper.Log("PCX loaded!", verbose);
                 }
                 else
                 {

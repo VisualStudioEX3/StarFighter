@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using DIV2Tools.DIVFormats;
+using DIV2Tools.Helpers;
+using DIV2Tools.MethodExtensions;
 
 namespace DIV2Tools
 {
@@ -8,13 +11,28 @@ namespace DIV2Tools
         static void Main(string[] args)
         {
             //new PAL("SPACE.PAL");
-            ImportPCXTest("PLAYER.PCX");
+            TestBitOperations();
+            //ImportPCXTest("PLAYER.PCX");
             //CreatePALTest();
             //ComparePALTest();
             //CreateMAPTest();
 
             Console.Beep();
             Console.ReadKey();
+        }
+
+        static void TestBitOperations()
+        {
+            byte test = 32;
+            var print = new Action(() => Console.WriteLine($"Is bit 7 set: {test.IsBitSet(7)} ({ test })"));
+
+            print();
+
+            test = test.SetBit(7, true);
+            print();
+
+            test = test.SetBit(7, false);
+            print();
         }
 
         static void ImportPCXTest(string filename)
@@ -62,7 +80,7 @@ namespace DIV2Tools
             {
                 map.GraphId = 123;
                 map.Description = "Test MAP file.";
-                map.ImportPalette("SPACE.PAL");
+                //map.ImportPalette("SPACE.PAL");
                 map.ImportPNG("PLAYER.PNG");
                 map.ControlPoints.Add(128, 128);
                 map.ControlPoints.Add(255, 255);

@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 using System.IO;
-using System.Linq;
+using DIV2Tools.Helpers;
 
-namespace DIV2Tools
+namespace DIV2Tools.DIVFormats
 {
     /// <summary>
     /// PAL file.
@@ -12,33 +11,6 @@ namespace DIV2Tools
     public class PAL
     {
         #region Structs
-        /// <summary>
-        /// Header description.
-        /// </summary>
-        class Header : DIVFormatBaseHeader
-        {
-            #region Constants
-            const string HEADER_ID = "pal";
-            #endregion
-
-            #region Constructor
-            public Header() : base(Header.HEADER_ID)
-            {
-            }
-
-            public Header(BinaryReader file) : base(Header.HEADER_ID, file)
-            {
-            }
-            #endregion
-
-            #region Methods & Functions
-            public override string ToString()
-            {
-                return $"{base.ToString()}\n";
-            }
-            #endregion
-        }
-
         /// <summary>
         /// Color structure, with byte components in ranges from 0 to 63.
         /// </summary>
@@ -109,6 +81,168 @@ namespace DIV2Tools
             public override string ToString()
             {
                 return $"[{Color.Clamp(this.r):00}.{Color.Clamp(this.g):00}.{Color.Clamp(this.b):00}]";
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// Color Ranges.
+        /// </summary>
+        public struct ColorRange // 36 bytes.
+        {
+            #region Constants
+            const int DEFAULT_COLORS = 16;
+            const int DEFAULT_RANGE_REPETITIONS = 16;
+            const int RANGE_LENGTH = 32;
+            #endregion
+
+            #region Properties
+            /// <summary>
+            /// Number of colors. Possible values: 8, 16 or 32.
+            /// </summary>
+            public byte Colors { get; private set; }
+
+            /// <summary>
+            /// Range type. Possible values are: 0 - direct; 1, 2, 4 or 8 - editable each n colors.
+            /// </summary>
+            public byte Type { get; private set; }
+
+            /// <summary>
+            /// Is fixed?
+            /// </summary>
+            public bool IsFixed { get; private set; }
+
+            /// <summary>
+            /// Index of black color.
+            /// </summary>
+            public byte BlackColor { get; private set; }
+
+            /// <summary>
+            /// Color ranges.
+            /// </summary>
+            public byte[] ColorRanges { get; private set; }
+            #endregion
+
+            #region Operators
+            public static bool operator ==(ColorRange a, ColorRange b)
+            {
+                return a.Colors == b.Colors &&
+                       a.Type == b.Type &&
+                       a.IsFixed == b.IsFixed &&
+                       a.BlackColor == b.BlackColor &&
+                       new Func<bool>(() =>
+                       {
+                           for (int i = 0; i < ColorRange.RANGE_LENGTH; i++)
+                           {
+                               if (a.ColorRanges[i] != b.ColorRanges[i]) return false;
+                           }
+                           return true;
+                       }).Invoke();
+            }
+
+            public static bool operator !=(ColorRange a, ColorRange b)
+            {
+                return !(a == b);
+            }
+            #endregion
+
+            #region Constructor
+            public ColorRange(BinaryReader file)
+            {
+                this.Colors = file.ReadByte();
+                this.Type = file.ReadByte();
+                this.IsFixed = file.ReadBoolean();
+                this.BlackColor = file.ReadByte();
+                this.ColorRanges = file.ReadBytes(ColorRange.RANGE_LENGTH);
+            }
+            #endregion
+
+            #region Method & Functions
+            public static ColorRange CreateDefaultRanges(byte rangeValue)
+            {
+                return new ColorRange()
+                {
+                    Colors = ColorRange.DEFAULT_COLORS,
+                    Type = 0,
+                    IsFixed = false,
+                    BlackColor = 0,
+                    ColorRanges = new Func<byte[]>(() =>
+                    {
+                        var ranges = new byte[ColorRange.RANGE_LENGTH];
+                        for (int i = 0; i < ColorRange.DEFAULT_RANGE_REPETITIONS; i++)
+                        {
+                            ranges[i] = rangeValue;
+                        }
+                        return ranges;
+                    }).Invoke()
+                };
+            }
+
+            public void Write(BinaryWriter file)
+            {
+                file.Write(this.Colors);
+                file.Write(this.Type);
+                file.Write(this.IsFixed);
+                file.Write(this.BlackColor);
+                file.Write(this.ColorRanges);
+            }
+
+            public override bool Equals(object obj)
+            {
+                return this == (ColorRange)obj;
+            }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
+
+            public override string ToString()
+            {
+                var sb = new StringBuilder();
+                sb.Append($"- Colors: {this.Colors}\n- Type: {this.Type}\n- Fixed: {this.IsFixed}\n- Black color: {this.BlackColor}\n");
+
+                sb.Append("- Color Ranges:\n");
+                int column = 0;
+                foreach (byte color in this.ColorRanges)
+                {
+                    sb.Append($"{color:000} ");
+                    if (++column == 8)
+                    {
+                        column = 0;
+                        sb.AppendLine();
+                    }
+                }
+                return sb.ToString();
+            }
+            #endregion
+        }
+        #endregion
+
+        #region Classes
+        /// <summary>
+        /// Header description.
+        /// </summary>
+        class Header : DIVFormatBaseHeader
+        {
+            #region Constants
+            const string HEADER_ID = "pal";
+            #endregion
+
+            #region Constructor
+            public Header() : base(Header.HEADER_ID)
+            {
+            }
+
+            public Header(BinaryReader file) : base(Header.HEADER_ID, file)
+            {
+            }
+            #endregion
+
+            #region Methods & Functions
+            public override string ToString()
+            {
+                return $"{base.ToString()}\n";
             }
             #endregion
         }
@@ -249,139 +383,6 @@ namespace DIV2Tools
                     }
                 }
 
-                return sb.ToString();
-            }
-            #endregion
-        }
-
-        /// <summary>
-        /// Color Ranges.
-        /// </summary>
-        public struct ColorRange // 36 bytes.
-        {
-            #region Constants
-            const int DEFAULT_COLORS = 16;
-            const int DEFAULT_RANGE_REPETITIONS = 16;
-            const int RANGE_LENGTH = 32;
-            #endregion
-
-            #region Properties
-            /// <summary>
-            /// Number of colors. Possible values: 8, 16 or 32.
-            /// </summary>
-            public byte Colors { get; private set; }
-
-            /// <summary>
-            /// Range type. Possible values are: 0 - direct; 1, 2, 4 or 8 - editable each n colors.
-            /// </summary>
-            public byte Type { get; private set; }
-
-            /// <summary>
-            /// Is fixed?
-            /// </summary>
-            public bool IsFixed { get; private set; }
-
-            /// <summary>
-            /// Index of black color.
-            /// </summary>
-            public byte BlackColor { get; private set; }
-
-            /// <summary>
-            /// Color ranges.
-            /// </summary>
-            public byte[] ColorRanges { get; private set; }
-            #endregion
-
-            #region Operators
-            public static bool operator ==(ColorRange a, ColorRange b)
-            {
-                return a.Colors == b.Colors &&
-                       a.Type == b.Type &&
-                       a.IsFixed == b.IsFixed &&
-                       a.BlackColor == b.BlackColor &&
-                       new Func<bool>(() =>
-                       {
-                           for (int i = 0; i < ColorRange.RANGE_LENGTH; i++)
-                           {
-                               if (a.ColorRanges[i] != b.ColorRanges[i]) return false;
-                           }
-                           return true;
-                       }).Invoke();
-            }
-
-            public static bool operator !=(ColorRange a, ColorRange b)
-            {
-                return !(a == b);
-            }
-            #endregion
-
-            #region Constructor
-            public ColorRange(BinaryReader file)
-            {
-                this.Colors = file.ReadByte();
-                this.Type = file.ReadByte();
-                this.IsFixed = file.ReadBoolean();
-                this.BlackColor = file.ReadByte();
-                this.ColorRanges = file.ReadBytes(ColorRange.RANGE_LENGTH);
-            }
-            #endregion
-
-            #region Method & Functions
-            public static ColorRange CreateDefaultRanges(byte rangeValue)
-            {
-                return new ColorRange()
-                {
-                    Colors = ColorRange.DEFAULT_COLORS,
-                    Type = 0,
-                    IsFixed = false,
-                    BlackColor = 0,
-                    ColorRanges = new Func<byte[]>(() =>
-                    {
-                        var ranges = new byte[ColorRange.RANGE_LENGTH];
-                        for (int i = 0; i < ColorRange.DEFAULT_RANGE_REPETITIONS; i++)
-                        {
-                            ranges[i] = rangeValue;
-                        }
-                        return ranges;
-                    }).Invoke()
-                };
-            }
-
-            public void Write(BinaryWriter file)
-            {
-                file.Write(this.Colors);
-                file.Write(this.Type);
-                file.Write(this.IsFixed);
-                file.Write(this.BlackColor);
-                file.Write(this.ColorRanges);
-            }
-
-            public override bool Equals(object obj)
-            {
-                return this == (ColorRange)obj;
-            }
-
-            public override int GetHashCode()
-            {
-                return base.GetHashCode();
-            }
-
-            public override string ToString()
-            {
-                var sb = new StringBuilder();
-                sb.Append($"- Colors: {this.Colors}\n- Type: {this.Type}\n- Fixed: {this.IsFixed}\n- Black color: {this.BlackColor}\n");
-
-                sb.Append("- Color Ranges:\n");
-                int column = 0;
-                foreach (byte color in this.ColorRanges)
-                {
-                    sb.Append($"{color:000} ");
-                    if (++column == 8)
-                    {
-                        column = 0;
-                        sb.AppendLine();
-                    }
-                }
                 return sb.ToString();
             }
             #endregion

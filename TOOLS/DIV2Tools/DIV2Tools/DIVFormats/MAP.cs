@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using ImageMagick;
+using DIV2Tools.Helpers;
+using DIV2Tools.MethodExtensions;
 
-namespace DIV2Tools
+namespace DIV2Tools.DIVFormats
 {
     /// <summary>
     /// MAP file.
@@ -12,58 +14,6 @@ namespace DIV2Tools
     public class MAP
     {
         #region Structs
-        class Header : DIVFormatBaseHeader // 48 bytes.
-        {
-            #region Constants
-            const string HEADER_ID = "map";
-            #endregion
-
-            #region Public vars
-            public short Width { get; set; }        // 1 word (2 bytes)
-            public short Height { get; set; }       // 1 word (2 bytes)
-            public int GraphId { get; set; }        // 1 doble word (4 bytes)
-            public string Description { get; set; } // 32 bytes (ASCII)
-            #endregion
-
-            #region Constructor
-            public Header() : base(Header.HEADER_ID)
-            {
-            }
-
-            public Header(short width, short height, short graphId, string description) : base(Header.HEADER_ID)
-            {
-                this.Width = width;
-                this.Height = height;
-                this.GraphId = graphId;
-                this.Description = description;
-            }
-
-            public Header(BinaryReader file) : base(Header.HEADER_ID, file)
-            {
-                this.Width = file.ReadInt16();
-                this.Height = file.ReadInt16();
-                this.GraphId = file.ReadInt32();
-                this.Description = Helper.GetNullTerminatedASCIIString(file.ReadBytes(32));
-            }
-            #endregion
-
-            #region Methods & Functions
-            public override void Write(BinaryWriter file)
-            {
-                base.Write(file);
-                file.Write(this.Width);
-                file.Write(this.Height);
-                file.Write(this.GraphId);
-                file.Write(Encoding.ASCII.GetBytes(this.Description), 0, 32);
-            }
-
-            public override string ToString()
-            {
-                return $"{base.ToString()}\n- Width: {this.Width}\n- Height: {this.Height}\n- Graph Id: {this.GraphId}\n- Description: {this.Description}\n";
-            }
-            #endregion
-        }
-
         /// <summary>
         /// Control Point value.
         /// </summary>
@@ -91,6 +41,64 @@ namespace DIV2Tools
             public override string ToString()
             {
                 return $"[{x:0000}.{y:0000}]";
+            }
+            #endregion
+        }
+        #endregion
+
+        #region Classes
+        class Header : DIVFormatBaseHeader // 48 bytes.
+        {
+            #region Constants
+            const string HEADER_ID = "map";
+
+            public const int GRAPHID_MIN = 1;
+            public const int GRAPHID_MAX = 999;
+            public const int DESCRIPTION_LENGTH = 32;
+            #endregion
+
+            #region Public vars
+            public short Width { get; set; }        // 1 word (2 bytes)
+            public short Height { get; set; }       // 1 word (2 bytes)
+            public int GraphId { get; set; }        // 1 doble word (4 bytes)
+            public string Description { get; set; } // 32 bytes (ASCII)
+            #endregion
+
+            #region Constructor
+            public Header() : base(Header.HEADER_ID)
+            {
+            }
+
+            public Header(short width, short height, short graphId, string description) : base(Header.HEADER_ID)
+            {
+                this.Width = width;
+                this.Height = height;
+                this.GraphId = graphId;
+                this.Description = description;
+            }
+
+            public Header(BinaryReader file) : base(Header.HEADER_ID, file)
+            {
+                this.Width = file.ReadInt16();
+                this.Height = file.ReadInt16();
+                this.GraphId = file.ReadInt32();
+                this.Description = file.ReadBytes(Header.DESCRIPTION_LENGTH).GetNullTerminatedASCIIString();
+            }
+            #endregion
+
+            #region Methods & Functions
+            public override void Write(BinaryWriter file)
+            {
+                base.Write(file);
+                file.Write(this.Width);
+                file.Write(this.Height);
+                file.Write(this.GraphId);
+                file.Write(this.Description.GetASCIIBytes());
+            }
+
+            public override string ToString()
+            {
+                return $"{base.ToString()}\n- Width: {this.Width}\n- Height: {this.Height}\n- Graph Id: {this.GraphId}\n- Description: {this.Description}\n";
             }
             #endregion
         }
@@ -280,7 +288,7 @@ namespace DIV2Tools
             }
             set
             {
-                if (value < 1 || value > 999)
+                if (!value.IsClamped(Header.GRAPHID_MIN, Header.GRAPHID_MAX))
                 {
                     throw new ArgumentOutOfRangeException("The GraphID must be a value between 1 and 999.");
                 }
@@ -296,8 +304,7 @@ namespace DIV2Tools
             }
             set
             {
-                string description = value.Length > 32 ? value.Substring(0, 32) : value;
-                this._header.Description = value.PadRight(32);
+                this._header.Description = value.GetFixedLengthString(Header.DESCRIPTION_LENGTH);
             }
         }
         public PAL.ColorPalette Palette => this._palette;
@@ -378,28 +385,11 @@ namespace DIV2Tools
                     this._header.Height = pcx.Height;
                     this._pixels = new Bitmap(this._header.Width, this._header.Height, pcx.Pixels);
                     this._palette = PAL.ColorPalette.ReadPaletteFromPCX(pcx);
+                    this._colorRanges = new PAL.ColorRangeTable();
                 }
 
-                //using (MagickImage pcx = new MagickImage(png.ToByteArray()))
-                //{
-                //    this._header.Width = (short)pcx.Width;
-                //    this._header.Height = (short)pcx.Height;
-                //    this._pixels = new Bitmap(this._header.Width, this._header.Height);
-
-                //    int writeIndex = 0;
-                //    byte[] pixels = pcx.GetPixels().ToArray(); // Returns a 4-color-component array. The indexed value is stored in the 3rd byte of each 4-component group.
-                //    for (int readIndex = 0; readIndex < pixels.Length; readIndex += 4)
-                //    {
-                //        this._pixels[writeIndex] = pixels[readIndex + 2];
-                //        writeIndex++;
-                //    }
-
-                //    this._palette = PAL.ColorPalette.ReadPaletteFromPCX(pcx.ToByteArray());
-                //    this._colorRanges = new PAL.ColorRangeTable();
-
-                //    // Fixed PCX color indexes to MAP palette:
-                //    //this._pixels = PAL.Convert(this._pixels, PAL.ColorPalette.ReadPaletteFromPCXFile(pcx.ToByteArray()), this._palette);
-                //}
+                // Fixed PCX color indexes to MAP palette:
+                //this._pixels = PAL.Convert(this._pixels, PAL.ColorPalette.ReadPaletteFromPCXFile(pcx.ToByteArray()), this._palette);
             }
         }
 

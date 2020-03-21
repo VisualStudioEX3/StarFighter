@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using DIV2Tools.MethodExtensions;
 
-namespace DIV2Tools
+namespace DIV2Tools.DIVFormats
 {
     /// <summary>
     /// Base header definition of all DIV file formats.
@@ -63,20 +63,20 @@ namespace DIV2Tools
         public bool Check()
         {
             return new string(this.Id).Equals(this._id) &&
-                   BitConverter.ToUInt32(this.Signature) == BitConverter.ToUInt32(DIVFormatBaseHeader.HEADER_SIGNATURE) &&
+                   this.Signature.ToUInt32() == DIVFormatBaseHeader.HEADER_SIGNATURE.ToUInt32() &&
                    this.Version == DIVFormatBaseHeader.HEADER_VERSION;
         }
 
         public virtual void Write(BinaryWriter file)
         {
-            file.Write(Encoding.ASCII.GetBytes(this.Id));
+            file.Write(this.Id.GetASCIIBytes());
             file.Write(DIVFormatBaseHeader.HEADER_SIGNATURE);
             file.Write(DIVFormatBaseHeader.HEADER_VERSION);
         }
 
         public new virtual string ToString()
         {
-            return $"Header:\n- Id: {new string(this.Id)}\n- Signature: {BitConverter.ToString(this.Signature)}\n- Version: {this.Version}";
+            return $"Header:\n- Id: {new string(this.Id)}\n- Signature: {this.Signature.ToASCIIString()}\n- Version: {this.Version}";
         }
         #endregion
     }

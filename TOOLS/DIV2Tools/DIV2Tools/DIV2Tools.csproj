@@ -14,19 +14,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="ENEMY.MAP">
+    <None Update="Assets\ENEMY.MAP">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="PLAYER.BMP">
+    <None Update="Assets\PLAYER.BMP">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="PLAYER.PCX">
+    <None Update="Assets\PLAYER.PCX">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="PLAYER.PNG">
+    <None Update="Assets\PLAYER.PNG">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="SPACE.PAL">
+    <None Update="Assets\SPACE.PAL">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
