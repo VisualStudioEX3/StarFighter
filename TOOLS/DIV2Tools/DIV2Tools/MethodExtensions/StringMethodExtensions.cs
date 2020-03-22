@@ -6,6 +6,7 @@ namespace DIV2Tools.MethodExtensions
 {
     public static class StringMethodExtensions
     {
+        #region Methods & Functions
         /// <summary>
         /// Get fixed-length <see cref="string"/>.
         /// </summary>
@@ -35,6 +36,7 @@ namespace DIV2Tools.MethodExtensions
         public static byte[] GetASCIIBytes(this char[] text)
         {
             return Encoding.ASCII.GetBytes(text);
-        }
+        } 
+        #endregion
     }
 }

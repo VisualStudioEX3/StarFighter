@@ -6,6 +6,7 @@ namespace DIV2Tools.MethodExtensions
 {
     public static class NumberMethodExtensions
     {
+        #region Methods & Functions
         /// <summary>
         /// Checks if a value is clamped into a range.
         /// </summary>
@@ -64,6 +65,7 @@ namespace DIV2Tools.MethodExtensions
         public static bool IsClamped(this uint value, uint min, uint max)
         {
             return value >= min && value <= max;
-        }
+        } 
+        #endregion
     }
 }

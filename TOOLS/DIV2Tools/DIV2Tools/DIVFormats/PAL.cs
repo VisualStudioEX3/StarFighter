@@ -459,7 +459,6 @@ namespace DIV2Tools.DIVFormats
             #endregion
 
             #region Methods & Functions
-
             public void Write(BinaryWriter file)
             {
                 foreach (var range in this._ranges)

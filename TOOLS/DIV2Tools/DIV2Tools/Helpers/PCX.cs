@@ -52,7 +52,7 @@ namespace DIV2Tools.Helpers
             /// <summary>
             /// RLE compressed pixel array length.
             /// </summary>
-            public int RLEPixelArrayLength { get; private set; } 
+            public int ImageDataLength { get; private set; } 
             #endregion
 
             #region Constructor
@@ -77,7 +77,7 @@ namespace DIV2Tools.Helpers
                 this.verticalVideoScreenSize = file.ReadInt16();
                 file.AdvanceReadPosition(Header.HEADER_UNUSED_BYTES); // Unused bytes to fill the header length.
 
-                this.RLEPixelArrayLength = (int)file.BaseStream.Length - (Header.LENGTH + EOFPalette.FULL_LENGTH);
+                this.ImageDataLength = (int)file.BaseStream.Length - (Header.LENGTH + EOFPalette.FULL_LENGTH);
             }
             #endregion
 
@@ -109,35 +109,52 @@ namespace DIV2Tools.Helpers
                        $"Bytes Per Line: {this.bytesPerLine}\n" +
                        $"Header Interpretation: {this.headerInterpretation} (1 - Color or Black & White, 2 - Greyscale, 256 colors must be 1)\n" +
                        $"Screen Size: {this.horizontalVideScreenSize} x {this.verticalVideoScreenSize}\n\n" +
-                       $"RLE Pixel Array Length: {this.RLEPixelArrayLength}";
+                       $"RLE Pixel Array Length: {this.ImageDataLength}";
             }
             #endregion
         } 
 
         struct RLEBitmap
         {
-            #region Internal vars
-            byte[] _buffer;
-            #endregion
-
             #region Properties
-            public byte this[int index] => this._buffer[index];
-            public int Length => this._buffer.Length;
+            public byte[] Pixels { get; private set; }
             #endregion
 
             #region Constructor
-            public RLEBitmap(BinaryReader file, int length)
+            public RLEBitmap(BinaryReader file, int length, int width, int height)
             {
-                this._buffer = file.ReadBytes(length);
-            }
-            #endregion
+                // Function to clear bits 6 and 7 in a byte value:
+                var clearBits = new Func<byte, byte>((value) =>
+                {
+                    int i = value;
+                    return (byte)(i & 0x3F);
+                });
 
-            #region Methods & Functions
-            public byte[] Decompress(int decompressedLength)
-            {
-                throw new NotImplementedException();
+                this.Pixels = new byte[width * height];
 
-                // TODO: Implements a RLE decompression algorithm that checks the 6ª and 7ª bit to get counters (ref: http://www.fysnet.net/pcxfile.htm)
+                byte value, write;
+                int index = 0;
+
+                for (int i = 0; i < length; i++)
+                {
+                    value = file.ReadByte();
+                    if ((value & 0xC0) == 0xC0) // Checks if bits 6 and 7 are set.
+                    {
+                        value = clearBits(value); // clear bits 6 and 7 to get the repetitions.
+                        write = file.ReadByte(); // Next byte is the pixel value to write n times.
+                        for (byte j = 0; j < value; j++)
+                        {
+                            this.Pixels[index] = write;
+                            index++;
+                        }
+                        i++;
+                    }
+                    else
+                    {
+                        this.Pixels[index] = value;
+                        index++;
+                    }
+                }
             }
             #endregion
         }
@@ -191,7 +208,7 @@ namespace DIV2Tools.Helpers
         /// <summary>
         /// Uncompressed pixels.
         /// </summary>
-        public byte[] Pixels { get; private set; }
+        public byte[] Pixels => this._bitmap.Pixels;
         /// <summary>
         /// 256 color palette (3 bytes per color in RGB format).
         /// </summary>
@@ -208,11 +225,8 @@ namespace DIV2Tools.Helpers
 
                 if (this._header.Check())
                 {
-                    // Read RLE pixels:
-                    this._bitmap = new RLEBitmap(file, this._header.RLEPixelArrayLength);
-                    
-                    // Decompress image:
-                    this.Pixels = this._bitmap.Decompress(this.Width * this.Height);
+                    // Read RLE data and decompress pixels:
+                    this._bitmap = new RLEBitmap(file, this._header.ImageDataLength, this.Width, this.Height);
                     
                     // Read 256 color palette at end of file:
                     this._palette = new EOFPalette(file);

@@ -7,6 +7,7 @@ namespace DIV2Tools.MethodExtensions
 {
     public static class BinaryReaderMethodExtensions
     {
+        #region Methods & Functions
         /// <summary>
         /// Avance the read cursor n positions.
         /// </summary>
@@ -15,6 +16,7 @@ namespace DIV2Tools.MethodExtensions
         public static void AdvanceReadPosition(this BinaryReader stream, int bytes)
         {
             stream.BaseStream.Position += bytes;
-        }
+        } 
+        #endregion
     }
 }

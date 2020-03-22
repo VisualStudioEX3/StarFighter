@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using DIV2Tools.DIVFormats;
 using DIV2Tools.Helpers;
@@ -11,28 +12,51 @@ namespace DIV2Tools
         static void Main(string[] args)
         {
             //new PAL("SPACE.PAL");
-            TestBitOperations();
+            //TestBitOperations();
             //ImportPCXTest("PLAYER.PCX");
             //CreatePALTest();
             //ComparePALTest();
-            //CreateMAPTest();
+            CreateMAPTest();
 
             Console.Beep();
             Console.ReadKey();
         }
 
+        //public static int SetBit(this int value, int bit)
+        //{
+        //    return value |= 1 << bit;
+        //}
+
+        //public static int ClearBit(this int value, int bit)
+        //{
+        //    return value & ~(1 << bit);
+        //}
+
+        static byte ConvertToByte(BitArray bits)
+        {
+            if (bits.Count != 8)
+            {
+                throw new ArgumentException("bits");
+            }
+            byte[] bytes = new byte[1];
+            bits.CopyTo(bytes, 0);
+            return bytes[0];
+        }
+
         static void TestBitOperations()
         {
-            byte test = 32;
-            var print = new Action(() => Console.WriteLine($"Is bit 7 set: {test.IsBitSet(7)} ({ test })"));
+            // Checks if bits 6 and 7 are set:
+            var check = new Func<byte, bool>((value) => (value & 0xC0) == 0xC0);
 
-            print();
+            // Clear bits 6 and 7:
+            var clear = new Func<byte, byte>((value) =>
+            {
+                int i = value;
+                return (byte)(i & 0x3F);
+            });
 
-            test = test.SetBit(7, true);
-            print();
-
-            test = test.SetBit(7, false);
-            print();
+            Console.WriteLine(check(255)); // Expected true.
+            Console.WriteLine(clear(255)); // Expetect 63.
         }
 
         static void ImportPCXTest(string filename)

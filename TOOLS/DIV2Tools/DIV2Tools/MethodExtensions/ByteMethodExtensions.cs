@@ -7,40 +7,7 @@ namespace DIV2Tools.MethodExtensions
 {
     public static class ByteMethodExtensions
     {
-        /// <summary>
-        /// Check if a bit is set or not.
-        /// </summary>
-        /// <param name="value">This <see cref="byte"/> instance.</param>
-        /// <param name="bit">Bit to check (0 to 7).</param>
-        /// <returns>Returns <see cref="true"/> if the bit is set.</returns>
-        public static bool IsBitSet(this byte value, int bit)
-        {
-            return (value & (1 << bit)) != 0;
-        }
-
-        /// <summary>
-        /// Sets or clear a bit.
-        /// </summary>
-        /// <param name="value">This <see cref="byte"/> instance.</param>
-        /// <param name="bit">Bit to set (0 to 7).</param>
-        /// <param name="set"><see cref="bool"/> value that sets or clear the bit.</param>
-        /// <returns>Returns a new <see cref="byte"/> value with the bit changed.</returns>
-        public static byte SetBit(this byte value, int bit, bool set)
-        {
-            if (!bit.IsClamped(0, 7)) throw new ArgumentOutOfRangeException(nameof(bit), "The bit must be a value between 0 and 7.");
-            return set ? (byte)SetBit(value, bit) : (byte)ClearBit(value, bit);
-        }
-
-        static int SetBit(int value, int bit)
-        {
-            return value |= 1 << bit;
-        }
-
-        static int ClearBit(int value, int bit)
-        {
-            return value & ~(1 << bit);
-        }
-
+        #region Methods & Functions
         /// <summary>
         /// Read all <see cref="char"/>s, using ASCII encoding, from a <see cref="byte"/> array until get <see cref="null"/> char termination.
         /// </summary>
@@ -107,6 +74,17 @@ namespace DIV2Tools.MethodExtensions
         public static string ToASCIIString(this byte[] array)
         {
             return BitConverter.ToString(array);
+        } 
+
+        /// <summary>
+        /// Converts this <see cref="byte"/> in a binary representation.
+        /// </summary>
+        /// <param name="value">This <see cref="byte"/> value instance.</param>
+        /// <returns>Returns a <see cref="string"/> with format 0000000#.</returns>
+        public static string ToBinaryString(this byte value)
+        {
+            return Convert.ToString(value, 2).PadLeft(8, '0');
         }
+        #endregion
     }
 }
