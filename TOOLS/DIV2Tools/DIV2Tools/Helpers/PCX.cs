@@ -185,7 +185,12 @@ namespace DIV2Tools.Helpers
 
                 if (this.marker == EOFPalette.MARKER)
                 {
-                    this.colors = file.ReadBytes(EOFPalette.PALETTE_LENGTH);
+                    this.colors = new byte[EOFPalette.PALETTE_LENGTH];
+
+                    for (int i = 0; i < EOFPalette.PALETTE_LENGTH; i++)
+                    {
+                        this.colors[i] = (byte)(file.ReadByte() / 4);
+                    }
                 }
                 else
                 {

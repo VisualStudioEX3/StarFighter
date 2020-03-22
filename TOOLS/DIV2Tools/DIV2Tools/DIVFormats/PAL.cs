@@ -304,39 +304,24 @@ namespace DIV2Tools.DIVFormats
                     this._colors[i] = new Color(file);
                 }
             }
-            #endregion
-
-            #region Methods & Functions
-            /// <summary>
-            /// Read all colors from a 256 colors <see cref="PCX"/> image.
-            /// </summary>
-            /// <param name="filename"><see cref="PCX"/> filename to read.</param>
-            /// <returns>Returns a new instance of <see cref="ColorPalette"/> with all 256 colors.</returns>
-            /// <remarks>The <see cref="PCX"/> must be a 256 color indexed format.</remarks>
-            public static ColorPalette ReadPaletteFromPCX(string filename)
-            {
-                return ColorPalette.ReadPaletteFromPCX(new PCX(filename, false));
-            }
 
             /// <summary>
-            /// Read all colors from a 256 colors <see cref="PCX"/> image.
+            /// Read all colors from a <see cref="PCX"/> image.
             /// </summary>
-            /// <param name="pcxImage"><see cref="PCX"/> instance.</param>
-            /// <returns>Returns a new instance of <see cref="ColorPalette"/> with all 256 colors.</returns>
-            /// <remarks>The <see cref="PCX"/> must be a 256 color indexed format.</remarks>
-            public static ColorPalette ReadPaletteFromPCX(PCX pcxImage)
+            /// <param name="pcx"><see cref="PCX"/> instance.</param>
+            public ColorPalette(PCX pcx)
             {
-                var colors = new ColorPalette();
-                int paletteIndex = -1;
+                int index = -1;
+                this._colors = new Color[ColorPalette.LENGTH];
 
                 for (int i = 0; i < ColorPalette.LENGTH; i++)
                 {
-                    colors[i] = new Color((byte)(pcxImage.Palette[++paletteIndex] / 4), (byte)(pcxImage.Palette[++paletteIndex] / 4), (byte)(pcxImage.Palette[++paletteIndex] / 4)); // Divide each component by 4 to map to VGA format (0-63 color range).
+                    this._colors[i] = new Color(pcx.Palette[++index], pcx.Palette[++index], pcx.Palette[++index]);
                 }
-
-                return colors;
             }
+            #endregion
 
+            #region Methods & Functions
             public void Write(BinaryWriter file)
             {
                 foreach (var color in this._colors)
@@ -526,9 +511,9 @@ namespace DIV2Tools.DIVFormats
         }
 
         /// <summary>
-        /// Import a PAL file.
+        /// Import a <see cref="PAL"/> file.
         /// </summary>
-        /// <param name="filename">PAL file.</param>
+        /// <param name="filename"><see cref="PAL"/> file.</param>
         /// <param name="verbose">Log <see cref="PAL"/> import data to console. By default is <see cref="true"/>.</param>
         public PAL(string filename, bool verbose = true)
         {
@@ -553,22 +538,20 @@ namespace DIV2Tools.DIVFormats
                 }
             }
         }
+
+        /// <summary>
+        /// Import a <see cref="PCX"/> palette.
+        /// </summary>
+        /// <param name="pcx"><see cref="PCX"/> instance.</param>
+        public PAL(PCX pcx)
+        {
+            this._header = new Header();
+            this._palette = new ColorPalette(pcx);
+            this._colorRanges = new ColorRangeTable();
+        }
         #endregion
 
         #region Methods & Functions
-        /// <summary>
-        /// Creates a <see cref="PAL"/> instance using the palette data from PCX image.
-        /// </summary>
-        /// <param name="filename">PCX filename.</param>
-        /// <returns>Returns a new <see cref="PAL"/> instance with the PCX palette data.</returns>
-        public static PAL CreateFromPCX(string filename)
-        {
-            var pal = new PAL();
-            pal._palette = PAL.ColorPalette.ReadPaletteFromPCX(filename);
-
-            return pal;
-        }
-
         /// <summary>
         /// Write all data in a file.
         /// </summary>
@@ -584,27 +567,6 @@ namespace DIV2Tools.DIVFormats
         }
 
         /// <summary>
-        /// Convert pixel colors from source palette to destiny palette.
-        /// </summary>
-        /// <param name="pixels"><see cref="byte"/> array that contain the pixels to adapt to DIV PAL.</param>
-        /// <param name="sourcePal">Original pixels palette.</param>
-        /// <param name="destPal">palette model to adapt pixels.</param>
-        /// <returns>Returns a new <see cref="byte"/> array with adapted pixels.</returns>
-        public static MAP.Bitmap Convert(MAP.Bitmap pixels, ColorPalette sourcePal, ColorPalette destPal)
-        {
-            var newPixels = new MAP.Bitmap(pixels.Width, pixels.Height);
-            var sourceColors = sourcePal.ToInt32Array();
-            var destColors = destPal.ToInt32Array();
-
-            for (int i = 0; i < pixels.Count; i++)
-            {
-                newPixels[i] = PAL.GetNearColor(sourceColors[pixels[i]], destColors);
-            }
-
-            return newPixels;
-        }
-
-        /// <summary>
         /// Compare 2 <see cref="PAL"/> instances with option to ignore <see cref="ColorRangeTable"/> comparison.
         /// </summary>
         /// <param name="a">The first <see cref="PAL"/> to compare.</param>
@@ -616,27 +578,6 @@ namespace DIV2Tools.DIVFormats
             return (a.Palette == b.Palette) && (ignoreColorRanges ? true : a.Ranges == b.Ranges);
         }
 
-        static byte GetNearColor(int color, int[] pal)
-        {
-            int lastDiff = 0;
-            int index = 0;
-
-            for (int i = 0; i < ColorPalette.LENGTH; i++)
-            {
-                if (color == pal[i]) return (byte)i;
-
-                int currentDiff = Math.Abs(color - pal[i]);
-
-                if (i == 0 || currentDiff < lastDiff)
-                {
-                    lastDiff = currentDiff;
-                    index = i;
-                }
-            }
-
-            return (byte)index;
-        }
-
         public override bool Equals(object obj)
         {
             return this == (PAL)obj;
@@ -645,6 +586,11 @@ namespace DIV2Tools.DIVFormats
         public override int GetHashCode()
         {
             return base.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return $"{this._header.ToString()}\n{this._palette.ToString()}\n{this._colorRanges.ToString()}";
         }
         #endregion
     }

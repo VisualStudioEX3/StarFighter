@@ -374,22 +374,21 @@ namespace DIV2Tools.DIVFormats
         /// <param name="pngfile">PNG file to convert to 256 color indexed <see cref="PCX"/> image.</param>
         public void ImportPNG(string pngfile)
         {
+            // Load PNG image and convert to PCX using ImageMagick framework:
             using (MagickImage png = new MagickImage(pngfile))
             {
                 png.ColorType = ColorType.Palette;
                 png.Format = MagickFormat.Pcx;
 
+                // Load the PCX image using custom importer and get color palette and uncompreseed pixel data:
                 var pcx = new PCX(new MagickImage(png.ToByteArray()).ToByteArray(), false);
                 {
                     this._header.Width = pcx.Width;
                     this._header.Height = pcx.Height;
-                    this._pixels = new Bitmap(this._header.Width, this._header.Height, pcx.Pixels);
-                    this._palette = PAL.ColorPalette.ReadPaletteFromPCX(pcx);
+                    this._palette = new PAL.ColorPalette(pcx);
                     this._colorRanges = new PAL.ColorRangeTable();
+                    this._pixels = new Bitmap(this._header.Width, this._header.Height, pcx.Pixels);
                 }
-
-                // Fixed PCX color indexes to MAP palette:
-                //this._pixels = PAL.Convert(this._pixels, PAL.ColorPalette.ReadPaletteFromPCXFile(pcx.ToByteArray()), this._palette);
             }
         }
 
@@ -407,6 +406,11 @@ namespace DIV2Tools.DIVFormats
                 this._controlPoints.Write(file);
                 this._pixels.Write(file);
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{this._header.ToString()}\n{this._palette.ToString()}\n{this._colorRanges.ToString()}\n{this._controlPoints.ToString()}\n{this._pixels.Count} pixels stored.";
         }
         #endregion
     }

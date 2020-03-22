@@ -66,7 +66,7 @@ namespace DIV2Tools
 
         static void CreatePALTest()
         {
-            var pal = PAL.CreateFromPCX("PLAYER.PCX");
+            var pal = new PAL(new PCX("PLAYER.PCX"));
             {
                 pal.Write("TEST.PAL");
             }
@@ -99,12 +99,11 @@ namespace DIV2Tools
 
         static void CreateMAPTest()
         {
-            // Create new MAP by original PNG file and using existent PAL file:
+            // Create new MAP using the a PNG file:
             var map = new MAP();
             {
                 map.GraphId = 123;
                 map.Description = "Test MAP file.";
-                //map.ImportPalette("SPACE.PAL");
                 map.ImportPNG("PLAYER.PNG");
                 map.ControlPoints.Add(128, 128);
                 map.ControlPoints.Add(255, 255);
