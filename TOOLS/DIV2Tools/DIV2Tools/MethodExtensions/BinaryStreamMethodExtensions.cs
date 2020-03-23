@@ -5,7 +5,7 @@ using System.Text;
 
 namespace DIV2Tools.MethodExtensions
 {
-    public static class BinaryReaderMethodExtensions
+    public static class BinaryStreamMethodExtensions
     {
         #region Methods & Functions
         /// <summary>
