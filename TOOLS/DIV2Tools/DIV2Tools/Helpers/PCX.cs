@@ -52,7 +52,7 @@ namespace DIV2Tools.Helpers
             /// <summary>
             /// RLE compressed pixel array length.
             /// </summary>
-            public int ImageDataLength { get; private set; } 
+            public int CompressedImageDataLength { get; private set; } 
             #endregion
 
             #region Constructor
@@ -77,7 +77,7 @@ namespace DIV2Tools.Helpers
                 this.verticalVideoScreenSize = file.ReadInt16();
                 file.AdvanceReadPosition(Header.HEADER_UNUSED_BYTES); // Unused bytes to fill the header length.
 
-                this.ImageDataLength = (int)file.BaseStream.Length - (Header.LENGTH + EOFPalette.FULL_LENGTH);
+                this.CompressedImageDataLength = (int)file.GetLength() - (Header.LENGTH + EOFPalette.FULL_LENGTH);
             }
             #endregion
 
@@ -97,37 +97,51 @@ namespace DIV2Tools.Helpers
 
             public override string ToString()
             {
-                return $"ZSoft Id: {this.zSoftId} (usually 0x0A:10)\n" +
-                       $"Version: {this.version} (256 colors must be version 5)\n" +
+                return $"ZSoft Id: {this.zSoftId} (usually {Header.ZSOFT_ID})\n" +
+                       $"Version: {this.version} (256 colors must be version {Header.VERSION})\n" +
                        $"RLE Encoding: {this.encoding} (usually 1)\n" +
-                       $"Bits Per Pixel: {this.bpp} (256 colors must be 8 bits per pixel)\n" +
+                       $"Bits Per Pixel: {this.bpp} (256 colors must be {Header.BPP} bits per pixel)\n" +
                        $"Image Dimensions: (xMin: {this.xMin}, yMin: {this.yMin}, xMax: {this.xMax}, yMax: {this.yMax}) Using xMax + 1 and xMin + 1 to get Width and Height.\n" +
                        $"Resolution: {this.horizontalResolution} x {this.verticalResolution}\n" +
                        $"Header palette: (48 bytes for unused EGA/CGA palette format)\n" +
                        $"Reserved: {this.reserved} (unused, always 0)\n" +
-                       $"Number Of Planes: {this.numberOfPlanes} (256 colors must be 1)\n" +
+                       $"Number Of Planes: {this.numberOfPlanes} (256 colors must be {Header.NUMBER_OF_PLANES})\n" +
                        $"Bytes Per Line: {this.bytesPerLine}\n" +
-                       $"Header Interpretation: {this.headerInterpretation} (1 - Color or Black & White, 2 - Greyscale, 256 colors must be 1)\n" +
+                       $"Header Interpretation: {this.headerInterpretation} (1 - Color or Black & White, 2 - Greyscale, 256 colors must be {Header.HEADER_INTERPRETATION})\n" +
                        $"Screen Size: {this.horizontalVideScreenSize} x {this.verticalVideoScreenSize}\n\n" +
-                       $"RLE Pixel Array Length: {this.ImageDataLength}";
+                       $"Compressed Image Data Length: {this.CompressedImageDataLength}";
             }
             #endregion
         } 
 
-        struct RLEBitmap
+        struct RLE8BppBitmap
         {
+            #region Constants
+            const int COUNTER_MASK = 0xC0; // Mask for check if bits 6 and 7 ar set.
+            const int CLEAR_MASK = 0x3F;  // Mask for clear bits 6 and 7.
+            #endregion
+
             #region Properties
             public byte[] Pixels { get; private set; }
             #endregion
 
             #region Constructor
-            public RLEBitmap(BinaryReader file, int length, int width, int height)
+            /// <summary>
+            /// Reads and decompress the RLE 8 bpp image data.
+            /// </summary>
+            /// <param name="file"><see cref="BinaryReader"/> instance. Must be point to the first byte of the image data array.</param>
+            /// <param name="length">Image data compressed length.</param>
+            /// <param name="width">Image width.</param>
+            /// <param name="height">Image height.</param>
+            public RLE8BppBitmap(BinaryReader file, int length, int width, int height)
             {
-                // Function to clear bits 6 and 7 in a byte value:
+                // Lambda function to clear bits 6 and 7 in a byte value:
                 var clearBits = new Func<byte, byte>((value) =>
                 {
+                    // .NET bit operations works in Int32 values. A conversion is needed to work with bytes.
+
                     int i = value;
-                    return (byte)(i & 0x3F);
+                    return (byte)(i & RLE8BppBitmap.CLEAR_MASK);
                 });
 
                 this.Pixels = new byte[width * height];
@@ -138,9 +152,9 @@ namespace DIV2Tools.Helpers
                 for (int i = 0; i < length; i++)
                 {
                     value = file.ReadByte();
-                    if ((value & 0xC0) == 0xC0) // Checks if bits 6 and 7 are set.
+                    if ((value & RLE8BppBitmap.COUNTER_MASK) == RLE8BppBitmap.COUNTER_MASK) // Checks if is a counter byte:
                     {
-                        value = clearBits(value); // clear bits 6 and 7 to get the repetitions.
+                        value = clearBits(value); // Clear bits 6 and 7 to get the repetition value.
                         write = file.ReadByte(); // Next byte is the pixel value to write n times.
                         for (byte j = 0; j < value; j++)
                         {
@@ -149,7 +163,7 @@ namespace DIV2Tools.Helpers
                         }
                         i++;
                     }
-                    else
+                    else // Single pixel value:
                     {
                         this.Pixels[index] = value;
                         index++;
@@ -162,6 +176,9 @@ namespace DIV2Tools.Helpers
         struct EOFPalette
         {
             #region Constants
+            /// <summary>
+            /// Palette marker. This confirm the existence of the 8 bpp palette at the end of the file.
+            /// </summary>
             public const byte MARKER = 0x0C;
             /// <summary>
             /// Color array length.
@@ -179,6 +196,10 @@ namespace DIV2Tools.Helpers
             #endregion
 
             #region Constructor
+            /// <summary>
+            /// Reads the 8 bpp color palette at the end of the file.
+            /// </summary>
+            /// <param name="file"><see cref="BinaryReader"/> instance. Must be point to the marker byte before the palette array.</param>
             public EOFPalette(BinaryReader file)
             {
                 this.marker = file.ReadByte();
@@ -203,7 +224,7 @@ namespace DIV2Tools.Helpers
 
         #region Internal vars
         Header _header;
-        RLEBitmap _bitmap;
+        RLE8BppBitmap _bitmap;
         EOFPalette _palette;
         #endregion
 
@@ -231,7 +252,7 @@ namespace DIV2Tools.Helpers
                 if (this._header.Check())
                 {
                     // Read RLE data and decompress pixels:
-                    this._bitmap = new RLEBitmap(file, this._header.ImageDataLength, this.Width, this.Height);
+                    this._bitmap = new RLE8BppBitmap(file, this._header.CompressedImageDataLength, this.Width, this.Height);
                     
                     // Read 256 color palette at end of file:
                     this._palette = new EOFPalette(file);
@@ -255,9 +276,9 @@ namespace DIV2Tools.Helpers
         }
 
         /// <summary>
-        /// Import PCX from <see cref="Byte"/> array.
+        /// Import PCX from <see cref="byte"/> array.
         /// </summary>
-        /// <param name="buffer"><see cref="Byte"/> array that contain <see cref="PCX"/> file data.</param>
+        /// <param name="buffer"><see cref="byte"/> array that contain <see cref="PCX"/> file data.</param>
         /// <param name="verbose">Log <see cref="PCX"/> import data to console. By default is <see cref="true"/>.</param>
         public PCX(byte[] buffer, bool verbose = true) : this(new MemoryStream(buffer), verbose)
         {

@@ -16,31 +16,11 @@ namespace DIV2Tools
             //ImportPCXTest("PLAYER.PCX");
             //CreatePALTest();
             //ComparePALTest();
-            CreateMAPTest();
+            //CreateMAPTest();
+            ComparePALs();
 
             Console.Beep();
             Console.ReadKey();
-        }
-
-        //public static int SetBit(this int value, int bit)
-        //{
-        //    return value |= 1 << bit;
-        //}
-
-        //public static int ClearBit(this int value, int bit)
-        //{
-        //    return value & ~(1 << bit);
-        //}
-
-        static byte ConvertToByte(BitArray bits)
-        {
-            if (bits.Count != 8)
-            {
-                throw new ArgumentException("bits");
-            }
-            byte[] bytes = new byte[1];
-            bits.CopyTo(bytes, 0);
-            return bytes[0];
         }
 
         static void TestBitOperations()
@@ -86,8 +66,8 @@ namespace DIV2Tools
 
             for (int i = 0; i < 256; i++)
             {
-                a = player.Palette[i];
-                b = test.Palette[i];
+                a = player.Colors[i];
+                b = test.Colors[i];
 
                 if (a == b) coincidences++;
 
@@ -113,6 +93,18 @@ namespace DIV2Tools
             }
 
             new MAP("TEST.MAP"); // Check new MAP created.
+        }
+
+        static void ComparePALs()
+        {
+            var div = new PAL("SPACE.PAL", false);
+            var pcx = new PAL(new PCX("PLAYER.PCX", false));
+
+            for (int i = 0; i < 256; i++)
+            {
+                int index = div.FindColor(pcx.Colors[i], false);
+                Console.WriteLine($"#{i:000}: {pcx.Colors[i].ToString()} : {div.Colors[index]} : {pcx.Colors[i] == div.Colors[index]}");
+            }
         }
     }
 }

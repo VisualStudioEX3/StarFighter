@@ -322,6 +322,39 @@ namespace DIV2Tools.DIVFormats
             #endregion
 
             #region Methods & Functions
+            public int Find(Color color, bool exact = true)
+            {
+                if (exact)
+                {
+                    for (int i = 0; i < ColorPalette.LENGTH; i++)
+                    {
+                        if (color == this[i]) return i;
+                    }
+
+                    return -1;
+                }
+                else
+                {
+                    int lastDiff = 0;
+                    int index = 0;
+
+                    for (int i = 0; i < ColorPalette.LENGTH; i++)
+                    {
+                        if (color == this[i]) return i;
+
+                        int currentDiff = Math.Abs(color.ToInt32() - this[i].ToInt32());
+
+                        if (i == 0 || currentDiff < lastDiff)
+                        {
+                            lastDiff = currentDiff;
+                            index = i;
+                        }
+                    }
+
+                    return index;
+                }
+            }
+
             public void Write(BinaryWriter file)
             {
                 foreach (var color in this._colors)
@@ -480,19 +513,17 @@ namespace DIV2Tools.DIVFormats
 
         #region Internal vars
         Header _header;
-        ColorPalette _palette;
-        ColorRangeTable _colorRanges;
         #endregion
 
         #region Properties
-        public ColorPalette Palette => this._palette;
-        public ColorRangeTable Ranges => this._colorRanges;
+        public ColorPalette Colors { get; private set; }
+        public ColorRangeTable Ranges { get; private set; }
         #endregion
 
         #region Operators
         public static bool operator ==(PAL a, PAL b)
         {
-            return a.Palette == b.Palette &&
+            return a.Colors == b.Colors &&
                    a.Ranges == b.Ranges;
         }
 
@@ -503,67 +534,91 @@ namespace DIV2Tools.DIVFormats
         #endregion
 
         #region Constructor
-        PAL()
+        /// <summary>
+        /// Import a <see cref="PAL"/> file.
+        /// </summary>
+        /// <param name="file"><see cref="BinaryReader"/> instance.</param>
+        /// <param name="skipHeader">Skip read header. Use this when import a palette in a <see cref="MAP"/> or <see cref="FPG"/> instance. By default is <see cref="false"/>.</param>
+        /// <param name="verbose">Log <see cref="PAL"/> import data to console. By default is <see cref="true"/>.</param>
+        public PAL(BinaryReader file, bool skipHeader = false, bool verbose = true)
         {
-            this._header = new Header();
-            this._palette = new ColorPalette();
-            this._colorRanges = new ColorRangeTable();
+            if (!skipHeader)
+            {
+                this._header = new Header(file);
+                Helper.Log(this._header.ToString(), verbose);
+            }
+
+            if (this._header.Check() || skipHeader)
+            {
+                this.Colors = new ColorPalette(file);
+                Helper.Log(this.Colors.ToString(), verbose);
+
+                this.Ranges = new ColorRangeTable(file);
+                Helper.Log(this.Ranges.ToString(), verbose);
+            }
+            else
+            {
+                throw new FormatException("Invalid PAL file!");
+            }
         }
 
         /// <summary>
         /// Import a <see cref="PAL"/> file.
         /// </summary>
         /// <param name="filename"><see cref="PAL"/> file.</param>
+        /// <param name="skipHeader">Skip read header. Use this when import a palette in a <see cref="MAP"/> or <see cref="FPG"/> instance. By default is <see cref="false"/>.</param>
         /// <param name="verbose">Log <see cref="PAL"/> import data to console. By default is <see cref="true"/>.</param>
-        public PAL(string filename, bool verbose = true)
+        public PAL(string filename, bool skipHeader, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), skipHeader, verbose)
         {
-            using (var file = new BinaryReader(File.OpenRead(filename)))
-            {
-                Helper.Log($"Reading \"{filename}\"...\n", verbose);
-
-                this._header = new Header(file);
-                Helper.Log(this._header.ToString(), verbose);
-
-                if (this._header.Check())
-                {
-                    this._palette = new ColorPalette(file);
-                    Helper.Log(this._palette.ToString(), verbose);
-
-                    this._colorRanges = new ColorRangeTable(file);
-                    Helper.Log(this._colorRanges.ToString(), verbose);
-                }
-                else
-                {
-                    throw new FormatException("Invalid PAL file!");
-                }
-            }
         }
 
         /// <summary>
         /// Import a <see cref="PCX"/> palette.
         /// </summary>
         /// <param name="pcx"><see cref="PCX"/> instance.</param>
-        public PAL(PCX pcx)
+        /// <param name="skipHeader">Skip initialize header. Use this when import a palette in a <see cref="MAP"/> or <see cref="FPG"/> instance. By default is <see cref="false"/>.</param>
+        public PAL(PCX pcx, bool skipHeader = false)
         {
-            this._header = new Header();
-            this._palette = new ColorPalette(pcx);
-            this._colorRanges = new ColorRangeTable();
+            if (!skipHeader)
+            {
+                this._header = new Header(); 
+            }
+            this.Colors = new ColorPalette(pcx);
+            this.Ranges = new ColorRangeTable();
         }
         #endregion
 
         #region Methods & Functions
+        /// <summary>
+        /// Search a <see cref="Color"/> value in palette.
+        /// </summary>
+        /// <param name="color"><see cref="Color"/> value to search.</param>
+        /// <param name="exact">Flag to indicate if the search value must be the same or to get a next similar color.</param>
+        /// <returns>Returns the index of the <see cref="Color"/> value or -1 if not found the same color when <paramref name="exact"/> is <see cref="true"/>.</returns>
+        public int FindColor(Color color, bool exact = true)
+        {
+            return this.Colors.Find(color, exact);
+        }
+
         /// <summary>
         /// Write all data in a file.
         /// </summary>
         /// <param name="filename"><see cref="PAL"/> filename.</param>
         public void Write(string filename)
         {
-            using (var file = new BinaryWriter(File.OpenWrite(filename)))
-            {
-                this._header.Write(file);
-                this._palette.Write(file);
-                this._colorRanges.Write(file);
-            }
+            this._header ??= new Header();
+            this.Write(new BinaryWriter(File.OpenWrite(filename)));
+        }
+
+        /// <summary>
+        /// Write all data in a <see cref="BinaryWriter"/>.
+        /// </summary>
+        /// <param name="file"><see cref="BinaryWriter"/> instance.</param>
+        public void Write(BinaryWriter file)
+        {
+            this._header?.Write(file);
+            this.Colors.Write(file);
+            this.Ranges.Write(file);
         }
 
         /// <summary>
@@ -575,7 +630,7 @@ namespace DIV2Tools.DIVFormats
         /// <returns>Returns <see cref="true"/> if the 2 <see cref="PAL"/> instances are equal.</returns>
         public static bool Compare(PAL a, PAL b, bool ignoreColorRanges = true)
         {
-            return (a.Palette == b.Palette) && (ignoreColorRanges ? true : a.Ranges == b.Ranges);
+            return (a.Colors == b.Colors) && (ignoreColorRanges ? true : a.Ranges == b.Ranges);
         }
 
         public override bool Equals(object obj)
@@ -590,7 +645,7 @@ namespace DIV2Tools.DIVFormats
 
         public override string ToString()
         {
-            return $"{this._header.ToString()}\n{this._palette.ToString()}\n{this._colorRanges.ToString()}";
+            return $"{this._header?.ToString()}\n{this.Colors.ToString()}\n{this.Ranges.ToString()}";
         }
         #endregion
     }

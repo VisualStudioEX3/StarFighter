@@ -51,38 +51,33 @@ namespace DIV2Tools.DIVFormats
         {
             #region Constants
             const string HEADER_ID = "map";
+            #endregion
 
-            public const int GRAPHID_MIN = 1;
-            public const int GRAPHID_MAX = 999;
-            public const int DESCRIPTION_LENGTH = 32;
+            #region Internal vars
+            BaseInfo _info;
             #endregion
 
             #region Public vars
-            public short Width { get; set; }        // 1 word (2 bytes)
-            public short Height { get; set; }       // 1 word (2 bytes)
-            public int GraphId { get; set; }        // 1 doble word (4 bytes)
-            public string Description { get; set; } // 32 bytes (ASCII)
+            public short Width { get { return this._info.Width; } set { this._info.Width = value; } }
+            public short Height { get { return this._info.Height; } set { this._info.Height = value; } }
+            public int GraphId { get { return this._info.GraphId; } set { this._info.GraphId = value; } }
+            public string Description { get { return this._info.Description; } set { this._info.Description = value; } }
             #endregion
 
             #region Constructor
             public Header() : base(Header.HEADER_ID)
             {
+                this._info = new BaseInfo();
             }
 
             public Header(short width, short height, short graphId, string description) : base(Header.HEADER_ID)
             {
-                this.Width = width;
-                this.Height = height;
-                this.GraphId = graphId;
-                this.Description = description;
+                this._info = new BaseInfo(width, height, graphId, description);
             }
 
             public Header(BinaryReader file) : base(Header.HEADER_ID, file)
             {
-                this.Width = file.ReadInt16();
-                this.Height = file.ReadInt16();
-                this.GraphId = file.ReadInt32();
-                this.Description = file.ReadBytes(Header.DESCRIPTION_LENGTH).GetNullTerminatedASCIIString();
+                this._info = new BaseInfo(file, false);
             }
             #endregion
 
@@ -90,15 +85,157 @@ namespace DIV2Tools.DIVFormats
             public override void Write(BinaryWriter file)
             {
                 base.Write(file);
-                file.Write(this.Width);
-                file.Write(this.Height);
-                file.Write(this.GraphId);
-                file.Write(this.Description.GetASCIIBytes());
+                this._info.Write(file);
             }
 
             public override string ToString()
             {
-                return $"{base.ToString()}\n- Width: {this.Width}\n- Height: {this.Height}\n- Graph Id: {this.GraphId}\n- Description: {this.Description}\n";
+                return $"{base.ToString()}\n{this._info.ToString()}";
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// <see cref="MAP"/> base info data and logic shared with <see cref="FPG.MAPRegister"/> class.
+        /// </summary>
+        public class BaseInfo
+        {
+            #region Constants
+            public const int GRAPHID_MIN = 1;
+            public const int GRAPHID_MAX = 999;
+            public const int DESCRIPTION_LENGTH = 32;
+            public const int FILENAME_LENGTH = 12;
+            #endregion
+
+            #region Internal vars
+            readonly bool _isFPG;
+            int _graphId;
+            string _description;
+            string _filename;
+
+            #endregion
+
+            #region Properties
+            public short Width { get; set; }
+            public short Height { get; set; }
+            public int GraphId
+            {
+                get
+                {
+                    return this._graphId;
+                }
+                set
+                {
+                    if (!value.IsClamped(BaseInfo.GRAPHID_MIN, BaseInfo.GRAPHID_MAX))
+                    {
+                        throw new ArgumentOutOfRangeException($"GraphId must be a value between {BaseInfo.GRAPHID_MIN} and {BaseInfo.GRAPHID_MAX}.");
+                    }
+
+                    this._graphId = value;
+                }
+            }
+            public string Description
+            {
+                get
+                {
+                    return this._description;
+                }
+                set
+                {
+                    this._description = value.GetFixedLengthString(BaseInfo.DESCRIPTION_LENGTH);
+                }
+            }
+            public string Filename
+            {
+                get
+                {
+                    return this._filename;
+                }
+                set
+                {
+                    this._filename = value.GetFixedLengthString(BaseInfo.FILENAME_LENGTH);
+                }
+            }
+            public int Length { get; set; }
+            #endregion
+
+            #region Constructors
+            public BaseInfo()
+            {
+                this._isFPG = false;
+            }
+
+            public BaseInfo(BinaryReader file, bool isFPG)
+            {
+                this._isFPG = isFPG;
+
+                if (!isFPG)
+                {
+                    // MAP format order:
+                    this.Width = file.ReadInt16();
+                    this.Height = file.ReadInt16();
+                    this.GraphId = file.ReadInt32();
+                    this.Description = file.ReadBytes(BaseInfo.DESCRIPTION_LENGTH).GetNullTerminatedASCIIString();
+                }
+                else
+                {
+                    // FPG format order:
+                    this.GraphId = file.ReadInt32();
+                    this.Length = file.ReadInt32();
+                    this.Description = file.ReadBytes(BaseInfo.DESCRIPTION_LENGTH).GetNullTerminatedASCIIString();
+                    this.Filename = this.Description = file.ReadBytes(BaseInfo.FILENAME_LENGTH).GetNullTerminatedASCIIString();
+                    this.Width = file.ReadInt16();
+                    this.Height = file.ReadInt16();
+                }
+            }
+
+            public BaseInfo(short width, short height, int graphId, string description)
+            {
+                this._isFPG = false;
+
+                this.Width = width;
+                this.Height = height;
+                this.GraphId = graphId;
+                this.Description = description;
+            }
+
+            public BaseInfo(short width, short height, int graphId, string description, string filename, int length) : this(width, height, graphId, description)
+            {
+                this._isFPG = true;
+
+                this.Filename = filename;
+                this.Length = length;
+            }
+            #endregion
+
+            #region Methods & Functions
+            public void Write(BinaryWriter file)
+            {
+                if (!this._isFPG)
+                {
+                    // MAP format order:
+                    file.Write(this.Width);
+                    file.Write(this.Height);
+                    file.Write(this.GraphId);
+                    file.Write(this.Description.GetASCIIBytes());
+                }
+                else
+                {
+                    // FPG format order:
+                    file.Write(this.GraphId);
+                    file.Write(this.Length);
+                    file.Write(this.Description.GetASCIIBytes());
+                    file.Write(this.Filename.GetASCIIBytes());
+                    file.Write(this.Width);
+                    file.Write(this.Height);
+                }
+            }
+
+            public override string ToString()
+            {
+                return !this._isFPG ?
+                       $"- Width: {this.Width}\n- Height: {this.Height}\n- Graph Id: {this.GraphId}\n- Description: {this.Description}\n" :
+                       $"- Graph Id: {this.GraphId}\n- Length: {this.Length}\n- Description: {this.Description}\n- Filename: {this.Filename}\n- Width: {this.Width}\n- Height: {this.Height}\n";
             }
             #endregion
         }
@@ -271,88 +408,69 @@ namespace DIV2Tools.DIVFormats
 
         #region Internal vars
         Header _header;
-        PAL.ColorPalette _palette;
-        PAL.ColorRangeTable _colorRanges;
-        ControlPointList _controlPoints;
-        Bitmap _pixels;
         #endregion
 
         #region Properties
         public short Width => this._header.Width;
         public short Height => this._header.Height;
-        public int GraphId
-        {
-            get
-            { 
-                return this._header.GraphId; 
-            }
-            set
-            {
-                if (!value.IsClamped(Header.GRAPHID_MIN, Header.GRAPHID_MAX))
-                {
-                    throw new ArgumentOutOfRangeException("The GraphID must be a value between 1 and 999.");
-                }
-
-                this._header.GraphId = value;
-            }
-        }
-        public string Description 
-        { 
-            get
-            {
-                return this._header.Description;
-            }
-            set
-            {
-                this._header.Description = value.GetFixedLengthString(Header.DESCRIPTION_LENGTH);
-            }
-        }
-        public PAL.ColorPalette Palette => this._palette;
-        public PAL.ColorRangeTable Ranges => this._colorRanges;
-        public ControlPointList ControlPoints => this._controlPoints;
-        public Bitmap Pixels => this._pixels;
+        public int GraphId { get { return this._header.GraphId; } set { this._header.GraphId = value; } }
+        public string Description { get { return this._header.Description; } set { this._header.Description = value; } }
+        public PAL Palette { get; private set; }
+        public ControlPointList ControlPoints { get; private set; }
+        public Bitmap Pixels { get; private set; }
         #endregion
 
         #region Constructor
+        /// <summary>
+        /// Creates a new <see cref="MAP"/> empty instance.
+        /// </summary>
         public MAP()
         {
             this._header = new Header();
-            this._controlPoints = new ControlPointList();
+            this.ControlPoints = new ControlPointList();
         }
 
         /// <summary>
-        /// Import a MAP file.
+        /// Import a <see cref="MAP"/> from a <see cref="BinaryReader"/> stream.
         /// </summary>
-        /// <param name="filename">MAP file.</param>
+        /// <param name="file"><see cref="BinaryReader"/> instance.</param>
+        /// <param name="fromFPG">Indicates if <see cref="MAP"/> is readed from a <see cref="FPG"/>. By default is <see cref="false"/>.</param>
         /// <param name="verbose">Log <see cref="MAP"/> import data in console. By default is <see cref="true"/>.</param>
-        public MAP(string filename, bool verbose = true)
+        public MAP(BinaryReader file, bool fromFPG = false, bool verbose = true)
         {
-            using (var file = new BinaryReader(File.OpenRead(filename)))
+            if (!fromFPG)
             {
-                Helper.Log($"Reading \"{filename}\"...\n", verbose);
-
                 this._header = new Header(file);
-                Helper.Log(this._header.ToString(), verbose);
-
-                if (this._header.Check())
-                {
-                    this._palette = new PAL.ColorPalette(file);
-                    Helper.Log(this._palette.ToString(), verbose);
-
-                    this._colorRanges = new PAL.ColorRangeTable(file);
-                    Helper.Log(this._colorRanges.ToString(), verbose);
-
-                    this._controlPoints = new ControlPointList(file);
-                    Helper.Log(this._controlPoints.ToString(), verbose);
-
-                    this._pixels = new Bitmap(this._header.Width, this._header.Height, file);
-                    Helper.Log($"Readed {this._pixels.Count} pixels in MAP.", verbose);
-                }
-                else
-                {
-                    throw new FormatException("Invalid MAP file!");
-                }
+                Helper.Log(this._header.ToString(), verbose); 
             }
+
+            if (this._header.Check() || fromFPG)
+            {
+                if (!fromFPG)
+                {
+                    this.Palette = new PAL(file, true, verbose);
+                    Helper.Log(this.Palette.ToString(), verbose); 
+                }
+
+                this.ControlPoints = new ControlPointList(file);
+                Helper.Log(this.ControlPoints.ToString(), verbose);
+
+                this.Pixels = new Bitmap(this._header.Width, this._header.Height, file);
+                Helper.Log($"Readed {this.Pixels.Count} pixels in MAP.", verbose);
+            }
+            else
+            {
+                throw new FormatException("Invalid MAP file!");
+            }
+        }
+
+        /// <summary>
+        /// Import a <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="filename"><see cref="MAP"/> file.</param>
+        /// <param name="verbose">Log <see cref="MAP"/> import data in console. By default is <see cref="true"/>.</param>
+        public MAP(string filename, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), false, verbose)
+        {
         }
         #endregion
 
@@ -363,9 +481,7 @@ namespace DIV2Tools.DIVFormats
         /// <param name="filename"><see cref="PAL"/> file to import.</param>
         public void ImportPalette(string filename)
         {
-            var pal = new PAL(filename, false);
-            this._palette = pal.Palette;
-            this._colorRanges = pal.Ranges;
+            this.Palette = new PAL(filename, true, false);
         }
 
         /// <summary>
@@ -385,9 +501,8 @@ namespace DIV2Tools.DIVFormats
                 {
                     this._header.Width = pcx.Width;
                     this._header.Height = pcx.Height;
-                    this._palette = new PAL.ColorPalette(pcx);
-                    this._colorRanges = new PAL.ColorRangeTable();
-                    this._pixels = new Bitmap(this._header.Width, this._header.Height, pcx.Pixels);
+                    this.Palette = new PAL(pcx, true);
+                    this.Pixels = new Bitmap(this._header.Width, this._header.Height, pcx.Pixels);
                 }
             }
         }
@@ -398,19 +513,27 @@ namespace DIV2Tools.DIVFormats
         /// <param name="filename"><see cref="MAP"/> filename.</param>
         public void Write(string filename)
         {
-            using (var file = new BinaryWriter(File.OpenWrite(filename)))
-            {
-                this._header.Write(file);
-                this._palette.Write(file);
-                this._colorRanges.Write(file);
-                this._controlPoints.Write(file);
-                this._pixels.Write(file);
-            }
+            if (this._header is null) throw new InvalidOperationException("Header is not initialized.");
+            if (this.Palette is null) throw new InvalidOperationException("Palette is not initialized.");
+
+            this.Write(new BinaryWriter(File.OpenWrite(filename)));
+        }
+
+        /// <summary>
+        /// Write all data in a <see cref="BinaryWriter"/>.
+        /// </summary>
+        /// <param name="filename"><see cref="BinaryWriter"/> instance.</param>
+        public void Write(BinaryWriter file)
+        {
+            this._header?.Write(file);
+            this.Palette?.Write(file);
+            this.ControlPoints.Write(file);
+            this.Pixels.Write(file);
         }
 
         public override string ToString()
         {
-            return $"{this._header.ToString()}\n{this._palette.ToString()}\n{this._colorRanges.ToString()}\n{this._controlPoints.ToString()}\n{this._pixels.Count} pixels stored.";
+            return $"{this._header?.ToString()}\n{this.Palette?.ToString()}\n{this.ControlPoints.ToString()}\n{this.Pixels.Count} pixels stored.";
         }
         #endregion
     }
