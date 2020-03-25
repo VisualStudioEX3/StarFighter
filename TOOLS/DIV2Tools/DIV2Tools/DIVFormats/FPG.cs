@@ -45,6 +45,13 @@ namespace DIV2Tools.DIVFormats
         /// </summary>
         public class MAPRegister
         {
+            #region Constants
+            /// <summary>
+            /// <see cref="FPG.MAPRegister"/> header length. This value must be added to <see cref="MAP"/> bitmap length to get the <see cref="MAPRegister"/> length.
+            /// </summary>
+            public const int HEADER_LENGTH = 64; 
+            #endregion
+
             #region Internal vars
             MAP.BaseInfo _info;
             MAP _map;
@@ -55,8 +62,8 @@ namespace DIV2Tools.DIVFormats
             public int Length => this._info.Length;
             public string Description { get { return this._info.Description; } set { this._info.Description = value; } }
             public string Filename { get { return this._info.Filename; } set { this._info.Filename = value; } }
-            public short Width => this._info.Width;
-            public short Height => this._info.Height;
+            public short Width => (short)this._info.Width;
+            public short Height => (short)this._info.Height;
             public MAP.ControlPointList ControlPoints => this._map.ControlPoints;
             #endregion
 
@@ -68,7 +75,7 @@ namespace DIV2Tools.DIVFormats
             public MAPRegister(BinaryReader file)
             {
                 this._info = new MAP.BaseInfo(file, true);
-                this._map = new MAP(file, true, false); // Read MAP without header and palette.
+                this._map = MAP.ExtractFromFPG(file, Width, this.Height);
             }
 
             /// <summary>
@@ -98,7 +105,7 @@ namespace DIV2Tools.DIVFormats
                     {
                         this._map.ImportPNG(filename);
 
-                        this._info = new MAP.BaseInfo(this._map.Width, this._map.Height, graphId, description, storedFilename, this._map.Pixels.Count);
+                        this._info = new MAP.BaseInfo(this._map.Width, this._map.Height, graphId, description, storedFilename, this._map.Pixels.Count + MAPRegister.HEADER_LENGTH);
                         {
                             foreach (var point in controlPoints)
                             {
@@ -122,7 +129,7 @@ namespace DIV2Tools.DIVFormats
 
             public override string ToString()
             {
-                return $"Graphic Identifier: {this.GraphId}\n- Image size in bytes: {this.Length}\n- Description: {this.Description}\n- (Stored) Filename: {this.Filename}\n- Width: {this.Width}\n- Height: {this.Height}\n";
+                return $"- Graphic Identifier: {this.GraphId}\n- Total MAPRegister size: {this.Length}\n- Description: {this.Description}\n- (Stored) Filename: {this.Filename}\n- Width: {this.Width}\n- Height: {this.Height}\n- Control Points: {this._map.ControlPoints.ToString()}\n- Image size: {this._map.Pixels.Count}\n";
             }
             #endregion
         }
@@ -153,10 +160,7 @@ namespace DIV2Tools.DIVFormats
             /// <param name="file"><see cref="BinaryReader"/> instance.</param>
             public MAPRegisterCollection(BinaryReader file) : this()
             {
-                do
-                {
-                    this._maps.Add(new MAPRegister(file));
-                } while (!file.EOF());
+                do { this._maps.Add(new MAPRegister(file)); } while (!file.EOF());
             }
             #endregion
 
@@ -187,12 +191,12 @@ namespace DIV2Tools.DIVFormats
                         }
                         else
                         {
-                            throw new ArgumentOutOfRangeException(nameof(controlPoints), $"The control points array lenght must be less than {MAP.ControlPointList.MAX_CAPACITY}.");
+                            throw new ArgumentOutOfRangeException(nameof(controlPoints), $"The control points array length must be less than {MAP.ControlPointList.MAX_CAPACITY}.");
                         }
                     }
                     else
                     {
-                        throw new ArgumentException(nameof(graphId), $"The GraphId {graphId} is in use by other MAP (MAP index: {index}).");
+                        throw new ArgumentException(nameof(graphId), $"The graphic identifier {graphId} is in use by other MAP (MAP index: {index}).");
                     }
                 }
                 else
@@ -257,6 +261,7 @@ namespace DIV2Tools.DIVFormats
                 var sb = new StringBuilder();
 
                 sb.AppendLine($"{this.Count} {(this.Count < 2 ? "MAP": "MAPs")} readed:");
+
                 foreach (var map in this._maps)
                 {
                     sb.AppendLine(map.ToString());
@@ -298,7 +303,8 @@ namespace DIV2Tools.DIVFormats
 
                 if (this.Header.Check())
                 {
-                    this.Palette = new PAL(file, true, verbose);
+                    this.Palette = PAL.ExtractFromFile(file);
+                    Helper.Log(this.Palette.ToString(), verbose);
 
                     this.Maps = new MAPRegisterCollection(file);
                     Helper.Log(this.Maps.ToString(), verbose);
@@ -320,7 +326,8 @@ namespace DIV2Tools.DIVFormats
         /// <param name="filename"><see cref="PAL"/> file to import.</param>
         public void ImportPalette(string filename)
         {
-            this.Palette = new PAL(filename, true, false);
+            this.Palette = new PAL(filename, false);
+            this.Palette.RemoveHeader();
         }
 
         public void Write(string filename)

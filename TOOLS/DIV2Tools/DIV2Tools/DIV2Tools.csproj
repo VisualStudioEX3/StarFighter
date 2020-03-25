@@ -20,6 +20,9 @@
     <None Update="PLAYER.BMP">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="PLAYER.FPG">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="PLAYER.PCX">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

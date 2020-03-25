@@ -11,14 +11,18 @@ namespace DIV2Tools
     {
         static void Main(string[] args)
         {
-            //new PAL("SPACE.PAL");
             //TestBitOperations();
-            //ImportPCXTest("PLAYER.PCX");
+            //TestBinaryReaderEOF();
+
+            //LoadPALTest();
             //CreatePALTest();
             //ComparePALTest();
+            //ComparePALsTest();
+
+            //ImportPCXTest();
             //CreateMAPTest();
-            //ComparePALs();
-            TestBinaryReaderEOF();
+
+            LoadFPGTest();
 
             Console.Beep();
             Console.ReadKey();
@@ -47,14 +51,19 @@ namespace DIV2Tools
             Console.WriteLine(clear(255)); // Expected 63.
         }
 
-        static void ImportPCXTest(string filename)
+        static void ImportPCXTest()
         {
-            new PCX(filename);
+            new PCX("PLAYER.PCX");
+        }
+
+        static void LoadPALTest()
+        {
+            new PAL("SPACE.PAL");
         }
 
         static void CreatePALTest()
         {
-            var pal = new PAL(new PCX("PLAYER.PCX"));
+            var pal = new PAL(new PCX("PLAYER.PCX", false));
             {
                 pal.Write("TEST.PAL");
             }
@@ -66,8 +75,8 @@ namespace DIV2Tools
         {
             //Console.WriteLine($"Compare palettes: {PAL.CreateFromPCX("PLAYER.PCX") == new PAL("TEST.PAL", false)}");
             //Console.WriteLine($"Compare palettes: {PAL.Compare(PAL.CreateFromPCX("PLAYER.PCX"), new PAL("TEST.PAL", false))}");
-            var player = new PAL("PLAYER.PAL", false, false);
-            var test = new PAL("TEST.PAL", false, false);
+            var player = new PAL("PLAYER.PAL", false);
+            var test = new PAL("TEST.PAL", false);
 
             PAL.Color a, b;
             int coincidences = 0;
@@ -103,9 +112,9 @@ namespace DIV2Tools
             new MAP("TEST.MAP"); // Check new MAP created.
         }
 
-        static void ComparePALs()
+        static void ComparePALsTest()
         {
-            var div = new PAL("SPACE.PAL", false, false);
+            var div = new PAL("SPACE.PAL", false);
             var pcx = new PAL(new PCX("PLAYER.PCX"));
 
             for (int i = 0; i < 256; i++)
@@ -113,6 +122,11 @@ namespace DIV2Tools
                 int index = div.FindColor(pcx.Colors[i], false);
                 Console.WriteLine($"#{i:000}: {pcx.Colors[i].ToString()} : {div.Colors[index]} : {pcx.Colors[i] == div.Colors[index]}");
             }
+        }
+
+        static void LoadFPGTest()
+        {
+            new FPG("PLAYER.FPG");
         }
     }
 }

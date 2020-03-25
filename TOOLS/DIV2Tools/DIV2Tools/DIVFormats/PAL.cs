@@ -531,12 +531,25 @@ namespace DIV2Tools.DIVFormats
 
         #region Constructor
         /// <summary>
-        /// Import a <see cref="PAL"/> file.
+        /// Imports <see cref="PAL"/> file.
         /// </summary>
         /// <param name="file"><see cref="BinaryReader"/> instance.</param>
-        /// <param name="skipHeader">When import from <see cref="MAP"/> or <see cref="FPG"/> instance, skip to read the header. By default <see cref="false"/>.</param>
         /// <param name="verbose">Log <see cref="PAL"/> import data to console. By default is <see cref="true"/>.</param>
-        public PAL(BinaryReader file, bool skipHeader = false, bool verbose = true)
+        public PAL(BinaryReader file, bool verbose = true) : this(file, false, verbose)
+        {
+        }
+
+        /// <summary>
+        /// Imports <see cref="PAL"/> file.
+        /// </summary>
+        /// <param name="filename"><see cref="PAL"/> filename.</param>
+        /// <param name="verbose">Log <see cref="PAL"/> import data to console. By default is <see cref="true"/>.</param>
+        public PAL(string filename, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), false, verbose)
+        {
+            this.closeBinaryReader = true;
+        }
+
+        PAL(BinaryReader file, bool skipHeader, bool verbose)
         {
             if (!skipHeader)
             {
@@ -562,18 +575,7 @@ namespace DIV2Tools.DIVFormats
         }
 
         /// <summary>
-        /// Import a <see cref="PAL"/> file.
-        /// </summary>
-        /// <param name="filename"><see cref="PAL"/> file.</param>
-        /// <param name="skipHeader">When import from <see cref="MAP"/> or <see cref="FPG"/> instance, skip to read the header. By default <see cref="false"/>.</param>
-        /// <param name="verbose">Log <see cref="PAL"/> import data to console. By default is <see cref="true"/>.</param>
-        public PAL(string filename, bool skipHeader = false, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), skipHeader, verbose)
-        {
-            this.closeBinaryReader = true;
-        }
-
-        /// <summary>
-        /// Import a <see cref="PCX"/> palette.
+        /// Imports <see cref="PCX"/> palette.
         /// </summary>
         /// <param name="pcx"><see cref="PCX"/> instance.</param>
         /// <param name="skipHeader">Skip initialize header. Use this when import a palette in a <see cref="MAP"/> or <see cref="FPG"/> instance. By default is <see cref="false"/>.</param>
@@ -586,6 +588,16 @@ namespace DIV2Tools.DIVFormats
         #endregion
 
         #region Methods & Functions
+        /// <summary>
+        /// Extracts <see cref="PAL"/> data from a <see cref="MAP"/> or <see cref="FPG"/> file.
+        /// </summary>
+        /// <param name="file"><see cref="BinaryReader"/> instance. Must be point to the first byte of <see cref="PAL"/> data on <see cref="MAP"/> or <see cref="FPG"/> file.</param>
+        /// <returns>Returns new <see cref="PAL"/> instance without header.</returns>
+        public static PAL ExtractFromFile(BinaryReader file)
+        {
+            return new PAL(file, true, false);
+        }
+
         /// <summary>
         /// Search a <see cref="Color"/> value in palette.
         /// </summary>

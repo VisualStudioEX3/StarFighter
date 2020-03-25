@@ -58,8 +58,8 @@ namespace DIV2Tools.DIVFormats
             #endregion
 
             #region Public vars
-            public short Width { get { return this._info.Width; } set { this._info.Width = value; } }
-            public short Height { get { return this._info.Height; } set { this._info.Height = value; } }
+            public short Width { get { return (short)this._info.Width; } internal set { this._info.Width = value; } }
+            public short Height { get { return (short)this._info.Height; } internal set { this._info.Height = value; } }
             public int GraphId { get { return this._info.GraphId; } set { this._info.GraphId = value; } }
             public string Description { get { return this._info.Description; } set { this._info.Description = value; } }
             #endregion
@@ -122,8 +122,8 @@ namespace DIV2Tools.DIVFormats
             #endregion
 
             #region Properties
-            public short Width { get; set; }
-            public short Height { get; set; }
+            public int Width { get; internal set; }
+            public int Height { get; internal set; }
             public int GraphId
             {
                 get
@@ -162,7 +162,7 @@ namespace DIV2Tools.DIVFormats
                     this._filename = value.GetFixedLengthString(BaseInfo.FILENAME_LENGTH);
                 }
             }
-            public int Length { get; set; }
+            public int Length { get; private set; }
             #endregion
 
             #region Constructors
@@ -190,8 +190,8 @@ namespace DIV2Tools.DIVFormats
                     this.Length = file.ReadInt32();
                     this.Description = file.ReadBytes(BaseInfo.DESCRIPTION_LENGTH).GetNullTerminatedASCIIString();
                     this.Filename = this.Description = file.ReadBytes(BaseInfo.FILENAME_LENGTH).GetNullTerminatedASCIIString();
-                    this.Width = file.ReadInt16();
-                    this.Height = file.ReadInt16();
+                    this.Width = file.ReadInt32();
+                    this.Height = file.ReadInt32();
                 }
             }
 
@@ -279,7 +279,7 @@ namespace DIV2Tools.DIVFormats
             /// <remarks>The <see cref="BinaryReader"/> instance must be setup in the byte of the control point counter value.</remarks>
             public ControlPointList(BinaryReader file)
             {
-                this._points = new List<ControlPoint>(file.ReadInt16());
+                this._points = new List<ControlPoint>(file.ReadInt32());
 
                 for (int i = 0; i < this._points.Capacity; i++)
                 {
@@ -451,28 +451,44 @@ namespace DIV2Tools.DIVFormats
         /// Import a <see cref="MAP"/> from a <see cref="BinaryReader"/> stream.
         /// </summary>
         /// <param name="file"><see cref="BinaryReader"/> instance.</param>
-        /// <param name="fromFPG">Indicates if <see cref="MAP"/> is readed from a <see cref="FPG"/> (this skip to read the header and palette). By default is <see cref="false"/>.</param>
         /// <param name="verbose">Log <see cref="MAP"/> import data in console. By default is <see cref="true"/>.</param>
-        public MAP(BinaryReader file, bool fromFPG = false, bool verbose = true)
+        public MAP(BinaryReader file, bool verbose = true) : this(file, -1, -1, verbose)
         {
+        }
+
+        /// <summary>
+        /// Import a <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="filename"><see cref="MAP"/> filename.</param>
+        /// <param name="verbose">Log <see cref="MAP"/> import data in console. By default is <see cref="true"/>.</param>
+        public MAP(string filename, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), verbose)
+        {
+            this.closeBinaryReader = true;
+        }
+
+        MAP(BinaryReader file, short width, short height, bool verbose)
+        {
+            bool fromFPG = (width + height) > 0;
+
             if (!fromFPG)
             {
                 this.header = new MAPHeader(file);
-                Helper.Log(this.header.ToString(), verbose);
+                Helper.Log(this.header.ToString(), verbose); 
             }
 
-            if (fromFPG || this.header.Check())
+            if (fromFPG || this.Header.Check())
             {
                 if (!fromFPG)
                 {
-                    this.Palette = new PAL(file, true, verbose);
+                    this.Palette = PAL.ExtractFromFile(file);
+                    Helper.Log(this.Palette.ToString(), verbose);
                 }
 
                 this.ControlPoints = new ControlPointList(file);
                 Helper.Log(this.ControlPoints.ToString(), verbose);
-
-                this.Pixels = new Bitmap(this.Header.Width, this.Header.Height, file);
-                Helper.Log($"Readed {this.Pixels.Count} pixels in MAP.", verbose);
+                
+                this.Pixels = new Bitmap(fromFPG ? width : this.Header.Width, fromFPG ? height :this.Header.Height, file);
+                Helper.Log($"Readed {this.Pixels.Count} {(this.Pixels.Count < 2 ? "pixel" : "pixels")} in MAP.", verbose);
 
                 this.CloseBinaryReader(file);
             }
@@ -482,20 +498,21 @@ namespace DIV2Tools.DIVFormats
                 throw new FormatException("Invalid MAP file!");
             }
         }
-
-        /// <summary>
-        /// Import a <see cref="MAP"/> file.
-        /// </summary>
-        /// <param name="filename"><see cref="MAP"/> file.</param>
-        /// <param name="fromFPG">Indicates if <see cref="MAP"/> is readed from a <see cref="FPG"/> (this skip to read the header and palette). By default is <see cref="false"/>.</param>
-        /// <param name="verbose">Log <see cref="MAP"/> import data in console. By default is <see cref="true"/>.</param>
-        public MAP(string filename, bool fromFPG = false, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), fromFPG, verbose)
-        {
-            this.closeBinaryReader = true;
-        }
         #endregion
 
         #region Methods & Functions
+        /// <summary>
+        /// Extracts <see cref="MAP"/> data from a <see cref="FPG"/> file.
+        /// </summary>
+        /// <param name="file"><see cref="BinaryReader"/> instance. Must be point to the control point counter in MAP register (of the <see cref="FPG.MAPRegister"/> to read) on <see cref="FPG"/> file.</param>
+        /// <param name="width">Width of the bitmap.</param>
+        /// <param name="height">Height of the bitmap.</param>
+        /// <returns>Returns a new <see cref="MAP"/> instance, without header and palette data, with the control points and pixels data stored in a <see cref="FPG"/> file.</returns>
+        public static MAP ExtractFromFPG(BinaryReader file, short width, short height)
+        {
+            return new MAP(file, width, height, false);
+        }
+
         /// <summary>
         /// Import an external <see cref="PAL"/> file to use in this <see cref="MAP"/>.
         /// </summary>
