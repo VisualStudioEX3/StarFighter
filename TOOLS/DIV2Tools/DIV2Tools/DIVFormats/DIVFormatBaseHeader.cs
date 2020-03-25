@@ -76,7 +76,7 @@ namespace DIV2Tools.DIVFormats
 
         public new virtual string ToString()
         {
-            return $"Header:\n- Id: {new string(this.Id)}\n- Signature: {this.Signature.ToASCIIString()}\n- Version: {this.Version}";
+            return $"Header:\n- Id: {new string(this.Id)}\n- Signature: {this.Signature.ToHexadecimalString()}\n- Version: {this.Version}";
         }
         #endregion
     }

@@ -11,7 +11,7 @@ namespace DIV2Tools.DIVFormats
     /// <summary>
     /// MAP file.
     /// </summary>
-    public class MAP
+    public class MAP : DIVFormatBase
     {
         #region Structs
         /// <summary>
@@ -47,7 +47,7 @@ namespace DIV2Tools.DIVFormats
         #endregion
 
         #region Classes
-        class Header : DIVFormatBaseHeader // 48 bytes.
+        class MAPHeader : DIVFormatBaseHeader // 48 bytes.
         {
             #region Constants
             const string HEADER_ID = "map";
@@ -65,17 +65,17 @@ namespace DIV2Tools.DIVFormats
             #endregion
 
             #region Constructor
-            public Header() : base(Header.HEADER_ID)
+            public MAPHeader() : base(MAPHeader.HEADER_ID)
             {
                 this._info = new BaseInfo();
             }
 
-            public Header(short width, short height, short graphId, string description) : base(Header.HEADER_ID)
+            public MAPHeader(short width, short height, short graphId, string description) : base(MAPHeader.HEADER_ID)
             {
                 this._info = new BaseInfo(width, height, graphId, description);
             }
 
-            public Header(BinaryReader file) : base(Header.HEADER_ID, file)
+            public MAPHeader(BinaryReader file) : base(MAPHeader.HEADER_ID, file)
             {
                 this._info = new BaseInfo(file, false);
             }
@@ -96,7 +96,7 @@ namespace DIV2Tools.DIVFormats
         }
 
         /// <summary>
-        /// <see cref="MAP"/> base info data and logic shared with <see cref="FPG.MAPRegister"/> class.
+        /// <see cref="MAP"/> base info data and logic shared with <see cref="MAP.MAPHeader"/> and <see cref="FPG.MAPRegister"/> class.
         /// </summary>
         public class BaseInfo
         {
@@ -112,7 +112,13 @@ namespace DIV2Tools.DIVFormats
             int _graphId;
             string _description;
             string _filename;
+            #endregion
 
+            #region Public vars
+            /// <summary>
+            /// Message to GraphId value out of range exception.
+            /// </summary>
+            public static readonly string graphIdOutOfRangeExceptionMessage = $"GraphId must be a value between {BaseInfo.GRAPHID_MIN} and {BaseInfo.GRAPHID_MAX}.";
             #endregion
 
             #region Properties
@@ -128,7 +134,7 @@ namespace DIV2Tools.DIVFormats
                 {
                     if (!value.IsClamped(BaseInfo.GRAPHID_MIN, BaseInfo.GRAPHID_MAX))
                     {
-                        throw new ArgumentOutOfRangeException($"GraphId must be a value between {BaseInfo.GRAPHID_MIN} and {BaseInfo.GRAPHID_MAX}.");
+                        throw new ArgumentOutOfRangeException(BaseInfo.graphIdOutOfRangeExceptionMessage);
                     }
 
                     this._graphId = value;
@@ -242,6 +248,10 @@ namespace DIV2Tools.DIVFormats
 
         public class ControlPointList
         {
+            #region Constants
+            public const int MAX_CAPACITY = 1000;
+            #endregion
+
             #region Internal vars
             List<ControlPoint> _points;
             #endregion
@@ -281,7 +291,16 @@ namespace DIV2Tools.DIVFormats
             #region Methods & Functions
             public void Add(short x, short y)
             {
-                this._points.Add(new ControlPoint() { x = x, y = y });
+                this.Add(new ControlPoint() { x = x, y = y });
+            }
+
+            public void Add(ControlPoint point)
+            {
+                if (this._points.Count > ControlPointList.MAX_CAPACITY)
+                {
+                    throw new ArgumentOutOfRangeException($"The control point list is full (Max capacity: {ControlPointList.MAX_CAPACITY}).");
+                }
+                this._points.Add(point);
             }
 
             public void Remove(int index)
@@ -323,7 +342,7 @@ namespace DIV2Tools.DIVFormats
                 sb.AppendLine();
 
                 return sb.ToString();
-            } 
+            }
             #endregion
         }
 
@@ -396,7 +415,7 @@ namespace DIV2Tools.DIVFormats
             public void Write(BinaryWriter file)
             {
                 file.Write(this._pixels);
-            } 
+            }
 
             public byte[] ToByteArray()
             {
@@ -406,15 +425,13 @@ namespace DIV2Tools.DIVFormats
         }
         #endregion
 
-        #region Internal vars
-        Header _header;
-        #endregion
-
         #region Properties
-        public short Width => this._header.Width;
-        public short Height => this._header.Height;
-        public int GraphId { get { return this._header.GraphId; } set { this._header.GraphId = value; } }
-        public string Description { get { return this._header.Description; } set { this._header.Description = value; } }
+        MAPHeader Header => (MAPHeader)this.header;
+
+        public short Width => this.Header.Width;
+        public short Height => this.Header.Height;
+        public int GraphId { get { return this.Header.GraphId; } set { this.Header.GraphId = value; } }
+        public string Description { get { return this.Header.Description; } set { this.Header.Description = value; } }
         public PAL Palette { get; private set; }
         public ControlPointList ControlPoints { get; private set; }
         public Bitmap Pixels { get; private set; }
@@ -426,7 +443,7 @@ namespace DIV2Tools.DIVFormats
         /// </summary>
         public MAP()
         {
-            this._header = new Header();
+            this.header = new MAPHeader();
             this.ControlPoints = new ControlPointList();
         }
 
@@ -434,32 +451,34 @@ namespace DIV2Tools.DIVFormats
         /// Import a <see cref="MAP"/> from a <see cref="BinaryReader"/> stream.
         /// </summary>
         /// <param name="file"><see cref="BinaryReader"/> instance.</param>
-        /// <param name="fromFPG">Indicates if <see cref="MAP"/> is readed from a <see cref="FPG"/>. By default is <see cref="false"/>.</param>
+        /// <param name="fromFPG">Indicates if <see cref="MAP"/> is readed from a <see cref="FPG"/> (this skip to read the header and palette). By default is <see cref="false"/>.</param>
         /// <param name="verbose">Log <see cref="MAP"/> import data in console. By default is <see cref="true"/>.</param>
         public MAP(BinaryReader file, bool fromFPG = false, bool verbose = true)
         {
             if (!fromFPG)
             {
-                this._header = new Header(file);
-                Helper.Log(this._header.ToString(), verbose); 
+                this.header = new MAPHeader(file);
+                Helper.Log(this.header.ToString(), verbose);
             }
 
-            if (this._header.Check() || fromFPG)
+            if (fromFPG || this.header.Check())
             {
                 if (!fromFPG)
                 {
                     this.Palette = new PAL(file, true, verbose);
-                    Helper.Log(this.Palette.ToString(), verbose); 
                 }
 
                 this.ControlPoints = new ControlPointList(file);
                 Helper.Log(this.ControlPoints.ToString(), verbose);
 
-                this.Pixels = new Bitmap(this._header.Width, this._header.Height, file);
+                this.Pixels = new Bitmap(this.Header.Width, this.Header.Height, file);
                 Helper.Log($"Readed {this.Pixels.Count} pixels in MAP.", verbose);
+
+                this.CloseBinaryReader(file);
             }
             else
             {
+                this.CloseBinaryReader(file);
                 throw new FormatException("Invalid MAP file!");
             }
         }
@@ -468,9 +487,11 @@ namespace DIV2Tools.DIVFormats
         /// Import a <see cref="MAP"/> file.
         /// </summary>
         /// <param name="filename"><see cref="MAP"/> file.</param>
+        /// <param name="fromFPG">Indicates if <see cref="MAP"/> is readed from a <see cref="FPG"/> (this skip to read the header and palette). By default is <see cref="false"/>.</param>
         /// <param name="verbose">Log <see cref="MAP"/> import data in console. By default is <see cref="true"/>.</param>
-        public MAP(string filename, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), false, verbose)
+        public MAP(string filename, bool fromFPG = false, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), fromFPG, verbose)
         {
+            this.closeBinaryReader = true;
         }
         #endregion
 
@@ -481,7 +502,8 @@ namespace DIV2Tools.DIVFormats
         /// <param name="filename"><see cref="PAL"/> file to import.</param>
         public void ImportPalette(string filename)
         {
-            this.Palette = new PAL(filename, true, false);
+            this.Palette = new PAL(filename, false);
+            this.Palette.RemoveHeader();
         }
 
         /// <summary>
@@ -499,12 +521,21 @@ namespace DIV2Tools.DIVFormats
                 // Load the PCX image using custom importer and get color palette and uncompreseed pixel data:
                 var pcx = new PCX(new MagickImage(png.ToByteArray()).ToByteArray(), false);
                 {
-                    this._header.Width = pcx.Width;
-                    this._header.Height = pcx.Height;
-                    this.Palette = new PAL(pcx, true);
-                    this.Pixels = new Bitmap(this._header.Width, this._header.Height, pcx.Pixels);
+                    this.Header.Width = pcx.Width;
+                    this.Header.Height = pcx.Height;
+                    this.Palette = new PAL(pcx);
+                    this.Palette.RemoveHeader();
+                    this.Pixels = new Bitmap(this.Header.Width, this.Header.Height, pcx.Pixels);
                 }
             }
+        }
+
+        /// <summary>
+        /// Remove palette data.
+        /// </summary>
+        public void RemovePalette()
+        {
+            this.Palette = null;
         }
 
         /// <summary>
@@ -513,10 +544,13 @@ namespace DIV2Tools.DIVFormats
         /// <param name="filename"><see cref="MAP"/> filename.</param>
         public void Write(string filename)
         {
-            if (this._header is null) throw new InvalidOperationException("Header is not initialized.");
+            if (this.header is null) throw new InvalidOperationException("Header is not initialized.");
             if (this.Palette is null) throw new InvalidOperationException("Palette is not initialized.");
 
-            this.Write(new BinaryWriter(File.OpenWrite(filename)));
+            using (var file = new BinaryWriter(File.OpenWrite(filename)))
+            {
+                this.Write(file);
+            }
         }
 
         /// <summary>
@@ -525,7 +559,7 @@ namespace DIV2Tools.DIVFormats
         /// <param name="filename"><see cref="BinaryWriter"/> instance.</param>
         public void Write(BinaryWriter file)
         {
-            this._header?.Write(file);
+            this.Header?.Write(file);
             this.Palette?.Write(file);
             this.ControlPoints.Write(file);
             this.Pixels.Write(file);
@@ -533,7 +567,7 @@ namespace DIV2Tools.DIVFormats
 
         public override string ToString()
         {
-            return $"{this._header?.ToString()}\n{this.Palette?.ToString()}\n{this.ControlPoints.ToString()}\n{this.Pixels.Count} pixels stored.";
+            return $"{this.Header?.ToString()}\n{this.Palette?.ToString()}\n{this.ControlPoints.ToString()}\n{this.Pixels.Count} pixels stored.";
         }
         #endregion
     }

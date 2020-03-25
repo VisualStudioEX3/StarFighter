@@ -9,7 +9,7 @@ namespace DIV2Tools.MethodExtensions
     {
         #region Methods & Functions
         /// <summary>
-        /// Read all <see cref="char"/>s, using ASCII encoding, from a <see cref="byte"/> array until get <see cref="null"/> char termination.
+        /// Read all <see cref="char"/>s, using ASCII encoding, from a <see cref="byte"/> array until get <see cref="null"/> character termination.
         /// </summary>
         /// <param name="buffer">This <see cref="byte"/> array instance.</param>
         /// <returns>Returns the <see cref="string"/> with all chars readed using ASCII encoding.</returns>
@@ -67,11 +67,11 @@ namespace DIV2Tools.MethodExtensions
         }
 
         /// <summary>
-        /// Converts this <see cref="byte"/> array to <see cref="string"/> value.
+        /// Converts this <see cref="byte"/> array to Hexadecimal <see cref="string"/> value.
         /// </summary>
         /// <param name="array">This <see cref="byte"/> array instance.</param>
         /// <returns>Returns a <see cref="string"/> value.</returns>
-        public static string ToASCIIString(this byte[] array)
+        public static string ToHexadecimalString(this byte[] array)
         {
             return BitConverter.ToString(array);
         } 

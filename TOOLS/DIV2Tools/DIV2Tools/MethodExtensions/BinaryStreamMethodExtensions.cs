@@ -33,9 +33,9 @@ namespace DIV2Tools.MethodExtensions
         /// </summary>
         /// <param name="stream">This <see cref="BinaryReader"/> instance.</param>
         /// <returns>Returns the <see cref="long"/> value of BaseStream.Length.</returns>
-        public static long GetLength(this BinaryReader stream)
+        public static int GetLength(this BinaryReader stream)
         {
-            return stream.BaseStream.Length;
+            return (int)stream.BaseStream.Length;
         }
 
         /// <summary>
@@ -43,9 +43,9 @@ namespace DIV2Tools.MethodExtensions
         /// </summary>
         /// <param name="stream">This <see cref="BinaryReader"/> instance.</param>
         /// <returns>Returns the current position of reading.</returns>
-        public static long GetCurrentPosition(this BinaryReader stream)
+        public static int GetCurrentPosition(this BinaryReader stream)
         {
-            return stream.BaseStream.Position;
+            return (int)stream.BaseStream.Position;
         }
 
         /// <summary>
@@ -53,9 +53,9 @@ namespace DIV2Tools.MethodExtensions
         /// </summary>
         /// <param name="stream">This <see cref="BinaryWriter"/> instance.</param>
         /// <returns>Returns the current position of writing.</returns>
-        public static long GetCurrentPosition(this BinaryWriter stream)
+        public static int GetCurrentPosition(this BinaryWriter stream)
         {
-            return stream.BaseStream.Position;
+            return (int)stream.BaseStream.Position;
         }
 
         public static bool EOF(this BinaryReader stream)

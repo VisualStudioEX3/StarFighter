@@ -10,24 +10,24 @@ namespace DIV2Tools.DIVFormats
     /// <summary>
     /// FPG file.
     /// </summary>
-    public class FPG
+    public class FPG : DIVFormatBase
     {
         #region Classes
         /// <summary>
         /// Header description.
         /// </summary>
-        class Header : DIVFormatBaseHeader
+        class FPGHeader : DIVFormatBaseHeader
         {
             #region Constants
             const string HEADER_ID = "fpg";
             #endregion
 
             #region Constructor
-            public Header() : base(Header.HEADER_ID)
+            public FPGHeader() : base(FPGHeader.HEADER_ID)
             {
             }
 
-            public Header(BinaryReader file) : base(Header.HEADER_ID, file)
+            public FPGHeader(BinaryReader file) : base(FPGHeader.HEADER_ID, file)
             {
             }
             #endregion
@@ -55,80 +55,283 @@ namespace DIV2Tools.DIVFormats
             public int Length => this._info.Length;
             public string Description { get { return this._info.Description; } set { this._info.Description = value; } }
             public string Filename { get { return this._info.Filename; } set { this._info.Filename = value; } }
-            public short Width => this._map.Width;
-            public short Height => this._map.Height;
+            public short Width => this._info.Width;
+            public short Height => this._info.Height;
             public MAP.ControlPointList ControlPoints => this._map.ControlPoints;
             #endregion
 
+            #region Constructors
+            /// <summary>
+            /// Imports a <see cref="MAPRegister"/> from a <see cref="FPG"/> instance.
+            /// </summary>
+            /// <param name="file"><see cref="BinaryReader"/> instance.</param>
             public MAPRegister(BinaryReader file)
             {
                 this._info = new MAP.BaseInfo(file, true);
                 this._map = new MAP(file, true, false); // Read MAP without header and palette.
             }
 
+            /// <summary>
+            /// Imports a PNG file.
+            /// </summary>
+            /// <param name="filename">PNG filename.</param>
+            /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
+            /// <param name="description">Description for the new <see cref="MAP"/>.</param>
+            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
+            public MAPRegister(string filename, int graphId, string description, string storedFilename) : this(filename, graphId, description, storedFilename, new MAP.ControlPoint[0])
+            {
+            }
+
+            /// <summary>
+            /// Imports a PNG file.
+            /// </summary>
+            /// <param name="filename">PNG filename.</param>
+            /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
+            /// <param name="description">Description for the new <see cref="MAP"/>.</param>
+            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
+            /// <param name="controlPoints"><see cref="MAP.ControlPoint"/> array for the new <see cref="MAP"/>.</param>
+            public MAPRegister(string filename, int graphId, string description, string storedFilename, MAP.ControlPoint[] controlPoints)
+            {
+                using (var file = new BinaryReader(File.OpenRead(filename)))
+                {
+                    this._map = new MAP();
+                    {
+                        this._map.ImportPNG(filename);
+
+                        this._info = new MAP.BaseInfo(this._map.Width, this._map.Height, graphId, description, storedFilename, this._map.Pixels.Count);
+                        {
+                            foreach (var point in controlPoints)
+                            {
+                                this.ControlPoints.Add(point);
+                            }
+                        }
+
+                        this._map.RemoveHeader();
+                        this._map.RemovePalette();
+                    }
+                }
+            } 
+            #endregion
+
             #region Methods & Functions
             public void Write(BinaryWriter file)
             {
-                file.Write(this.GraphId);
-                file.Write(this.Length);
-                file.Write(this.Description);
-                file.Write(this.Filename);
-                file.Write(this.Width);
-                file.Write(this.Height);
-                this._map.Write(file); // This write Control Point list and Pixels (ommit header and palette).
-            } 
+                this._info.Write(file);
+                this._map.Write(file);
+            }
+
+            public override string ToString()
+            {
+                return $"Graphic Identifier: {this.GraphId}\n- Image size in bytes: {this.Length}\n- Description: {this.Description}\n- (Stored) Filename: {this.Filename}\n- Width: {this.Width}\n- Height: {this.Height}\n";
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// Collection of <see cref="MAPRegister"/> instances.
+        /// </summary>
+        public class MAPRegisterCollection
+        {
+            #region Internal vars
+            List<MAPRegister> _maps;
+            #endregion
+
+            #region Properties
+            public MAPRegister this[int index] => this._maps[index];
+            public int Count => this._maps.Count;
+            #endregion
+
+            #region Constructors
+            public MAPRegisterCollection()
+            {
+                this._maps = new List<MAPRegister>();
+            }
+
+            /// <summary>
+            /// Imports all <see cref="MAPRegister"/> instances from a <see cref="FPG"/> instanace.
+            /// </summary>
+            /// <param name="file"><see cref="BinaryReader"/> instance.</param>
+            public MAPRegisterCollection(BinaryReader file) : this()
+            {
+                do
+                {
+                    this._maps.Add(new MAPRegister(file));
+                } while (!file.EOF());
+            }
+            #endregion
+
+            #region Methods & Functions
+            bool isGraphIdClamped(int value)
+            {
+                return value.IsClamped(MAP.BaseInfo.GRAPHID_MIN, MAP.BaseInfo.GRAPHID_MAX);
+            }
+
+            /// <summary>
+            /// Add a PNG file as <see cref="MAP"/>.
+            /// </summary>
+            /// <param name="filename">PNG filename.</param>
+            /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
+            /// <param name="description">Description for the new <see cref="MAP"/>.</param>
+            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
+            /// <param name="controlPoints"><see cref="MAP.ControlPoint"/> array for the new <see cref="MAP"/>.</param>
+            public void Add(string filename, int graphId, string description, string storedFilename, MAP.ControlPoint[] controlPoints)
+            {
+                if (this.isGraphIdClamped(graphId))
+                {
+                    int index = this.FindByGraphId(graphId);
+                    if (index == -1)
+                    {
+                        if (controlPoints.Length < MAP.ControlPointList.MAX_CAPACITY)
+                        {
+                            this._maps.Add(new MAPRegister(filename, graphId, description, storedFilename, controlPoints));
+                        }
+                        else
+                        {
+                            throw new ArgumentOutOfRangeException(nameof(controlPoints), $"The control points array lenght must be less than {MAP.ControlPointList.MAX_CAPACITY}.");
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException(nameof(graphId), $"The GraphId {graphId} is in use by other MAP (MAP index: {index}).");
+                    }
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException(nameof(graphId), MAP.BaseInfo.graphIdOutOfRangeExceptionMessage);
+                }
+            }
+
+            /// <summary>
+            /// Add a PNG file as <see cref="MAP"/>.
+            /// </summary>
+            /// <param name="filename">PNG filename.</param>
+            /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
+            /// <param name="description">Description for the new <see cref="MAP"/>.</param>
+            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string. By default is empty.</param>
+            public void Add(string filename, int graphId, string description, string storedFilename = "")
+            {
+                this.Add(filename, graphId, description, storedFilename, new MAP.ControlPoint[0]);
+            }
+
+            /// <summary>
+            /// Remove selected <see cref="MAPRegister"/> by index.
+            /// </summary>
+            /// <param name="index"></param>
+            public void Remove(int index)
+            {
+                this._maps.Remove(this[index]);
+            }
+
+            /// <summary>
+            /// Find <see cref="MAPRegister"/> index searching by their <see cref="MAP.BaseInfo.GraphId"/> value.
+            /// </summary>
+            /// <param name="graphId">A value beteween <see cref="MAP.BaseInfo.GRAPHID_MIN"/> and <see cref="MAP.BaseInfo.GRAPHID_MAX"/> (usually 0 - 999).</param>
+            /// <returns>Returns the index value of the match <see cref="MAPRegister"/> or -1 if not found any match.</returns>
+            public int FindByGraphId(int graphId)
+            {
+                if (this.isGraphIdClamped(graphId))
+                {
+                    for (int i = 0; i < this.Count; i++)
+                    {
+                        if (this[i].GraphId == graphId) return i;
+                    }
+
+                    return -1;
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException(nameof(graphId), MAP.BaseInfo.graphIdOutOfRangeExceptionMessage);
+                }
+            }
+
+            public void Write(BinaryWriter file)
+            {
+                foreach (var map in this._maps)
+                {
+                    map.Write(file);
+                }
+            }
+
+            public override string ToString()
+            {
+                var sb = new StringBuilder();
+
+                sb.AppendLine($"{this.Count} {(this.Count < 2 ? "MAP": "MAPs")} readed:");
+                foreach (var map in this._maps)
+                {
+                    sb.AppendLine(map.ToString());
+                }
+
+                return sb.ToString();
+            }
             #endregion
         }
         #endregion
 
-        #region Internal vars
-        Header _header;
-        #endregion
-
         #region Properties
+        FPGHeader Header => (FPGHeader)this.header;
+
         public PAL Palette { get; private set; } 
-        public List<MAPRegister> Maps { get; private set; }
+        public MAPRegisterCollection Maps { get; private set; }
         #endregion
 
         #region Constructors
+        /// <summary>
+        /// Creates a new <see cref="FPG"/> empty instance.
+        /// </summary>
         public FPG()
         {
-            this._header = new Header();
+            this.header = new FPGHeader();
         }
 
-        public FPG(BinaryReader file, bool verbose = true)
+        /// <summary>
+        /// Imports a <see cref="FPG"/> file.
+        /// </summary>
+        /// <param name="filename"><see cref="FPG"/> filename.</param>
+        /// <param name="verbose">Log <see cref="FPG"/> import data to console. By default is <see cref="true"/>.</param>
+        public FPG(string filename, bool verbose = true)
         {
-            this._header = new Header(file);
-            Helper.Log(this._header.ToString(), verbose);
-
-            if (this._header.Check())
+            using (var file = new BinaryReader(File.OpenRead(filename)))
             {
-                this.Palette = new PAL(file, true, verbose);
-                Helper.Log(this.Palette.ToString(), verbose);
+                this.header = new FPGHeader(file);
+                Helper.Log(this.Header.ToString(), verbose);
 
-                while (!file.EOF()) // TODO: Maybe need to use a try/catch to get the EOF exception.
+                if (this.Header.Check())
                 {
-                    this.Maps.Add(new MAPRegister(file));
+                    this.Palette = new PAL(file, true, verbose);
+
+                    this.Maps = new MAPRegisterCollection(file);
+                    Helper.Log(this.Maps.ToString(), verbose);
+
+                    Helper.Log("FPG loaded!", verbose);
                 }
-
-                Helper.Log("FPG loaded!", verbose);
+                else
+                {
+                    throw new FormatException("Invalid FPG file!");
+                } 
             }
-            else
-            {
-                throw new FormatException("Invalid FPG file!");
-            }
-        }
-
-        public FPG(string filename) : this(new BinaryReader(File.OpenRead(filename)))
-        {
         }
         #endregion
 
         #region Methods & Functions
+        /// <summary>
+        /// Import an external <see cref="PAL"/> file to use in this <see cref="FPG"/>.
+        /// </summary>
+        /// <param name="filename"><see cref="PAL"/> file to import.</param>
         public void ImportPalette(string filename)
         {
             this.Palette = new PAL(filename, true, false);
-        } 
+        }
+
+        public void Write(string filename)
+        {
+            using (var file = new BinaryWriter(File.OpenWrite(filename)))
+            {
+                this.header.Write(file);
+                this.Palette.Write(file);
+                this.Maps.Write(file);
+            }
+        }
         #endregion
     }
 }

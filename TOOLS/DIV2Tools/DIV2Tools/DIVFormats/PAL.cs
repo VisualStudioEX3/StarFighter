@@ -8,7 +8,7 @@ namespace DIV2Tools.DIVFormats
     /// <summary>
     /// PAL file.
     /// </summary>
-    public class PAL
+    public class PAL : DIVFormatBase
     {
         #region Structs
         /// <summary>
@@ -223,18 +223,18 @@ namespace DIV2Tools.DIVFormats
         /// <summary>
         /// Header description.
         /// </summary>
-        class Header : DIVFormatBaseHeader
+        class PALHeader : DIVFormatBaseHeader
         {
             #region Constants
             const string HEADER_ID = "pal";
             #endregion
 
             #region Constructor
-            public Header() : base(Header.HEADER_ID)
+            public PALHeader() : base(PALHeader.HEADER_ID)
             {
             }
 
-            public Header(BinaryReader file) : base(Header.HEADER_ID, file)
+            public PALHeader(BinaryReader file) : base(PALHeader.HEADER_ID, file)
             {
             }
             #endregion
@@ -511,10 +511,6 @@ namespace DIV2Tools.DIVFormats
         }
         #endregion
 
-        #region Internal vars
-        Header _header;
-        #endregion
-
         #region Properties
         public ColorPalette Colors { get; private set; }
         public ColorRangeTable Ranges { get; private set; }
@@ -538,26 +534,29 @@ namespace DIV2Tools.DIVFormats
         /// Import a <see cref="PAL"/> file.
         /// </summary>
         /// <param name="file"><see cref="BinaryReader"/> instance.</param>
-        /// <param name="skipHeader">Skip read header. Use this when import a palette in a <see cref="MAP"/> or <see cref="FPG"/> instance. By default is <see cref="false"/>.</param>
+        /// <param name="skipHeader">When import from <see cref="MAP"/> or <see cref="FPG"/> instance, skip to read the header. By default <see cref="false"/>.</param>
         /// <param name="verbose">Log <see cref="PAL"/> import data to console. By default is <see cref="true"/>.</param>
         public PAL(BinaryReader file, bool skipHeader = false, bool verbose = true)
         {
             if (!skipHeader)
             {
-                this._header = new Header(file);
-                Helper.Log(this._header.ToString(), verbose);
+                this.header = new PALHeader(file);
+                Helper.Log(this.header.ToString(), verbose); 
             }
 
-            if (this._header.Check() || skipHeader)
+            if (skipHeader || this.header.Check())
             {
                 this.Colors = new ColorPalette(file);
                 Helper.Log(this.Colors.ToString(), verbose);
 
                 this.Ranges = new ColorRangeTable(file);
                 Helper.Log(this.Ranges.ToString(), verbose);
+
+                this.CloseBinaryReader(file);
             }
             else
             {
+                this.CloseBinaryReader(file);
                 throw new FormatException("Invalid PAL file!");
             }
         }
@@ -566,10 +565,11 @@ namespace DIV2Tools.DIVFormats
         /// Import a <see cref="PAL"/> file.
         /// </summary>
         /// <param name="filename"><see cref="PAL"/> file.</param>
-        /// <param name="skipHeader">Skip read header. Use this when import a palette in a <see cref="MAP"/> or <see cref="FPG"/> instance. By default is <see cref="false"/>.</param>
+        /// <param name="skipHeader">When import from <see cref="MAP"/> or <see cref="FPG"/> instance, skip to read the header. By default <see cref="false"/>.</param>
         /// <param name="verbose">Log <see cref="PAL"/> import data to console. By default is <see cref="true"/>.</param>
-        public PAL(string filename, bool skipHeader, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), skipHeader, verbose)
+        public PAL(string filename, bool skipHeader = false, bool verbose = true) : this(new BinaryReader(File.OpenRead(filename)), skipHeader, verbose)
         {
+            this.closeBinaryReader = true;
         }
 
         /// <summary>
@@ -577,12 +577,9 @@ namespace DIV2Tools.DIVFormats
         /// </summary>
         /// <param name="pcx"><see cref="PCX"/> instance.</param>
         /// <param name="skipHeader">Skip initialize header. Use this when import a palette in a <see cref="MAP"/> or <see cref="FPG"/> instance. By default is <see cref="false"/>.</param>
-        public PAL(PCX pcx, bool skipHeader = false)
+        public PAL(PCX pcx)
         {
-            if (!skipHeader)
-            {
-                this._header = new Header(); 
-            }
+            this.header = new PALHeader();
             this.Colors = new ColorPalette(pcx);
             this.Ranges = new ColorRangeTable();
         }
@@ -606,8 +603,11 @@ namespace DIV2Tools.DIVFormats
         /// <param name="filename"><see cref="PAL"/> filename.</param>
         public void Write(string filename)
         {
-            this._header ??= new Header();
-            this.Write(new BinaryWriter(File.OpenWrite(filename)));
+            this.header ??= new PALHeader();
+            using (var file = new BinaryWriter(File.OpenWrite(filename)))
+            {
+                this.Write(file); 
+            }
         }
 
         /// <summary>
@@ -616,7 +616,7 @@ namespace DIV2Tools.DIVFormats
         /// <param name="file"><see cref="BinaryWriter"/> instance.</param>
         public void Write(BinaryWriter file)
         {
-            this._header?.Write(file);
+            this.header?.Write(file);
             this.Colors.Write(file);
             this.Ranges.Write(file);
         }
@@ -645,7 +645,7 @@ namespace DIV2Tools.DIVFormats
 
         public override string ToString()
         {
-            return $"{this._header?.ToString()}\n{this.Colors.ToString()}\n{this.Ranges.ToString()}";
+            return $"{this.header?.ToString()}\n{this.Colors.ToString()}\n{this.Ranges.ToString()}";
         }
         #endregion
     }

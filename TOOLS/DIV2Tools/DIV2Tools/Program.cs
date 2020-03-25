@@ -17,10 +17,18 @@ namespace DIV2Tools
             //CreatePALTest();
             //ComparePALTest();
             //CreateMAPTest();
-            ComparePALs();
+            //ComparePALs();
+            TestBinaryReaderEOF();
 
             Console.Beep();
             Console.ReadKey();
+        }
+
+        static void TestBinaryReaderEOF()
+        {
+            var file = new System.IO.BinaryReader(System.IO.File.OpenRead("SPACE.PAL"));
+            file.AdvanceReadPosition(file.GetLength() + 3);
+            Console.WriteLine($"Length: {file.GetLength()}, Position: {file.GetCurrentPosition()}, EOF: {file.EOF()}");
         }
 
         static void TestBitOperations()
@@ -36,7 +44,7 @@ namespace DIV2Tools
             });
 
             Console.WriteLine(check(255)); // Expected true.
-            Console.WriteLine(clear(255)); // Expetect 63.
+            Console.WriteLine(clear(255)); // Expected 63.
         }
 
         static void ImportPCXTest(string filename)
@@ -58,8 +66,8 @@ namespace DIV2Tools
         {
             //Console.WriteLine($"Compare palettes: {PAL.CreateFromPCX("PLAYER.PCX") == new PAL("TEST.PAL", false)}");
             //Console.WriteLine($"Compare palettes: {PAL.Compare(PAL.CreateFromPCX("PLAYER.PCX"), new PAL("TEST.PAL", false))}");
-            var player = new PAL("PLAYER.PAL", false);
-            var test = new PAL("TEST.PAL", false);
+            var player = new PAL("PLAYER.PAL", false, false);
+            var test = new PAL("TEST.PAL", false, false);
 
             PAL.Color a, b;
             int coincidences = 0;
@@ -79,12 +87,12 @@ namespace DIV2Tools
 
         static void CreateMAPTest()
         {
-            // Create new MAP using the a PNG file:
+            // Create new MAP from a PNG file:
             var map = new MAP();
             {
+                map.ImportPNG("PLAYER.PNG");
                 map.GraphId = 123;
                 map.Description = "Test MAP file.";
-                map.ImportPNG("PLAYER.PNG");
                 map.ControlPoints.Add(128, 128);
                 map.ControlPoints.Add(255, 255);
                 map.ControlPoints.Add(64, 64);
@@ -97,8 +105,8 @@ namespace DIV2Tools
 
         static void ComparePALs()
         {
-            var div = new PAL("SPACE.PAL", false);
-            var pcx = new PAL(new PCX("PLAYER.PCX", false));
+            var div = new PAL("SPACE.PAL", false, false);
+            var pcx = new PAL(new PCX("PLAYER.PCX"));
 
             for (int i = 0; i < 256; i++)
             {
