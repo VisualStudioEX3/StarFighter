@@ -159,7 +159,7 @@ namespace DIV2Tools.DIVFormats
                 }
                 set
                 {
-                    this._filename = value.GetFixedLengthString(BaseInfo.FILENAME_LENGTH);
+                    this._filename = value.RemoveInvalidFilenameCharacters().GetFixedLengthString(BaseInfo.FILENAME_LENGTH);
                 }
             }
             public int Length { get; private set; }
@@ -241,7 +241,7 @@ namespace DIV2Tools.DIVFormats
             {
                 return !this._isFPG ?
                        $"- Width: {this.Width}\n- Height: {this.Height}\n- Graph Id: {this.GraphId}\n- Description: {this.Description}\n" :
-                       $"- Graph Id: {this.GraphId}\n- Length: {this.Length}\n- Description: {this.Description}\n- Filename: {this.Filename}\n- Width: {this.Width}\n- Height: {this.Height}\n";
+                       $"- Graph Id: {this.GraphId}\n- Length: {this.Length}\n- Description: \"{this.Description}\"\n- Filename: {this.Filename}\n- Width: {this.Width}\n- Height: {this.Height}\n";
             }
             #endregion
         }
@@ -310,7 +310,7 @@ namespace DIV2Tools.DIVFormats
 
             public void Write(BinaryWriter file)
             {
-                file.Write((short)this._points.Count);
+                file.Write(this._points.Count);
 
                 foreach (var point in this._points)
                 {

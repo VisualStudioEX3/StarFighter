@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 
 namespace DIV2Tools.MethodExtensions
 {
@@ -37,6 +38,30 @@ namespace DIV2Tools.MethodExtensions
         {
             return Encoding.ASCII.GetBytes(text);
         } 
+
+        /// <summary>
+        /// Removed any invalid character for filenames.
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <returns></returns>
+        public static string RemoveInvalidFilenameCharacters(this string filename)
+        {
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                filename = filename.Replace(c, '\b');
+            }
+            return filename;
+        }
+
+        /// <summary>
+        /// Get the filename from a path <see cref="string"/>.
+        /// </summary>
+        /// <param name="path">This <see cref="string"/> instance.</param>
+        /// <returns>Returns the filename.</returns>
+        public static string GetFilenameFromPath(this string path)
+        {
+            return Path.GetFileName(path);
+        }
         #endregion
     }
 }

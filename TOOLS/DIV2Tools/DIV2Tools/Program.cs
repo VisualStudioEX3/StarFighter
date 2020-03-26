@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using DIV2Tools.DIVFormats;
 using DIV2Tools.Helpers;
 using DIV2Tools.MethodExtensions;
@@ -22,15 +23,41 @@ namespace DIV2Tools
             //ImportPCXTest();
             //CreateMAPTest();
 
-            LoadFPGTest();
+            //LoadFPGTest();
+            CreateFPGTest();
 
             Console.Beep();
             Console.ReadKey();
         }
 
+        static string GetAssetFilename(string filename)
+        {
+            return @$"Assets\{filename}";
+        }
+
+        static string GetOutputFilename(string filename)
+        {
+            const string OUTPUT_DIRECTORY = "Output";
+            
+            if (!Directory.Exists(OUTPUT_DIRECTORY))
+            {
+                Directory.CreateDirectory(OUTPUT_DIRECTORY);
+            }
+
+            string newFilename = @$"{OUTPUT_DIRECTORY}\{filename}";
+
+            if (File.Exists(newFilename))
+            {
+                File.Delete(newFilename);
+            }
+
+            return newFilename;
+        }
+
         static void TestBinaryReaderEOF()
         {
-            var file = new System.IO.BinaryReader(System.IO.File.OpenRead("SPACE.PAL"));
+            string asset = GetAssetFilename("SPACE.PAL");
+            var file = new BinaryReader(File.OpenRead(asset));
             file.AdvanceReadPosition(file.GetLength() + 3);
             Console.WriteLine($"Length: {file.GetLength()}, Position: {file.GetCurrentPosition()}, EOF: {file.EOF()}");
         }
@@ -53,31 +80,43 @@ namespace DIV2Tools
 
         static void ImportPCXTest()
         {
-            new PCX("PLAYER.PCX");
+            string asset = GetAssetFilename("SPACE.PAL");
+            new PCX(GetAssetFilename("PLAYER.PCX"));
         }
 
         static void LoadPALTest()
         {
-            new PAL("SPACE.PAL");
+            string asset = GetAssetFilename("SPACE.PAL");
+            new PAL(GetAssetFilename("SPACE.PAL"));
         }
 
         static void CreatePALTest()
         {
-            var pal = new PAL(new PCX("PLAYER.PCX", false));
+            string asset = GetAssetFilename("PLAYER.PCX");
+            string output = GetOutputFilename("TEST.PAL");
+            var pal = new PAL(new PCX(asset, false));
             {
-                pal.Write("TEST.PAL");
+                pal.Write(output);
             }
 
-            new PAL("TEST.PAL");
+            new PAL(output);
         }
 
         static void ComparePALTest()
         {
-            //Console.WriteLine($"Compare palettes: {PAL.CreateFromPCX("PLAYER.PCX") == new PAL("TEST.PAL", false)}");
-            //Console.WriteLine($"Compare palettes: {PAL.Compare(PAL.CreateFromPCX("PLAYER.PCX"), new PAL("TEST.PAL", false))}");
-            var player = new PAL("PLAYER.PAL", false);
-            var test = new PAL("TEST.PAL", false);
+            string[] asset = { GetAssetFilename("PLAYER.PAL"), GetAssetFilename("TEST.PAL") };
 
+            if (!File.Exists(asset[1]))
+            {
+                CreatePALTest();
+            }
+
+            var player = new PAL(asset[0], false);
+            var test = new PAL(asset[1], false);
+
+            //Console.WriteLine($"Compare palettes: {player == test}");
+
+            // To print the entire comparasion:
             PAL.Color a, b;
             int coincidences = 0;
 
@@ -96,26 +135,31 @@ namespace DIV2Tools
 
         static void CreateMAPTest()
         {
+            string asset = GetAssetFilename("PLAYER.PNG");
+            string output = GetOutputFilename("TEST.MAP");
+
             // Create new MAP from a PNG file:
             var map = new MAP();
             {
-                map.ImportPNG("PLAYER.PNG");
+                map.ImportPNG(asset);
                 map.GraphId = 123;
                 map.Description = "Test MAP file.";
                 map.ControlPoints.Add(128, 128);
                 map.ControlPoints.Add(255, 255);
                 map.ControlPoints.Add(64, 64);
                 
-                map.Write("TEST.MAP");
+                map.Write(output);
             }
 
-            new MAP("TEST.MAP"); // Check new MAP created.
+            new MAP(output); // Check new MAP created.
         }
 
         static void ComparePALsTest()
         {
-            var div = new PAL("SPACE.PAL", false);
-            var pcx = new PAL(new PCX("PLAYER.PCX"));
+            string[] asset = { GetAssetFilename("SPACE.PAL"), GetAssetFilename("PLAYER.PCX") };
+
+            var div = new PAL(asset[0], false);
+            var pcx = new PAL(new PCX(asset[1]));
 
             for (int i = 0; i < 256; i++)
             {
@@ -126,7 +170,41 @@ namespace DIV2Tools
 
         static void LoadFPGTest()
         {
-            new FPG("PLAYER.FPG");
+            string asset = GetAssetFilename("PLAYER.FPG");
+            new FPG(asset);
+        }
+
+        static void CreateFPGTest()
+        {
+            string[] asset = Directory.GetFiles(@"Assets\ENEMY\");
+            string output = GetOutputFilename("TEST.FPG");
+
+            var getId = new Func<string, int>((filename) => int.Parse(Path.GetFileNameWithoutExtension(filename)));
+
+            Console.WriteLine($"Create {output}:");
+            var fpg = new FPG();
+            {
+                for (int i = 0; i < asset.Length; i++)
+                {
+                    if (i == 0)
+                    {
+                        PAL palette;
+                        fpg.Maps.Add(asset[i], getId(asset[i]), $"FPG test: {asset[i]}", asset[i].GetFilenameFromPath(), out palette);
+                        fpg.ImportPalette(palette);
+                    }
+                    else
+                    {
+                        fpg.Maps.Add(asset[i], getId(asset[i]), $"FPG test: {asset[i]}", asset[i].GetFilenameFromPath());
+                    }
+                    Console.WriteLine($"- Added {asset[i]}...");
+                }
+
+                fpg.Write(output);
+
+                Console.WriteLine($"{output} created!\n");
+            }
+
+            new FPG(output);
         }
     }
 }

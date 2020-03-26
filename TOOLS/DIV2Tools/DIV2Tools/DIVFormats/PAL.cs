@@ -92,7 +92,6 @@ namespace DIV2Tools.DIVFormats
         {
             #region Constants
             const int DEFAULT_COLORS = 16;
-            const int DEFAULT_RANGE_REPETITIONS = 16;
             const int RANGE_LENGTH = 32;
             #endregion
 
@@ -168,11 +167,18 @@ namespace DIV2Tools.DIVFormats
                     BlackColor = 0,
                     ColorRanges = new Func<byte[]>(() =>
                     {
+                        int value = rangeValue;
                         var ranges = new byte[ColorRange.RANGE_LENGTH];
-                        for (int i = 0; i < ColorRange.DEFAULT_RANGE_REPETITIONS; i++)
+
+                        for (int i = 0; i < ranges.Length; i++)
                         {
-                            ranges[i] = rangeValue;
+                            ranges[i] = (byte)value;
+                            if (++value > byte.MaxValue)
+                            {
+                                value = 0;
+                            }
                         }
+
                         return ranges;
                     }).Invoke()
                 };

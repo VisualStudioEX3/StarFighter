@@ -85,7 +85,21 @@ namespace DIV2Tools.DIVFormats
             /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
             /// <param name="description">Description for the new <see cref="MAP"/>.</param>
             /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
-            public MAPRegister(string filename, int graphId, string description, string storedFilename) : this(filename, graphId, description, storedFilename, new MAP.ControlPoint[0])
+            public MAPRegister(string filename, int graphId, string description, string storedFilename) : 
+                this(filename, graphId, description, storedFilename, new MAP.ControlPoint[0], out PAL pal)
+            {
+            }
+
+            /// <summary>
+            /// Imports a PNG file.
+            /// </summary>
+            /// <param name="filename">PNG filename.</param>
+            /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
+            /// <param name="description">Description for the new <see cref="MAP"/>.</param>
+            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
+            /// <param name="palette">Returns the <see cref="PAL"/> embebed into the <see cref="MAP"/> file.</param>
+            public MAPRegister(string filename, int graphId, string description, string storedFilename, out PAL palette) : 
+                this(filename, graphId, description, storedFilename, new MAP.ControlPoint[0], out palette)
             {
             }
 
@@ -97,7 +111,22 @@ namespace DIV2Tools.DIVFormats
             /// <param name="description">Description for the new <see cref="MAP"/>.</param>
             /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
             /// <param name="controlPoints"><see cref="MAP.ControlPoint"/> array for the new <see cref="MAP"/>.</param>
-            public MAPRegister(string filename, int graphId, string description, string storedFilename, MAP.ControlPoint[] controlPoints)
+            public MAPRegister(string filename, int graphId, string description, string storedFilename, MAP.ControlPoint[] controlPoints) : 
+                this(filename, graphId, description, storedFilename, new MAP.ControlPoint[0], out PAL pal)
+            {
+
+            }
+
+            /// <summary>
+            /// Imports a PNG file.
+            /// </summary>
+            /// <param name="filename">PNG filename.</param>
+            /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
+            /// <param name="description">Description for the new <see cref="MAP"/>.</param>
+            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
+            /// <param name="controlPoints"><see cref="MAP.ControlPoint"/> array for the new <see cref="MAP"/>.</param>
+            /// <param name="palette">Returns the <see cref="PAL"/> embebed into the <see cref="MAP"/> file.</param>
+            public MAPRegister(string filename, int graphId, string description, string storedFilename, MAP.ControlPoint[] controlPoints, out PAL palette)
             {
                 using (var file = new BinaryReader(File.OpenRead(filename)))
                 {
@@ -114,6 +143,8 @@ namespace DIV2Tools.DIVFormats
                         }
 
                         this._map.RemoveHeader();
+
+                        palette = this._map.Palette;
                         this._map.RemovePalette();
                     }
                 }
@@ -129,7 +160,14 @@ namespace DIV2Tools.DIVFormats
 
             public override string ToString()
             {
-                return $"- Graphic Identifier: {this.GraphId}\n- Total MAPRegister size: {this.Length}\n- Description: {this.Description}\n- (Stored) Filename: {this.Filename}\n- Width: {this.Width}\n- Height: {this.Height}\n- Control Points: {this._map.ControlPoints.ToString()}\n- Image size: {this._map.Pixels.Count}\n";
+                return $"- Graphic Identifier: {this.GraphId}\n" +
+                       $"- Total MAPRegister size: {this.Length}\n" +
+                       $"- Description: \"{this.Description}\"\n" +
+                       $"- (Stored) Filename: \"{this.Filename}\"\n" +
+                       $"- Width: {this.Width}\n" +
+                       $"- Height: {this.Height}\n" +
+                       $"- Control Points: {this._map.ControlPoints.ToString()}\n" +
+                       $"- Image size: {this._map.Pixels.Count}\n";
             }
             #endregion
         }
@@ -160,7 +198,7 @@ namespace DIV2Tools.DIVFormats
             /// <param name="file"><see cref="BinaryReader"/> instance.</param>
             public MAPRegisterCollection(BinaryReader file) : this()
             {
-                do { this._maps.Add(new MAPRegister(file)); } while (!file.EOF());
+                while (!file.EOF()) { this._maps.Add(new MAPRegister(file)); }
             }
             #endregion
 
@@ -178,7 +216,8 @@ namespace DIV2Tools.DIVFormats
             /// <param name="description">Description for the new <see cref="MAP"/>.</param>
             /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
             /// <param name="controlPoints"><see cref="MAP.ControlPoint"/> array for the new <see cref="MAP"/>.</param>
-            public void Add(string filename, int graphId, string description, string storedFilename, MAP.ControlPoint[] controlPoints)
+            /// <param name="palette">Returns the <see cref="PAL"/> embebed into the <see cref="MAP"/> file.</param>
+            public void Add(string filename, int graphId, string description, string storedFilename, MAP.ControlPoint[] controlPoints, out PAL palette)
             {
                 if (this.isGraphIdClamped(graphId))
                 {
@@ -187,7 +226,7 @@ namespace DIV2Tools.DIVFormats
                     {
                         if (controlPoints.Length < MAP.ControlPointList.MAX_CAPACITY)
                         {
-                            this._maps.Add(new MAPRegister(filename, graphId, description, storedFilename, controlPoints));
+                            this._maps.Add(new MAPRegister(filename, graphId, description, storedFilename, controlPoints, out palette));
                         }
                         else
                         {
@@ -211,10 +250,36 @@ namespace DIV2Tools.DIVFormats
             /// <param name="filename">PNG filename.</param>
             /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
             /// <param name="description">Description for the new <see cref="MAP"/>.</param>
-            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string. By default is empty.</param>
-            public void Add(string filename, int graphId, string description, string storedFilename = "")
+            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
+            /// <param name="controlPoints"><see cref="MAP.ControlPoint"/> array for the new <see cref="MAP"/>.</param>
+            public void Add(string filename, int graphId, string description, string storedFilename, MAP.ControlPoint[] controlPoints)
             {
-                this.Add(filename, graphId, description, storedFilename, new MAP.ControlPoint[0]);
+                this.Add(filename, graphId, description, storedFilename, new MAP.ControlPoint[0], out PAL palette);
+            }
+
+            /// <summary>
+            /// Add a PNG file as <see cref="MAP"/>.
+            /// </summary>
+            /// <param name="filename">PNG filename.</param>
+            /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
+            /// <param name="description">Description for the new <see cref="MAP"/>.</param>
+            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
+            public void Add(string filename, int graphId, string description, string storedFilename)
+            {
+                this.Add(filename, graphId, description, storedFilename, new MAP.ControlPoint[0], out PAL palette);
+            }
+
+            /// <summary>
+            /// Add a PNG file as <see cref="MAP"/>.
+            /// </summary>
+            /// <param name="filename">PNG filename.</param>
+            /// <param name="graphId">GraphId for the new <see cref="MAP"/>.</param>
+            /// <param name="description">Description for the new <see cref="MAP"/>.</param>
+            /// <param name="storedFilename">Stored filename in 8.3 format. This field will be an empty string.</param>
+            /// <param name="palette">Returns the <see cref="PAL"/> embebed into the <see cref="MAP"/> file.</param>
+            public void Add(string filename, int graphId, string description, string storedFilename, out PAL palette)
+            {
+                this.Add(filename, graphId, description, storedFilename, new MAP.ControlPoint[0], out palette);
             }
 
             /// <summary>
@@ -287,6 +352,7 @@ namespace DIV2Tools.DIVFormats
         public FPG()
         {
             this.header = new FPGHeader();
+            this.Maps = new MAPRegisterCollection();
         }
 
         /// <summary>
@@ -326,7 +392,16 @@ namespace DIV2Tools.DIVFormats
         /// <param name="filename"><see cref="PAL"/> file to import.</param>
         public void ImportPalette(string filename)
         {
-            this.Palette = new PAL(filename, false);
+            this.ImportPalette(new PAL(filename, false));
+        }
+
+        /// <summary>
+        /// Import an external <see cref="PAL"/> instance to use in this <see cref="FPG"/>.
+        /// </summary>
+        /// <param name="palette"><see cref="PAL"/> instance to import.</param>
+        public void ImportPalette(PAL palette)
+        {
+            this.Palette = palette;
             this.Palette.RemoveHeader();
         }
 
