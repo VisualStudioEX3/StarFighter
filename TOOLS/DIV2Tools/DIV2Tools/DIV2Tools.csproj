@@ -179,6 +179,15 @@
     <None Update="Assets\ENEMY\614.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Assets\FPG Test\100.MAP">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\FPG Test\101.MAP">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\FPG Test\102.MAP">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Assets\PLAYER.BMP">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -201,6 +210,10 @@
 
   <ItemGroup>
     <Folder Include="Output\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DIV2.Format.Exporter\DIV2.Format.Exporter.csproj" />
   </ItemGroup>
 
 </Project>
