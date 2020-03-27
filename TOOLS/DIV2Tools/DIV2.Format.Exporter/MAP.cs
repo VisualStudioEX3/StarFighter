@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using DIV2.Format.Exporter.MethodExtensions;
 
@@ -8,6 +9,7 @@ namespace DIV2.Format.Exporter
     /// <summary>
     /// Control Point data.
     /// </summary>
+    [Serializable]
     public struct ControlPoint
     {
         #region Public vars

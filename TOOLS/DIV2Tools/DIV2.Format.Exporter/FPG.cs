@@ -5,35 +5,39 @@ using DIV2.Format.Exporter.MethodExtensions;
 
 namespace DIV2.Format.Exporter
 {
+    #region Structures
+    /// <summary>
+    /// PNG import definition data.
+    /// </summary>
+    [Serializable]
+    public struct PNGImportDefinition
+    {
+        /// <summary>
+        /// PNG filename to import.
+        /// </summary>
+        public string filename;
+        /// <summary>
+        /// MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.
+        /// </summary>
+        public int graphId;
+        /// <summary>
+        /// Optional graphic description. 32 characters maximum.
+        /// </summary>
+        public string description;
+        /// <summary>
+        /// Optional MAP Control Point list.
+        /// </summary>
+        public ControlPoint[] controlPoints;
+    }
+    #endregion
+
+    #region Class
     /// <summary>
     /// FPG creator.
     /// </summary>
     public class FPG
     {
         #region Structures
-        /// <summary>
-        /// PNG import definition data.
-        /// </summary>
-        public struct PNGImportDefinition
-        {
-            /// <summary>
-            /// PNG filename to import.
-            /// </summary>
-            public string filename;
-            /// <summary>
-            /// MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.
-            /// </summary>
-            public int graphId;
-            /// <summary>
-            /// Optional graphic description. 32 characters maximum.
-            /// </summary>
-            public string description;
-            /// <summary>
-            /// Optional MAP Control Point list.
-            /// </summary>
-            public ControlPoint[] controlPoints;
-        }
-
         struct MapRegister
         {
             #region Public vars
@@ -164,10 +168,39 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
+        /// Adds a PNG definition to import in the FPG.
+        /// </summary>
+        /// <param name="filename">PNG filename to import.</param>
+        /// <param name="graphId">MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.</param>
+        /// <param name="description">Optional graphic description. 32 characters maximum.</param>
+        public void AddMap(string filename, int graphId, string description = "")
+        {
+            this.AddMap(filename, graphId, description, new ControlPoint[0]);
+        }
+
+        /// <summary>
+        /// Adds a PNG definition to import in the FPG.
+        /// </summary>
+        /// <param name="filename">PNG filename to import.</param>
+        /// <param name="graphId">MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.</param>
+        /// <param name="description">Optional graphic description. 32 characters maximum.</param>
+        /// <param name="controlPoints">Optional MAP Control Point list.</param>
+        public void AddMap(string filename, int graphId, string description, ControlPoint[] controlPoints)
+        {
+            this.AddMap(new PNGImportDefinition()
+            {
+                filename = filename,
+                graphId = graphId,
+                description = description,
+                controlPoints = new ControlPoint[0]
+            });
+        }
+
+        /// <summary>
         /// Adds a <see cref="PNGImportDefinition"/> to import in the FPG.
         /// </summary>
         /// <param name="pngFile"><see cref="PNGImportDefinition"/> data to import.</param>
-        public void AddMap(PNGImportDefinition pngFile) 
+        public void AddMap(PNGImportDefinition pngFile)
         {
             if (!this.IsGraphIdClamped(pngFile.graphId))
             {
@@ -256,5 +289,6 @@ namespace DIV2.Format.Exporter
             }
         }
         #endregion
-    }
+    } 
+    #endregion
 }

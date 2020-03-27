@@ -69,12 +69,7 @@ namespace DIV2Tools
             {
                 foreach (var png in asset)
                 {
-                    fpg.AddMap(new FPG.PNGImportDefinition()
-                    {
-                        filename = png,
-                        graphId = getId(png),
-                        description = $"Test FPG: {getId(png)}"
-                    });
+                    fpg.AddMap(png, getId(png),$"Test FPG: {getId(png)}");
                     Console.WriteLine($"- Added \"{png}\" definition...");
                 }
 

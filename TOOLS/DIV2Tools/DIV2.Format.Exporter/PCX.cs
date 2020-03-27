@@ -76,7 +76,7 @@ namespace DIV2.Format.Exporter
                         // Read the PCX palette and convert to VGA format:
                         if (!skipPalette)
                         {
-                            buffer.BaseStream.Position++;                                   // Skip palette marker byte.
+                            buffer.BaseStream.Position++; // Skip palette marker byte.
                             this.Palette = new byte[PCX.PALETTE_LENGTH];
                             for (int i = 0; i < PCX.PALETTE_LENGTH; i++)
                             {
