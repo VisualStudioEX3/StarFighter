@@ -33,8 +33,8 @@ namespace DIV2.Format.Exporter.MethodExtensions
         /// <param name="text">This <see cref="string"/> instance.</param>
         /// <param name="length">Characters length.</param>
         /// <returns>Returns a <see cref="byte"/> array with the content of the <see cref="string"/> in ASCIIZ format.
-        /// If the input string is lower than the desired length, the string is filled with spaces.
-        /// If the input string is higher than the length, getting a substring with the desired length.</returns>
+        /// If the input string is shorter than the desired length, the string is filled with spaces.
+        /// If the input string is longer than the length, getting a substring with the desired length.</returns>
         public static byte[] GetASCIIZString(this string text, int length)
         {
             char[] buffer = (text.Length > length ? text.Substring(0, length) : text.PadRight(length)).ToCharArray();

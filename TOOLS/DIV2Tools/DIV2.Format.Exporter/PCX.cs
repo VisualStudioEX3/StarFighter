@@ -9,8 +9,8 @@ namespace DIV2.Format.Exporter
         #region Constants
         const int HEADER_LENGTH = 128;
         const int PALETTE_LENGTH = 768;
-        const int RLE_COUNTER_MASK = 0xC0;                                  // Mask for check if bits 6 and 7 ar set.
-        const int RLE_CLEAR_MASK = 0x3F;                                    // Mask for clear bits 6 and 7. 
+        const int RLE_COUNTER_MASK = 0xC0; // Mask for check if bits 6 and 7 ar set (to check if is a counter byte).
+        const int RLE_CLEAR_MASK = 0x3F; // Mask for clear bits 6 and 7 (to get the counter value).
         #endregion
 
         #region Properties
@@ -21,10 +21,18 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructor
-        public PCX(string pngFilename, bool skipPalette)
+        public PCX(byte[] pngData, bool skipPalette) : this(new MagickImage(pngData), skipPalette)
+        {
+        }
+
+        public PCX(string pngFilename, bool skipPalette) : this(new MagickImage(pngFilename), skipPalette)
+        { 
+        }
+
+        PCX(MagickImage pngImage, bool skipPalette)
         {
             // Load PNG image and convert to PCX using ImageMagick framework:
-            using (MagickImage png = new MagickImage(pngFilename))
+            using (MagickImage png = pngImage)
             {
                 this.Width = (short)png.Width;
                 this.Height = (short)png.Height;
@@ -80,7 +88,7 @@ namespace DIV2.Format.Exporter
                             this.Palette = new byte[PCX.PALETTE_LENGTH];
                             for (int i = 0; i < PCX.PALETTE_LENGTH; i++)
                             {
-                                this.Palette[i] = (byte)(buffer.ReadByte() / 4);
+                                this.Palette[i] = (byte)(buffer.ReadByte() / 4); // This convert from 0-255 range to 0-63 range value.
                             }
                         }
                     }

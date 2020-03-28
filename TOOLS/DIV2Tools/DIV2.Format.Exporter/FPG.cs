@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using DIV2.Format.Exporter.MethodExtensions;
 
 namespace DIV2.Format.Exporter
@@ -12,22 +14,65 @@ namespace DIV2.Format.Exporter
     [Serializable]
     public struct PNGImportDefinition
     {
+        #region Properties
+        internal bool BinaryLoad { get; private set; }
+        /// <summary>
+        /// PNG data to import.
+        /// </summary>
+        public byte[] Buffer { get; private set; }
         /// <summary>
         /// PNG filename to import.
         /// </summary>
-        public string filename;
+        public string Filename { get; private set; }
         /// <summary>
         /// MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.
         /// </summary>
-        public int graphId;
+        public int GraphId { get; private set; }
         /// <summary>
-        /// Optional graphic description. 32 characters maximum.
+        /// Optional MAP graphic description (32 characters maximum).
         /// </summary>
-        public string description;
+        public string Description { get; private set; }
         /// <summary>
         /// Optional MAP Control Point list.
         /// </summary>
-        public ControlPoint[] controlPoints;
+        public ControlPoint[] ControlPoints { get; private set; }
+        #endregion
+
+        #region Constructors
+        /// <summary>
+        /// Creates a PNG Import Definition for load buffer data.
+        /// </summary>
+        /// <param name="buffer"><see cref="byte"/> array with the PNG data to import.</param>
+        /// <param name="graphId">MAP graphic id.</param>
+        /// <param name="description">Optional MAP description (32 characters maximum).</param>
+        /// <param name="controlPoints">Optional MAP Control Point list.</param>
+        public PNGImportDefinition(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null) :
+            this(true, buffer, null, graphId, description, controlPoints)
+        {
+        }
+
+        /// <summary>
+        /// Creates a PNG Import Definition for load PNG file.
+        /// </summary>
+        /// <param name="filename">PNG file to import.</param>
+        /// <param name="graphId">MAP graphic id.</param>
+        /// <param name="description">Optional MAP description (32 characters maximum).</param>
+        /// <param name="controlPoints">Optional MAP Control Point list.</param>
+        public PNGImportDefinition(string filename, int graphId, string description = "", ControlPoint[] controlPoints = null) :
+            this(false, null, filename, graphId, description, controlPoints)
+        {
+        }
+
+        PNGImportDefinition(bool binaryLoad, byte[] buffer, string filename, int graphId, string description, ControlPoint[] controlPoints)
+        {
+            this.BinaryLoad = binaryLoad;
+            this.Filename = filename;
+            this.Buffer = buffer;
+            this.GraphId = graphId;
+            this.Description = description;
+            this.ControlPoints = controlPoints;
+        }
+        #endregion
     }
     #endregion
 
@@ -56,6 +101,7 @@ namespace DIV2.Format.Exporter
         List<PNGImportDefinition> _maps;
         byte[] _palette;
         List<MapRegister> _registers;
+        CancellationToken _asyncCancellationToken;
         #endregion
 
         #region Properties
@@ -113,47 +159,50 @@ namespace DIV2.Format.Exporter
             file.Write(register.controlPoints.Length);
             foreach (var point in register.controlPoints)
             {
+                this._asyncCancellationToken.ThrowIfCancellationRequested();
+
                 file.Write(point.x);
                 file.Write(point.y);
             }
             file.Write(register.bitmap);
         }
 
-        void ImportAllPNGs()
+        void ImportPNGs()
         {
+            bool isPaletteSet = false;
             this._registers = new List<MapRegister>();
-            for (int i = 0; i < this._maps.Count; i++)
+
+            // FYI: Tried to paralleized using Parallel.ForEach (that reduced to half the time process) but sometimes the PCX constructor, the MagickImage instance, fails with System.AccessViolationException exception in random points of the code.
+            foreach (var map in this._maps)
             {
-                this._registers.Add(this.ImportPNG(this._maps[i].filename, this._maps[i].graphId, this._maps[i].description, this._maps[i].controlPoints, i > 0));
+                this._asyncCancellationToken.ThrowIfCancellationRequested();
+
+                PCX pcx = map.BinaryLoad ? new PCX(map.Buffer, isPaletteSet) : new PCX(map.Filename, isPaletteSet);
+
+                if (!isPaletteSet)
+                {
+                    this._palette = pcx.Palette; // Using this palette for the FPG (assuming the all maps shared the same palette).
+                    isPaletteSet = true;
+                }
+
+                this._registers.Add(new MapRegister()
+                {
+                    graphId = map.GraphId,
+                    description = map.Description,
+                    filename = string.IsNullOrEmpty(map.Filename) ? string.Empty : Path.GetFileName(map.Filename),
+                    width = pcx.Width,
+                    height = pcx.Height,
+                    controlPoints = map.ControlPoints,
+                    bitmap = pcx.Bitmap
+                });
             }
-        }
-
-        MapRegister ImportPNG(string filename, int graphId, string description, ControlPoint[] controlPoints, bool skipPalette)
-        {
-            var pcx = new PCX(filename, skipPalette);
-
-            if (!skipPalette)
-            {
-                this._palette = pcx.Palette; // Using this palette for the FPG (assuming the all maps shared the same palette).
-            }
-
-            return new MapRegister()
-            {
-                graphId = graphId,
-                description = description,
-                filename = Path.GetFileName(filename),
-                width = pcx.Width,
-                height = pcx.Height,
-                controlPoints = controlPoints,
-                bitmap = pcx.Bitmap
-            };
         }
 
         int GetMapIndexByGraphId(int graphId)
         {
             for (int i = 0; i < this._maps.Count; i++)
             {
-                if (this._maps[i].graphId == graphId)
+                if (this._maps[i].GraphId == graphId)
                 {
                     return i;
                 }
@@ -170,12 +219,13 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Adds a PNG definition to import in the FPG.
         /// </summary>
-        /// <param name="filename">PNG filename to import.</param>
+        /// <param name="buffer">PNG data to import.</param>
         /// <param name="graphId">MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.</param>
         /// <param name="description">Optional graphic description. 32 characters maximum.</param>
-        public void AddMap(string filename, int graphId, string description = "")
+        /// <param name="controlPoints">Optional MAP Control Point list.</param>
+        public void AddMap(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null)
         {
-            this.AddMap(filename, graphId, description, new ControlPoint[0]);
+            this.AddMap(new PNGImportDefinition(buffer, graphId, description, controlPoints ?? new ControlPoint[0]));
         }
 
         /// <summary>
@@ -185,15 +235,9 @@ namespace DIV2.Format.Exporter
         /// <param name="graphId">MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.</param>
         /// <param name="description">Optional graphic description. 32 characters maximum.</param>
         /// <param name="controlPoints">Optional MAP Control Point list.</param>
-        public void AddMap(string filename, int graphId, string description, ControlPoint[] controlPoints)
+        public void AddMap(string filename, int graphId, string description = "", ControlPoint[] controlPoints = null)
         {
-            this.AddMap(new PNGImportDefinition()
-            {
-                filename = filename,
-                graphId = graphId,
-                description = description,
-                controlPoints = new ControlPoint[0]
-            });
+            this.AddMap(new PNGImportDefinition(filename, graphId, description, controlPoints ?? new ControlPoint[0]));
         }
 
         /// <summary>
@@ -202,18 +246,17 @@ namespace DIV2.Format.Exporter
         /// <param name="pngFile"><see cref="PNGImportDefinition"/> data to import.</param>
         public void AddMap(PNGImportDefinition pngFile)
         {
-            if (!this.IsGraphIdClamped(pngFile.graphId))
+            if (!this.IsGraphIdClamped(pngFile.GraphId))
             {
-                throw new ArgumentOutOfRangeException(nameof(pngFile.graphId), $"The GraphID must be a value between 1 and 999 (Current GraphId: {pngFile.graphId})");
+                throw new ArgumentOutOfRangeException(nameof(pngFile.GraphId), $"The GraphID must be a value between 1 and 999 (Current GraphId: {pngFile.GraphId})");
             }
 
-            int mapIndex = this.GetMapIndexByGraphId(pngFile.graphId);
+            int mapIndex = this.GetMapIndexByGraphId(pngFile.GraphId);
             if (mapIndex > 0)
             {
-                throw new ArgumentException(nameof(pngFile.graphId), $"The GraphID {pngFile.graphId} is already in use by other map (Map index: {mapIndex})");
+                throw new ArgumentException(nameof(pngFile.GraphId), $"The GraphID {pngFile.GraphId} is already in use by other map (Map index: {mapIndex})");
             }
 
-            pngFile.controlPoints ??= new ControlPoint[0];
             this._maps.Add(pngFile);
         }
 
@@ -276,19 +319,33 @@ namespace DIV2.Format.Exporter
                 throw new InvalidOperationException("The FPG not contain any MAP to import.");
             }
 
-            this.ImportAllPNGs();
+            this.ImportPNGs();
 
             using (var file = new BinaryWriter(File.OpenWrite(filename)))
             {
                 this.WriteHeader(file);
                 this.WritePalette(file);
+
                 foreach (var register in this._registers)
                 {
+                    this._asyncCancellationToken.ThrowIfCancellationRequested();
                     this.WriteMapRegister(file, register);
                 }
             }
         }
+
+        /// <summary>
+        /// Imports all <see cref="PNGImportDefinition"/> and write, in separated thread, all data to file.
+        /// </summary>
+        /// <param name="filename">FPG filename.</param>
+        /// <param name="cancellationToken">Optional <see cref="CancellationToken"/> for this <see cref="Task"/>.</param>
+        /// <remarks>If this <see cref="Task"/> is cancelled by <see cref="CancellationToken"/> token, this throw an <see cref="OperationCanceledException"/>.</remarks>
+        public Task SaveAsync(string filename, CancellationToken cancellationToken = default)
+        {
+            this._asyncCancellationToken = cancellationToken;
+            return Task.Factory.StartNew(() => this.Save(filename), cancellationToken);
+        }
         #endregion
-    } 
+    }
     #endregion
 }

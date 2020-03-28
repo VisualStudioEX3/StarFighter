@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using DIV2.Format.Exporter;
 
 namespace DIV2Tools
@@ -73,11 +74,17 @@ namespace DIV2Tools
                     Console.WriteLine($"- Added \"{png}\" definition...");
                 }
 
-                Console.WriteLine("Writing FPG data, wait...");
+                Console.Write("Writing FPG data to file, wait");
 
-                fpg.Save(output);
+                Task create = fpg.SaveAsync(output);
 
-                Console.WriteLine($"\"{output}\" created!\n");
+                while (!create.IsCompleted)
+                {
+                    Console.Write(".");
+                    System.Threading.Thread.Sleep(100);
+                }
+
+                Console.WriteLine($"\n\"{output}\" created!\n");
             }
         }
     }
