@@ -1,5 +1,6 @@
 # General:
 *.log
+IgnoreAssets/
 
 # Visual Studio:
 .vs/

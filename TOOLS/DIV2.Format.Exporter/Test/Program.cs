@@ -7,8 +7,10 @@ class Program
 {
     static void Main(string[] args)
     {
-        CreateMAPTest();
-        CreateFPGTest();
+        Console.WriteLine((6 - 4) & 1);
+
+        //CreateMAPTest();
+        //CreateFPGTest();
 
         Console.Beep();
         Console.ReadKey();

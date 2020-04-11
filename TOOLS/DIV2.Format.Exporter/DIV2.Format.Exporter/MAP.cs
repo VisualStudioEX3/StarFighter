@@ -24,6 +24,10 @@ namespace DIV2.Format.Exporter
     /// </summary>
     public class MAP
     {
+        #region Constants
+        const string HEADER_ID = "map"; 
+        #endregion
+
         #region Internal vars
         short _width;
         short _height;
@@ -70,7 +74,7 @@ namespace DIV2.Format.Exporter
         /// <param name="controlPoints">MAP Control Point list.</param>
         public MAP(string pngFilename, int graphId, string description, ControlPoint[] controlPoints)
         {
-            var pcx = new PCX(pngFilename, false);
+            var pcx = new PCX(pngFilename, false, true);
 
             this._width = pcx.Width;
             this._height = pcx.Height;
@@ -85,37 +89,13 @@ namespace DIV2.Format.Exporter
         #region Methods & Functions
         void WriteHeader(BinaryWriter file)
         {
-            file.Write("map".ToByteArray());
-            file.Write(new byte[] { 0x1A, 0x0D, 0x0A, 0x00 });
-            file.Write((byte)0);
+            DIVFormatCommonBase.WriteCommonHeader(file, MAP.HEADER_ID);
             file.Write(this._width);
             file.Write(this._height);
             file.Write(this._graphId);
             file.Write(this._description.GetASCIIZString(32));
         }
-
-        void WritePalette(BinaryWriter file)
-        {
-            file.Write(this._palette);
-
-            int range = 0;
-            for (int i = 0; i < 16; i++)
-            {
-                file.Write((byte)16);
-                file.Write((byte)0);
-                file.Write(false);
-                file.Write((byte)0);
-                for (int j = 0; j < 32; j++)
-                {
-                    file.Write((byte)range);
-                    if (++range > 255)
-                    {
-                        range = 0;
-                    }
-                }
-            }
-        }
-
+        
         void WriteControlPoints(BinaryWriter file)
         {
             file.Write((short)this._controlPoints.Count);
@@ -171,7 +151,7 @@ namespace DIV2.Format.Exporter
             using (var file = new BinaryWriter(File.OpenWrite(filename)))
             {
                 this.WriteHeader(file);
-                this.WritePalette(file);
+                DIVFormatCommonBase.WritePalette(file, this._palette);
                 this.WriteControlPoints(file);
                 file.Write(this._bitmap);
             }

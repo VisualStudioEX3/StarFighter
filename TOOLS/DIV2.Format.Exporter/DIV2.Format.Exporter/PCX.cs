@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using ImageMagick;
+using DIV2.Format.Exporter.MethodExtensions;
 
 namespace DIV2.Format.Exporter
 {
@@ -21,15 +22,15 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructor
-        public PCX(byte[] pngData, bool skipPalette) : this(new MagickImage(pngData), skipPalette)
+        public PCX(byte[] pngData, bool skipPalette, bool convertPaletteToDAC) : this(new MagickImage(pngData), skipPalette, convertPaletteToDAC)
         {
         }
 
-        public PCX(string pngFilename, bool skipPalette) : this(new MagickImage(pngFilename), skipPalette)
+        public PCX(string pngFilename, bool skipPalette, bool convertPaletteToDAC) : this(new MagickImage(pngFilename), skipPalette, convertPaletteToDAC)
         { 
         }
 
-        PCX(MagickImage pngImage, bool skipPalette)
+        PCX(MagickImage pngImage, bool skipPalette, bool convertPaletteToDAC)
         {
             // Load PNG image and convert to PCX using ImageMagick framework:
             using (MagickImage png = pngImage)
@@ -54,7 +55,7 @@ namespace DIV2.Format.Exporter
                             return (byte)(i & PCX.RLE_CLEAR_MASK);
                         });
 
-                        int imageSize = (int)buffer.BaseStream.Length - (PCX.HEADER_LENGTH + (PCX.PALETTE_LENGTH + 1));
+                        int imageSize = (int)(buffer.BaseStream.Length - (PCX.HEADER_LENGTH + (PCX.PALETTE_LENGTH + 1)));
                         byte value, write;
                         int index = 0;
 
@@ -84,11 +85,18 @@ namespace DIV2.Format.Exporter
                         // Read the PCX palette and convert to VGA format:
                         if (!skipPalette)
                         {
-                            buffer.BaseStream.Position++; // Skip palette marker byte.
-                            this.Palette = new byte[PCX.PALETTE_LENGTH];
-                            for (int i = 0; i < PCX.PALETTE_LENGTH; i++)
+                            buffer.BaseStream.Position++;  // Skip palette marker byte.
+                            if (convertPaletteToDAC)
                             {
-                                this.Palette[i] = (byte)(buffer.ReadByte() / 4); // This convert from 0-255 range to 0-63 range value.
+                                this.Palette = new byte[PCX.PALETTE_LENGTH];
+                                for (int i = 0; i < PCX.PALETTE_LENGTH; i++)
+                                {
+                                    this.Palette[i] = (byte)(buffer.ReadByte() / 4); // This convert from 0-255 range to VGA 0-63 range value.
+                                } 
+                            }
+                            else
+                            {
+                                this.Palette = buffer.ReadBytes(PCX.PALETTE_LENGTH);
                             }
                         }
                     }
