@@ -7,10 +7,8 @@ class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine((6 - 4) & 1);
-
         //CreateMAPTest();
-        //CreateFPGTest();
+        CreateFPGTest();
 
         Console.Beep();
         Console.ReadKey();
@@ -76,13 +74,11 @@ class Program
 
             Console.Write("Writing FPG data to file, wait");
 
-            Task create = fpg.SaveAsync(output);
+            var progress = new AsyncOperationProgress();
+            progress.onProgress += (p) => Console.Write('.');
+            Task create = fpg.SaveAsync(output, progress);
 
-            while (!create.IsCompleted)
-            {
-                Console.Write(".");
-                System.Threading.Thread.Sleep(100);
-            }
+            while (!create.IsCompleted) { }
 
             Console.WriteLine($"\n\"{output}\" created!\n");
         }

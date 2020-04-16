@@ -76,7 +76,51 @@ namespace DIV2.Format.Exporter
     }
     #endregion
 
-    #region Class
+    #region Classes
+    /// <summary>
+    /// Return info about the asynchronous operation progression.
+    /// </summary>
+    public class AsyncOperationProgress
+    {
+        #region Public vars
+        /// <summary>
+        /// Event raised every time when the progress is updated and return the current progress value.
+        /// </summary>
+        public event Action<float> onProgress; 
+        #endregion
+
+        #region Properties
+        /// <summary>
+        /// Current completed steps.
+        /// </summary>
+        public int Current { get; private set; }
+        /// <summary>
+        /// Total steps to complete.
+        /// </summary>
+        public int Total { get; private set; }
+        /// <summary>
+        /// Returns the percentage of the progress (values from 0.0 to 1.0).
+        /// </summary>
+        public float Progress => (float)this.Current / (float)this.Total;
+        #endregion
+
+        #region Methods & Functions
+        protected internal void SetTotal(int total)
+        {
+            this.Total = total;
+        }
+
+        protected internal void Step()
+        {
+            lock (this)
+            {
+                this.Current++;
+                onProgress?.Invoke(this.Progress);
+            }
+        } 
+        #endregion
+    }
+
     /// <summary>
     /// FPG creator.
     /// </summary>
@@ -108,9 +152,6 @@ namespace DIV2.Format.Exporter
 
         #region Internal vars
         List<PNGImportDefinition> _maps;
-        byte[] _palette;
-        List<MapRegister> _registers;
-        CancellationToken _asyncCancellationToken;
         #endregion
 
         #region Properties
@@ -139,35 +180,38 @@ namespace DIV2.Format.Exporter
             file.Write(register.controlPoints.Length);
             foreach (var point in register.controlPoints)
             {
-                this.CheckForCancellationTokenRequest(file);
-
                 file.Write(point.x);
                 file.Write(point.y);
             }
             file.Write(register.bitmap);
         }
 
-        void ImportPNGs()
+        List<MapRegister> ImportPNGs(CancellationToken cancellationToken, AsyncOperationProgress progress, out byte[] palette)
         {
             bool isPaletteSet = false;
-            this._registers = new List<MapRegister>();
+            var mapRegisters = new List<MapRegister>(this._maps.Count);
 
-            // FYI: Tried to paralleized using Parallel.ForEach (that reduced to half the time process) but sometimes the PCX constructor, the internal MagickImage instance, fails throwing a System.AccessViolationException exception in random points of the code.
+            palette = null;
+
+            /* FYI: ImageMagic .NET seems to be an internal bug that makes not thread-safe (almost the PNG library, that sometimes throw System.AccessViolationException refering internal native instance).
+             * This bug not allow to use MagicImage class instances in separated threads per instance or Parallel.ForEach iterations. */
             foreach (var map in this._maps)
             {
-                this.CheckForCancellationTokenRequest(null);
+                cancellationToken.ThrowIfCancellationRequested();
 
-                PCX pcx = map.BinaryLoad ? new PCX(map.Buffer, isPaletteSet, true) : new PCX(map.Filename, isPaletteSet, true);
-
-                this.CheckForCancellationTokenRequest(null);
+                var pcx = map.BinaryLoad ?
+                          new PCX(map.Buffer, isPaletteSet, true) :
+                          new PCX(map.Filename, isPaletteSet, true);
 
                 if (!isPaletteSet)
                 {
-                    this._palette = pcx.Palette; // Using this palette for the FPG (assuming the all maps shared the same palette).
+                    palette = pcx.Palette; // Using this palette for the FPG (assuming the all maps shared the same palette).
                     isPaletteSet = true;
                 }
 
-                this._registers.Add(new MapRegister()
+                progress?.Step();
+
+                mapRegisters.Add(new MapRegister()
                 {
                     graphId = map.GraphId,
                     description = map.Description,
@@ -178,6 +222,8 @@ namespace DIV2.Format.Exporter
                     bitmap = pcx.Bitmap
                 });
             }
+
+            return mapRegisters;
         }
 
         bool TryGetMapIndexByGraphId(int graphId, out int index)
@@ -293,51 +339,56 @@ namespace DIV2.Format.Exporter
             }
         }
 
-        /// <summary>
-        /// Imports all <see cref="PNGImportDefinition"/> and write all data to file.
-        /// </summary>
-        /// <param name="filename">FPG filename.</param>
-        public void Save(string filename)
+        void Save(string filename, CancellationToken cancellationToken, AsyncOperationProgress progress)
         {
             if (this._maps.Count == 0)
             {
                 throw new InvalidOperationException("The FPG not contain any MAP to import.");
             }
 
-            this.ImportPNGs();
+            byte[] palette;
+            List<MapRegister> mapRegisters = this.ImportPNGs(cancellationToken, progress, out palette);
 
             using (var file = new BinaryWriter(File.OpenWrite(filename)))
             {
                 DIVFormatCommonBase.WriteCommonHeader(file, FPG.HEADER_ID);
-                DIVFormatCommonBase.WritePalette(file, this._palette);
+                DIVFormatCommonBase.WritePalette(file, palette);
+                progress?.Step();
 
-                foreach (var register in this._registers)
+                foreach (var register in mapRegisters)
                 {
-                    this.CheckForCancellationTokenRequest(file);
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        file.DisposeAsync();
+                    }
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     this.WriteMapRegister(file, register);
+                    progress?.Step();
                 }
             }
+        }
+
+        /// <summary>
+        /// Imports all <see cref="PNGImportDefinition"/> and write all data to file.
+        /// </summary>
+        /// <param name="filename">FPG filename.</param>
+        public void Save(string filename)
+        {
+            this.Save(filename, default, null);
         }
 
         /// <summary>
         /// Imports all <see cref="PNGImportDefinition"/> and write, in separated thread, all data to file.
         /// </summary>
         /// <param name="filename">FPG filename.</param>
+        /// <param name="progress"><see cref="AsyncOperationProgress"/> instance for monitoring the progress of this operation.</param>
         /// <param name="cancellationToken">Optional <see cref="CancellationToken"/> for this <see cref="Task"/>.</param>
         /// <remarks>If this <see cref="Task"/> is cancelled by <see cref="CancellationToken"/> token, this throw an <see cref="OperationCanceledException"/>.</remarks>
-        public Task SaveAsync(string filename, CancellationToken cancellationToken = default)
+        public Task SaveAsync(string filename, AsyncOperationProgress progress, CancellationToken cancellationToken = default)
         {
-            this._asyncCancellationToken = cancellationToken;
-            return Task.Factory.StartNew(() => this.Save(filename), cancellationToken);
-        }
-
-        void CheckForCancellationTokenRequest(BinaryWriter file)
-        {
-            if (this._asyncCancellationToken.IsCancellationRequested)
-            {
-                file?.DisposeAsync();
-            }
-            this._asyncCancellationToken.ThrowIfCancellationRequested();
+            progress.SetTotal((this._maps.Count * 2) + 1);
+            return Task.Factory.StartNew(() => this.Save(filename, cancellationToken, progress), cancellationToken);
         }
         #endregion
     }
