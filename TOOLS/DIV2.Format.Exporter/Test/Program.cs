@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading.Tasks;
 using DIV2.Format.Exporter;
 
 class Program
@@ -8,7 +7,8 @@ class Program
     static void Main(string[] args)
     {
         //CreateMAPTest();
-        CreateFPGTest();
+        //CreateFPGFromFileTest();
+        CreateFPGFromMemoryTest();
 
         Console.Beep();
         Console.ReadKey();
@@ -41,24 +41,26 @@ class Program
     static void CreateMAPTest()
     {
         string asset = GetAssetFilename("PLAYER.PNG");
+        string asset2 = GetAssetFilename("SPACE.PAL");
         string output = GetOutputFilename("TEST.MAP");
 
         Console.WriteLine($"Create \"{output}\":");
-        var map = new MAP(asset, 123, "Test MAP file.");
+        var map = new MAP(asset, asset2, 123, "Test MAP file.");
         {
             map.AddControlPoint(128, 128);
             map.AddControlPoint(255, 255);
             map.AddControlPoint(64, 64);
 
-            map.Save(output);
+            map.Save(output, asset2);
 
             Console.WriteLine($"\"{output}\" created!\n");
         }
     }
 
-    static void CreateFPGTest()
+    static void CreateFPGFromFileTest()
     {
         string[] asset = Directory.GetFiles(@"Assets\ENEMY\");
+        string asset2 = GetAssetFilename("SPACE.PAL");
         string output = GetOutputFilename("TEST.FPG");
 
         var getId = new Func<string, int>((filename) => int.Parse(Path.GetFileNameWithoutExtension(filename)));
@@ -72,15 +74,32 @@ class Program
                 Console.WriteLine($"- Added \"{png}\" definition...");
             }
 
-            Console.Write("Writing FPG data to file, wait");
+            Console.WriteLine("Writing FPG data to file, wait...");
+            fpg.Save(output, asset2);
+            Console.WriteLine($"\"{output}\" created!\n");
+        }
+    }
 
-            var progress = new AsyncOperationProgress();
-            progress.onProgress += (p) => Console.Write('.');
-            Task create = fpg.SaveAsync(output, progress);
+    static void CreateFPGFromMemoryTest()
+    {
+        string[] asset = Directory.GetFiles(@"Assets\ENEMY\");
+        string asset2 = GetAssetFilename("SPACE.PAL");
+        string output = GetOutputFilename("TEST.FPG");
 
-            while (!create.IsCompleted) { }
+        var getId = new Func<string, int>((filename) => int.Parse(Path.GetFileNameWithoutExtension(filename)));
 
-            Console.WriteLine($"\n\"{output}\" created!\n");
+        Console.WriteLine($"Create \"{output}\":");
+        var fpg = new FPG();
+        {
+            foreach (var png in asset)
+            {
+                fpg.AddMap(File.ReadAllBytes(png), getId(png), $"Test FPG: {getId(png)}");
+                Console.WriteLine($"- Added \"{png}\" definition (from memory)...");
+            }
+
+            Console.WriteLine("Writing FPG data to file, wait...");
+            fpg.Save(output, asset2);
+            Console.WriteLine($"\"{output}\" created!\n");
         }
     }
 }

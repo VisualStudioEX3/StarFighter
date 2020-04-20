@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using DIV2.Format.Exporter.MethodExtensions;
 
 namespace DIV2.Format.Exporter
@@ -25,15 +23,15 @@ namespace DIV2.Format.Exporter
         /// </summary>
         public string Filename { get; private set; }
         /// <summary>
-        /// MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.
+        /// <see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.
         /// </summary>
         public int GraphId { get; private set; }
         /// <summary>
-        /// Optional MAP graphic description (32 characters maximum).
+        /// Optional <see cref="MAP"/> graphic description (32 characters maximum).
         /// </summary>
         public string Description { get; private set; }
         /// <summary>
-        /// Optional MAP Control Point list.
+        /// Optional <see cref="MAP"/> Control Point list.
         /// </summary>
         public ControlPoint[] ControlPoints { get; private set; }
         #endregion
@@ -43,11 +41,11 @@ namespace DIV2.Format.Exporter
         /// Creates a PNG Import Definition for load buffer data.
         /// </summary>
         /// <param name="buffer"><see cref="byte"/> array with the PNG data to import.</param>
-        /// <param name="graphId">MAP graphic id.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Optional MAP description (32 characters maximum).</param>
-        /// <param name="controlPoints">Optional MAP Control Point list.</param>
+        /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
         public PNGImportDefinition(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null) :
-            this(true, buffer, null, graphId, description, controlPoints)
+            this(true, buffer, String.Empty, graphId, description, controlPoints)
         {
         }
 
@@ -55,9 +53,9 @@ namespace DIV2.Format.Exporter
         /// Creates a PNG Import Definition for load PNG file.
         /// </summary>
         /// <param name="filename">PNG file to import.</param>
-        /// <param name="graphId">MAP graphic id.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Optional MAP description (32 characters maximum).</param>
-        /// <param name="controlPoints">Optional MAP Control Point list.</param>
+        /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
         public PNGImportDefinition(string filename, int graphId, string description = "", ControlPoint[] controlPoints = null) :
             this(false, null, filename, graphId, description, controlPoints)
         {
@@ -77,50 +75,6 @@ namespace DIV2.Format.Exporter
     #endregion
 
     #region Classes
-    /// <summary>
-    /// Return info about the asynchronous operation progression.
-    /// </summary>
-    public class AsyncOperationProgress
-    {
-        #region Public vars
-        /// <summary>
-        /// Event raised every time when the progress is updated and return the current progress value.
-        /// </summary>
-        public event Action<float> onProgress; 
-        #endregion
-
-        #region Properties
-        /// <summary>
-        /// Current completed steps.
-        /// </summary>
-        public int Current { get; private set; }
-        /// <summary>
-        /// Total steps to complete.
-        /// </summary>
-        public int Total { get; private set; }
-        /// <summary>
-        /// Returns the percentage of the progress (values from 0.0 to 1.0).
-        /// </summary>
-        public float Progress => (float)this.Current / (float)this.Total;
-        #endregion
-
-        #region Methods & Functions
-        protected internal void SetTotal(int total)
-        {
-            this.Total = total;
-        }
-
-        protected internal void Step()
-        {
-            lock (this)
-            {
-                this.Current++;
-                onProgress?.Invoke(this.Progress);
-            }
-        } 
-        #endregion
-    }
-
     /// <summary>
     /// FPG creator.
     /// </summary>
@@ -156,7 +110,7 @@ namespace DIV2.Format.Exporter
 
         #region Properties
         /// <summary>
-        /// All <see cref="PNGImportDefinition"/> setup for this FPG.
+        /// All <see cref="PNGImportDefinition"/> setup for this <see cref="FPG"/>.
         /// </summary>
         public IReadOnlyList<PNGImportDefinition> Maps => this._maps;
         #endregion
@@ -186,40 +140,33 @@ namespace DIV2.Format.Exporter
             file.Write(register.bitmap);
         }
 
-        List<MapRegister> ImportPNGs(CancellationToken cancellationToken, AsyncOperationProgress progress, out byte[] palette)
+        List<MapRegister> ImportPNGs()
         {
-            bool isPaletteSet = false;
             var mapRegisters = new List<MapRegister>(this._maps.Count);
 
-            palette = null;
-
-            /* FYI: ImageMagic .NET seems to be an internal bug that makes not thread-safe (almost the PNG library, that sometimes throw System.AccessViolationException refering internal native instance).
-             * This bug not allow to use MagicImage class instances in separated threads per instance or Parallel.ForEach iterations. */
             foreach (var map in this._maps)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                byte[] pixels;
+                short width, height;
 
-                var pcx = map.BinaryLoad ?
-                          new PCX(map.Buffer, isPaletteSet, true) :
-                          new PCX(map.Filename, isPaletteSet, true);
-
-                if (!isPaletteSet)
+                if (map.BinaryLoad)
                 {
-                    palette = pcx.Palette; // Using this palette for the FPG (assuming the all maps shared the same palette).
-                    isPaletteSet = true;
+                    PNG2BMP.Convert(map.Buffer, out pixels, out width, out height);
                 }
-
-                progress?.Step();
+                else
+                {
+                    PNG2BMP.Convert(map.Filename, out pixels, out width, out height);
+                }
 
                 mapRegisters.Add(new MapRegister()
                 {
                     graphId = map.GraphId,
                     description = map.Description,
                     filename = string.IsNullOrEmpty(map.Filename) ? string.Empty : Path.GetFileName(map.Filename),
-                    width = pcx.Width,
-                    height = pcx.Height,
+                    width = width,
+                    height = height,
                     controlPoints = map.ControlPoints,
-                    bitmap = pcx.Bitmap
+                    bitmap = pixels
                 });
             }
 
@@ -242,31 +189,31 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Adds a PNG definition to import in the FPG.
+        /// Adds a PNG definition to import in the <see cref="FPG"/>.
         /// </summary>
         /// <param name="buffer">PNG data to import.</param>
-        /// <param name="graphId">MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the <see cref="FPG"/>.</param>
         /// <param name="description">Optional graphic description. 32 characters maximum.</param>
-        /// <param name="controlPoints">Optional MAP Control Point list.</param>
+        /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
         public void AddMap(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null)
         {
             this.AddMap(new PNGImportDefinition(buffer, graphId, description, controlPoints ?? new ControlPoint[0]));
         }
 
         /// <summary>
-        /// Adds a PNG definition to import in the FPG.
+        /// Adds a PNG definition to import in the <see cref="FPG"/>.
         /// </summary>
         /// <param name="filename">PNG filename to import.</param>
-        /// <param name="graphId">MAP graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the <see cref="FPG"/>.</param>
         /// <param name="description">Optional graphic description. 32 characters maximum.</param>
-        /// <param name="controlPoints">Optional MAP Control Point list.</param>
+        /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
         public void AddMap(string filename, int graphId, string description = "", ControlPoint[] controlPoints = null)
         {
             this.AddMap(new PNGImportDefinition(filename, graphId, description, controlPoints ?? new ControlPoint[0]));
         }
 
         /// <summary>
-        /// Adds a <see cref="PNGImportDefinition"/> to import in the FPG.
+        /// Adds a <see cref="PNGImportDefinition"/> to import in the <see cref="FPG"/>.
         /// </summary>
         /// <param name="pngFile"><see cref="PNGImportDefinition"/> data to import.</param>
         public void AddMap(PNGImportDefinition pngFile)
@@ -288,7 +235,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Removes a <see cref="PNGImportDefinition"/> from the FPG.
+        /// Removes a <see cref="PNGImportDefinition"/> from the <see cref="FPG"/>.
         /// </summary>
         /// <param name="index">Index of the <see cref="PNGImportDefinition"/>.</param>
         public void RemoveMap(int index)
@@ -297,7 +244,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Removes a <see cref="PNGImportDefinition"/> from the FPG using their graphic id.
+        /// Removes a <see cref="PNGImportDefinition"/> from the <see cref="FPG"/> using their graphic id.
         /// </summary>
         /// <param name="graphId">Graphic id of the <see cref="PNGImportDefinition"/>.</param>
         public void RemoveMapByGraphId(short graphId)
@@ -314,7 +261,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Removes all <see cref="PNGImportDefinition"/>s from the FPG.
+        /// Removes all <see cref="PNGImportDefinition"/>s from the <see cref="FPG"/>.
         /// </summary>
         public void RemoveAllMaps()
         {
@@ -339,56 +286,33 @@ namespace DIV2.Format.Exporter
             }
         }
 
-        void Save(string filename, CancellationToken cancellationToken, AsyncOperationProgress progress)
+        /// <summary>
+        /// Imports all <see cref="PNGImportDefinition"/> and write all data to file.
+        /// </summary>
+        /// <param name="fpgFilename"><see cref="FPG"/> filename.</param>
+        /// <param name="palFilename"><see cref="PAL"/> file used in this <see cref="FPG"/>.</param>
+        public void Save(string fpgFilename, string palFilename)
         {
             if (this._maps.Count == 0)
             {
                 throw new InvalidOperationException("The FPG not contain any MAP to import.");
             }
 
-            byte[] palette;
-            List<MapRegister> mapRegisters = this.ImportPNGs(cancellationToken, progress, out palette);
+            var palette = new PAL(palFilename);
+            PNG2BMP.SetupBMPEncoder(palette);
 
-            using (var file = new BinaryWriter(File.OpenWrite(filename)))
+            List<MapRegister> mapRegisters = this.ImportPNGs();
+
+            using (var file = new BinaryWriter(File.OpenWrite(fpgFilename)))
             {
                 DIVFormatCommonBase.WriteCommonHeader(file, FPG.HEADER_ID);
-                DIVFormatCommonBase.WritePalette(file, palette);
-                progress?.Step();
+                palette.Write(file);
 
                 foreach (var register in mapRegisters)
                 {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        file.DisposeAsync();
-                    }
-                    cancellationToken.ThrowIfCancellationRequested();
-
                     this.WriteMapRegister(file, register);
-                    progress?.Step();
                 }
             }
-        }
-
-        /// <summary>
-        /// Imports all <see cref="PNGImportDefinition"/> and write all data to file.
-        /// </summary>
-        /// <param name="filename">FPG filename.</param>
-        public void Save(string filename)
-        {
-            this.Save(filename, default, null);
-        }
-
-        /// <summary>
-        /// Imports all <see cref="PNGImportDefinition"/> and write, in separated thread, all data to file.
-        /// </summary>
-        /// <param name="filename">FPG filename.</param>
-        /// <param name="progress"><see cref="AsyncOperationProgress"/> instance for monitoring the progress of this operation.</param>
-        /// <param name="cancellationToken">Optional <see cref="CancellationToken"/> for this <see cref="Task"/>.</param>
-        /// <remarks>If this <see cref="Task"/> is cancelled by <see cref="CancellationToken"/> token, this throw an <see cref="OperationCanceledException"/>.</remarks>
-        public Task SaveAsync(string filename, AsyncOperationProgress progress, CancellationToken cancellationToken = default)
-        {
-            progress.SetTotal((this._maps.Count * 2) + 1);
-            return Task.Factory.StartNew(() => this.Save(filename, cancellationToken, progress), cancellationToken);
         }
         #endregion
     }

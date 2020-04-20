@@ -7,6 +7,11 @@ namespace DIV2.Format.Exporter.MethodExtensions
     /// </summary>
     public static class ASCIIStringExtensions
     {
+        public static string ToASCIIString(this byte[] buffer)
+        {
+            return Encoding.ASCII.GetString(buffer);
+        }
+
         /// <summary>
         /// Returns a <see cref="byte"/> array representation of this string encoding as ASCII.
         /// </summary>

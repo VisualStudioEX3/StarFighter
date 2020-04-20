@@ -33,56 +33,52 @@ namespace DIV2.Format.Exporter
         short _height;
         int _graphId;
         string _description;
-        byte[] _palette;
         List<ControlPoint> _controlPoints;
         byte[] _bitmap;
         #endregion
 
         #region Properties
         /// <summary>
-        /// <see cref="ControlPoint"/> list of this MAP.
+        /// <see cref="ControlPoint"/> list of this <see cref="MAP"/>.
         /// </summary>
-        public IReadOnlyList<ControlPoint> ControlPoints => this._controlPoints; 
+        public IReadOnlyList<ControlPoint> ControlPoints => this._controlPoints;
         #endregion
 
         #region Constructor
         /// <summary>
-        /// Imports a PNG file and convert to MAP format.
+        /// Imports a PNG file and convert to <see cref="MAP"/> format.
         /// </summary>
         /// <param name="pngFilename">PNG filename to export.</param>
-        /// <param name="graphId">MAP graphic id.</param>
-        public MAP(string pngFilename, int graphId) : this(pngFilename, graphId, string.Empty)
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        public MAP(string pngFilename, string palFilename, int graphId) : this(pngFilename, palFilename, graphId, string.Empty)
         {
         }
 
         /// <summary>
-        /// Imports a PNG file and convert to MAP format.
+        /// Imports a PNG file and convert to <see cref="MAP"/> format.
         /// </summary>
         /// <param name="pngFilename">PNG filename to export.</param>
-        /// <param name="graphId">MAP graphic id.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Description (32 characters maximum).</param>
-        public MAP(string pngFilename, int graphId, string description) : this(pngFilename, graphId, description, new ControlPoint[0])
+        public MAP(string pngFilename, string palFilename, int graphId, string description) : this(pngFilename, palFilename, graphId, description, new ControlPoint[0])
         {
         }
 
         /// <summary>
-        /// Imports a PNG file and convert to MAP format.
+        /// Imports a PNG file and convert to <see cref="MAP"/> format.
         /// </summary>
         /// <param name="pngFilename">PNG filename to export.</param>
-        /// <param name="graphId">MAP graphic id.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Description (32 characters maximum).</param>
-        /// <param name="controlPoints">MAP Control Point list.</param>
-        public MAP(string pngFilename, int graphId, string description, ControlPoint[] controlPoints)
+        /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
+        public MAP(string pngFilename, string palFilename, int graphId, string description, ControlPoint[] controlPoints)
         {
-            var pcx = new PCX(pngFilename, false, true);
+            PNG2BMP.SetupBMPEncoder(new PAL(palFilename));
+            PNG2BMP.Convert(pngFilename, out this._bitmap, out this._width, out this._height);
 
-            this._width = pcx.Width;
-            this._height = pcx.Height;
             this._graphId = graphId;
             this._description = description;
-            this._palette = pcx.Palette;
             this._controlPoints = new List<ControlPoint>(controlPoints);
-            this._bitmap = pcx.Bitmap;
         }
         #endregion
 
@@ -107,7 +103,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Adds a <see cref="ControlPoint"/> to this MAP.
+        /// Adds a <see cref="ControlPoint"/> to this <see cref="MAP"/>.
         /// </summary>
         /// <param name="x">X coordinate.</param>
         /// <param name="y">Y coordinate.</param>
@@ -117,7 +113,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Adds a <see cref="ControlPoint"/> to this MAP.
+        /// Adds a <see cref="ControlPoint"/> to this <see cref="MAP"/>.
         /// </summary>
         /// <param name="point"><see cref="ControlPoint"/> data.</param>
         public void AddControlPoint(ControlPoint point)
@@ -126,7 +122,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Removes a <see cref="ControlPoint"/> data of this MAP.
+        /// Removes a <see cref="ControlPoint"/> data of this <see cref="MAP"/>.
         /// </summary>
         /// <param name="index"><see cref="ControlPoint"/> index.</param>
         public void RemoveControlPoint(int index)
@@ -135,7 +131,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Removes all <see cref="ControlPoint"/>s of this MAP.
+        /// Removes all <see cref="ControlPoint"/>s of this <see cref="MAP"/>.
         /// </summary>
         public void RemoveAllControlPoints()
         {
@@ -145,13 +141,14 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Write all data to file.
         /// </summary>
-        /// <param name="filename">MAP filename.</param>
-        public void Save(string filename)
+        /// <param name="mapFilename"><see cref="MAP"/> filename.</param>
+        /// <param name="palFilename"><see cref="PAL"/> filename to use in this <see cref="MAP"/>.</param>
+        public void Save(string mapFilename, string palFilename)
         {
-            using (var file = new BinaryWriter(File.OpenWrite(filename)))
+            using (var file = new BinaryWriter(File.OpenWrite(mapFilename)))
             {
                 this.WriteHeader(file);
-                DIVFormatCommonBase.WritePalette(file, this._palette);
+                new PAL(palFilename).Write(file);
                 this.WriteControlPoints(file);
                 file.Write(this._bitmap);
             }
