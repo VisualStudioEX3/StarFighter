@@ -1,0 +1,1 @@
+wcl386 INPUT.CPP ..\COMMON.CPP /l=div_dll -s

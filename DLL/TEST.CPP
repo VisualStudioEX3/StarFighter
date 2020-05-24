@@ -1,0 +1,48 @@
+#include <stdlib.h> 
+#include <string.h>
+#include <ctype.h>
+
+#define GLOBALS
+#include "div.h"
+
+char *upr(const char *input);
+
+void getText()
+{    
+    //char *text = "This is a test!";
+    char *text = (char *)malloc(sizeof(char) * 15);
+    text = "This is a test!";
+    
+    char *test = upr(text);
+    
+    char *dest = (char *)&mem[getparm()];
+    
+    //strcpy(dest, test);
+    memcpy(dest, test, strlen(test) - 1);
+    
+    retval(0);
+}
+
+char *upr(const char *input)
+{
+    int len = strlen(input);
+    char *output = (char *)malloc(len + 1);
+    
+    for (int i = 0; i < len; i++)
+    {
+        output[i] = toupper(input[i]);
+    }
+    output[len] = '\0';
+    
+    return output;
+}
+
+void __export divlibrary(LIBRARY_PARAMS)
+{
+    COM_export("getText", getText, 1);
+}
+
+void __export divmain(COMMON_PARAMS)
+{
+  GLOBAL_IMPORT();
+}

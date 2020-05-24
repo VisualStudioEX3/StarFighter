@@ -1,10 +1,10 @@
 /* ----------------------------------------------------------------------------
- * Star Fighter - A DIV Game Studio 2 Game Jam Project
+ * Star Fighter - A DIV Games Studio 2 Game Jam Project
  *
- * A "Space Shoot 'Em Up" developed in Div Game Studio 2 'vanilla'.
+ * A "Space Shoot 'Em Up" developed in Div Games Studio 2 'vanilla'.
  *
  * Star Fighter (C) VisualStudioEX3, Jos‚ Miguel S nchez Fern ndez - 2020
- * DIV Game Studio 2 (C) Hammer Technologies - 1998, 1999
+ * DIV Games Studio 2 (C) Hammer Technologies - 1998, 1999
  * ---------------------------------------------------------------------------- */
 
 compiler_options _max_process = 1024, _case_sensitive;
