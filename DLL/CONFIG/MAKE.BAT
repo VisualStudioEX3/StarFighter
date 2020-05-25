@@ -1,0 +1,1 @@
+wcl386 CONFIG.CPP minIni.c ..\COMMON.CPP /l=div_dll -s
