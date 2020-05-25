@@ -28,7 +28,7 @@
 #define _isClamped(x, a, b) x >= a && x <= b
 
 // Gets the string parameter from DIV call:
-#define getStringParm(offset) (char*)&mem[text_offset + offset]
+#define getStrParm() (char*)&mem[text_offset + getparm()]
 // Allocate string pointer in div memory:
 #define strAlloc(len) (char*)div_malloc(len + 1)
 // Convert string to upper case:
@@ -37,6 +37,8 @@
 #define strLwr(s) strCase(s, 1)
 
 // String functions:
-char* strCase(const char* input, const int mode);
+void strCase(char* str, const int mode);
+void strTrim(char* str);
+void strReplace(char * str, const char o, const char n);
 
 #endif

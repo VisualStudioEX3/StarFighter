@@ -287,6 +287,8 @@ int count = 0;
 struct InputAction actions[MAX_CAPACITY];
 
 // Methods & Functions:
+void cleanString(char* str);
+
 void getCapacity();
 void getCount();
 

@@ -6,6 +6,13 @@
 
 #include "input.h"
 
+void cleanString(char* str)
+{
+    strUpr(str);
+    strTrim(str);
+    strReplace(str, ' ', '_');
+}
+
 /** Get actions max capacity.
 *
 * @return {int} - Returns the max number of input action allowed.
@@ -26,17 +33,18 @@ void getCount()
 
 int _create(char* name)
 {
-    if (count == MAX_CAPACITY || 
+    if (count == MAX_CAPACITY ||
         strlen(name) == 0)
     {
         return RESULT_ERROR;
     }
-    
+
     count++;
 
-    struct InputAction *action = &actions[lastIndex];    
-    strcpy(action->name, strUpr(name));
-    
+    struct InputAction *action = &actions[lastIndex];
+    cleanString(name);
+    strcpy(action->name, name);
+
     return lastIndex;
 }
 
@@ -48,11 +56,11 @@ int _create(char* name)
 */
 void create()
 {
-    retval(_create(getStringParm(getparm())));
+    retval(_create(getStrParm()));
 }
 
 int _setBindings(int index, int keyPrimary, int keySecondary, int joyButton)
-{    
+{
     if (count == 0 ||
         isValidIndex(index) == FALSE ||
         isValidKey(keyPrimary) == FALSE ||
@@ -61,12 +69,12 @@ int _setBindings(int index, int keyPrimary, int keySecondary, int joyButton)
     {
         return RESULT_ERROR;
     }
-    
+
     struct InputAction *action = &actions[index];
     action->bind.keyPrimary = keyPrimary;
     action->bind.keySecondary = keySecondary;
     action->bind.joyButton = joyButton;
-    
+
     return RESULT_OK;
 }
 
@@ -85,7 +93,7 @@ void setBindings()
     int keySecondary = getparm();
     int keyPrimary = getparm();
     int index = getparm();
-    
+
     retval(_setBindings(index, keyPrimary, keySecondary, joyButton));
 }
 
@@ -100,20 +108,20 @@ void getName()
 {
     int varAddr = getparm();
     int index = getparm();
-    
-    if (count == 0 || 
+
+    if (count == 0 ||
         isValidIndex(index) == FALSE)
     {
         retval(RESULT_ERROR);
         return;
     }
-    
+
     struct InputAction *action = &actions[index];
     char* src = (char*)&action->name;
     char* dest = (char*)&mem[varAddr];
-    
+
     strcpy(dest, src);
-    
+
     retval(RESULT_OK);
 }
 
@@ -128,16 +136,16 @@ void getKey()
 {
     int type = getparm();
     int index = getparm();
-    
-    if (count == 0 || 
+
+    if (count == 0 ||
         isValidIndex(index) == FALSE)
     {
         retval(RESULT_ERROR);
         return;
     }
-    
+
     struct InputAction *action = &actions[index];
-    retval(type <= 0 ? action->bind.keyPrimary : 
+    retval(type <= 0 ? action->bind.keyPrimary :
                        action->bind.keySecondary);
 }
 
@@ -150,14 +158,14 @@ void getKey()
 void getJoyButton()
 {
     int index = getparm();
-    
-    if (count == 0 || 
+
+    if (count == 0 ||
         isValidIndex(index) == FALSE)
     {
         retval(RESULT_ERROR);
         return;
     }
-        
+
     retval(actions[index].bind.joyButton);
 }
 
@@ -181,16 +189,16 @@ int getJoyButtonState(int button)
 void frame()
 {
     struct InputAction *action;
-    
+
     for (int i = 0; i < count; i++)
     {
         action = &actions[i];
-        action->state.down = action->state.up = action->state.pressed;    
+        action->state.down = action->state.up = action->state.pressed;
         action->state.pressed = key[action->bind.keyPrimary] ||
                                 key[action->bind.keySecondary] ||
                                 getJoyButtonState(action->bind.joyButton);
     }
-    
+
     retval(RESULT_OK);
 }
 
@@ -203,14 +211,14 @@ void frame()
 void inputPressed()
 {
     int index = getparm();
-    
-    if (count == 0 || 
+
+    if (count == 0 ||
         isValidIndex(index) == FALSE)
     {
         retval(RESULT_ERROR);
         return;
     }
-    
+
     retval(actions[index].state.pressed);
 }
 
@@ -223,14 +231,14 @@ void inputPressed()
 void inputDown()
 {
     int index = getparm();
-    
-    if (count == 0 || 
+
+    if (count == 0 ||
         isValidIndex(index) == FALSE)
     {
         retval(RESULT_ERROR);
         return;
     }
-    
+
     struct InputAction *action = &actions[index];
     retval(!action->state.down && action->state.pressed);
 }
@@ -244,14 +252,14 @@ void inputDown()
 void inputUp()
 {
     int index = getparm();
-    
-    if (count == 0 || 
+
+    if (count == 0 ||
         isValidIndex(index) == FALSE)
     {
         retval(RESULT_ERROR);
         return;
     }
-    
+
     struct InputAction *action = &actions[index];
     retval(action->state.up && !action->state.pressed);
 }
@@ -270,7 +278,7 @@ void readKeyboard()
             return;
         }
     }
-    
+
     retval(KEY_NONE);
 }
 
@@ -279,7 +287,7 @@ void readKeyboard()
 * @return {int} - Returns joystick button code of the first button pressed. JOY_NONE if not has any key pressed. Uses the JOY enumeration.
 */
 void readJoystick()
-{    
+{
     for (int i = JOY_LEFT; i < JOY_BUTTON4; i++)
     {
         switch (i)
@@ -294,7 +302,7 @@ void readJoystick()
             case JOY_BUTTON4:   if (JOY->button4)   retval(JOY_BUTTON4);    return;
         }
     }
-    
+
     retval(JOY_NONE);
 }
 
@@ -423,12 +431,12 @@ void toKeyName()
 {
     int varAddr = getparm();
     int key = getparm();
-    
+
     char* src = (char*)_toKeyName(key);
     char* dest = (char*)&mem[varAddr];
-    
+
     strcpy(dest, src);
-    
+
     retval(RESULT_OK);
 }
 
@@ -436,13 +444,13 @@ const char* _toJoyButtonName(int button)
 {
     switch (button)
     {
-        case JOY_NONE:      
+        case JOY_NONE:
         default:                    return STR_JOY_NONE;
 
-        case JOY_LEFT:              return STR_JOY_LEFT;   
-        case JOY_UP:                return STR_JOY_UP;     
-        case JOY_RIGHT:             return STR_JOY_RIGHT;  
-        case JOY_DOWN:              return STR_JOY_DOWN;   
+        case JOY_LEFT:              return STR_JOY_LEFT;
+        case JOY_UP:                return STR_JOY_UP;
+        case JOY_RIGHT:             return STR_JOY_RIGHT;
+        case JOY_DOWN:              return STR_JOY_DOWN;
         case JOY_BUTTON1:           return STR_JOY_BUTTON1;
         case JOY_BUTTON2:           return STR_JOY_BUTTON2;
         case JOY_BUTTON3:           return STR_JOY_BUTTON3;
@@ -459,17 +467,19 @@ void toJoyButtonName()
 {
     int varAddr = getparm();
     int button = getparm();
-    
+
     char* src = (char*)_toJoyButtonName(button);
     char* dest = (char*)&mem[varAddr];
-    
+
     strcpy(dest, src);
-    
+
     retval(RESULT_OK);
 }
 
 int _parseKey(char* keyName)
 {
+    cleanString(keyName);
+
     if      (strcmp(keyName, STR_KEY_ESC))          return KEY_ESC;
     else if (strcmp(keyName, STR_KEY_F1))           return KEY_F1;
     else if (strcmp(keyName, STR_KEY_F2))           return KEY_F2;
@@ -485,7 +495,7 @@ int _parseKey(char* keyName)
     else if (strcmp(keyName, STR_KEY_F12))          return KEY_F12;
     else if (strcmp(keyName, STR_KEY_PRN_SCR))      return KEY_PRN_SCR;
     else if (strcmp(keyName, STR_KEY_SCROLL_LOCK))  return KEY_SCROLL_LOCK;
-    
+
     else if (strcmp(keyName, STR_KEY_WAVE))         return KEY_WAVE;
     else if (strcmp(keyName, STR_KEY_1))            return KEY_1;
     else if (strcmp(keyName, STR_KEY_2))            return KEY_2;
@@ -576,7 +586,7 @@ int _parseKey(char* keyName)
     else if (strcmp(keyName, STR_KEY_C_DEL))        return KEY_C_DEL;
     else if (strcmp(keyName, STR_KEY_C_PLUS))       return KEY_C_PLUS;
     else if (strcmp(keyName, STR_KEY_C_ENTER))      return KEY_C_ENTER;
-    
+
     else                                            return KEY_NONE;
 }
 
@@ -588,15 +598,17 @@ int _parseKey(char* keyName)
 */
 void parseKey()
 {
-    retval(_parseKey(getStringParm(getparm())));
+    retval(_parseKey(getStrParm()));
 }
 
 int _parseJoyButton(char* buttonName)
-{   
-    if      (strcmp(buttonName, STR_JOY_LEFT))      return JOY_LEFT;   
-    else if (strcmp(buttonName, STR_JOY_UP))        return JOY_UP;     
-    else if (strcmp(buttonName, STR_JOY_RIGHT))     return JOY_RIGHT;  
-    else if (strcmp(buttonName, STR_JOY_DOWN))      return JOY_DOWN;   
+{
+    cleanString(buttonName);
+
+    if      (strcmp(buttonName, STR_JOY_LEFT))      return JOY_LEFT;
+    else if (strcmp(buttonName, STR_JOY_UP))        return JOY_UP;
+    else if (strcmp(buttonName, STR_JOY_RIGHT))     return JOY_RIGHT;
+    else if (strcmp(buttonName, STR_JOY_DOWN))      return JOY_DOWN;
     else if (strcmp(buttonName, STR_JOY_BUTTON1))   return JOY_BUTTON1;
     else if (strcmp(buttonName, STR_JOY_BUTTON2))   return JOY_BUTTON2;
     else if (strcmp(buttonName, STR_JOY_BUTTON3))   return JOY_BUTTON3;
@@ -612,11 +624,11 @@ int _parseJoyButton(char* buttonName)
 */
 void parseJoyButton()
 {
-    retval(_parseJoyButton(getStringParm(getparm())));
+    retval(_parseJoyButton(getStrParm()));
 }
 
 void __export divlibrary(LIBRARY_PARAMS)
-{   
+{
     COM_export("get_input_capacity",    getCapacity,        0);
     COM_export("get_input_count",       getCount,           0);
     COM_export("define_input",          create,             1);
