@@ -1,0 +1,1 @@
+wcl386 TEST.CPP /l=div_dll -s

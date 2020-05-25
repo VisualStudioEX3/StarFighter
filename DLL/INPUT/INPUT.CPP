@@ -106,7 +106,7 @@ void setBindings()
 */
 void getName()
 {
-    int varAddr = getparm();
+    char* dest = getStrParm();
     int index = getparm();
 
     if (count == 0 ||
@@ -118,7 +118,6 @@ void getName()
 
     struct InputAction *action = &actions[index];
     char* src = (char*)&action->name;
-    char* dest = (char*)&mem[varAddr];
 
     strcpy(dest, src);
 
@@ -429,11 +428,8 @@ const char* _toKeyName(int keyCode)
 */
 void toKeyName()
 {
-    int varAddr = getparm();
-    int key = getparm();
-
-    char* src = (char*)_toKeyName(key);
-    char* dest = (char*)&mem[varAddr];
+    char* dest = getStrParm();
+    char* src = (char*)_toKeyName(getparm());
 
     strcpy(dest, src);
 
@@ -465,11 +461,8 @@ const char* _toJoyButtonName(int button)
 */
 void toJoyButtonName()
 {
-    int varAddr = getparm();
-    int button = getparm();
-
-    char* src = (char*)_toJoyButtonName(button);
-    char* dest = (char*)&mem[varAddr];
+    char* dest = getStrParm();
+    char* src = (char*)_toJoyButtonName(getparm());
 
     strcpy(dest, src);
 

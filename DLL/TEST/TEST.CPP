@@ -3,7 +3,7 @@
 #include <ctype.h>
 
 #define GLOBALS
-#include "div.h"
+#include "..\div.h"
 
 char *upr(const char *input);
 
@@ -15,7 +15,7 @@ void getText()
     
     char *test = upr(text);
     
-    char *dest = (char *)&mem[getparm()];
+    char *dest = (char *)&mem[text_offset + getparm()];
     
     //strcpy(dest, test);
     memcpy(dest, test, strlen(test) - 1);
