@@ -96,9 +96,7 @@ void writeBool()
 
     retval(ini_puts(section, 
                     key, 
-                    value % 2 == 0 ? 
-                        "true" : 
-                        "false", 
+                    value % 2 == 0 ? "false" : "true", 
                     filename));
 }
 

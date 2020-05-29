@@ -80,25 +80,27 @@ begin
     // Read values from root:
     rrb = config_read_bool("bool_value", true);
     rri = config_read_int("integer_value", 32);
-    config_read_string("string_value", "Test", rrs);
+    config_read_string("string_value", "Test default in root", rrs);
 
     // Read values from section:
     config_set_section("Test_Section");
     rsb = config_read_bool("bool_value", true);
     rsi = config_read_int("integer_value", 32);
-    config_read_string("string_value", "Test", rss);
+    config_read_string("string_value", "Test default in section", rss);
 
     // Write values to root:
     config_set_section("");
     config_write_bool("bool_value", false);
     config_write_int("integer_value", 8);
-    config_write_string("string_value", "Test");
+    config_write_string("string_value", "Test in root");
 
+    // Write values to section:
     config_set_section("Test_Section");
     config_write_bool("bool_value", false);
-    config_write_int("integer_value", 8);
-    config_write_string("string_value", "Test");
+    config_write_int("integer_value", 256);
+    config_write_string("string_value", "Test in section");
 
+    // Show readed values in screen:
     write_int(0, 320, 0, 2, offset rrb);
     write_int(0, 320, 10, 2, offset rri);
     write(0, 320, 20, 2, rrs);
@@ -145,10 +147,11 @@ begin
         set_input_binds(_input_down,  _s,     _down,  _joy_down);
         set_input_binds(_input_exit,  _esc,   _space, _joy_button1);
 
+        // TODO: Export definitions to INI file:
 
     else
 
-        // Import definitions from text file:
+        // TODO: Import definitions from INI file:
 
     end
 
