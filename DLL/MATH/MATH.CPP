@@ -72,10 +72,10 @@ void isClamped()
 
 void __export divlibrary(LIBRARY_PARAMS)
 {
-    COM_export("min", min, 2);
-    COM_export("max", max, 2);
-    COM_export("clamp", clamp, 3);
-    COM_export("is_clamped", isClamped, 3);
+    COM_export("min",           min,        2);
+    COM_export("max",           max,        2);
+    COM_export("clamp",         clamp,      3);
+    COM_export("is_clamped",    isClamped,  3);
 }
 
 void __export divmain(COMMON_PARAMS)

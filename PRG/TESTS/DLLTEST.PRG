@@ -1,8 +1,9 @@
 program dlltest;
 
+import "test.dll";
 import "math.dll";
 import "input.dll";
-import "test.dll";
+import "config.dll";
 
 const
     // Joystick button constants:
@@ -53,6 +54,7 @@ begin
     write(0, 0, 100, 0, s);
 
     test_input();
+    test_config();
 
     repeat
         frame_input();
@@ -60,6 +62,54 @@ begin
     until(input_pressed(_input_exit))
 
     let_me_alone();
+end
+
+process test_config()
+private
+    int rrb;
+    int rri;
+    string rrs;
+
+    int rsb;
+    int rsi;
+    string rss;
+
+begin
+    config_set_file("test.ini");
+
+    // Read values from root:
+    rrb = config_read_bool("bool_value", true);
+    rri = config_read_int("integer_value", 32);
+    config_read_string("string_value", "Test", rrs);
+
+    // Read values from section:
+    config_set_section("Test_Section");
+    rsb = config_read_bool("bool_value", true);
+    rsi = config_read_int("integer_value", 32);
+    config_read_string("string_value", "Test", rss);
+
+    // Write values to root:
+    config_set_section("");
+    config_write_bool("bool_value", false);
+    config_write_int("integer_value", 8);
+    config_write_string("string_value", "Test");
+
+    config_set_section("Test_Section");
+    config_write_bool("bool_value", false);
+    config_write_int("integer_value", 8);
+    config_write_string("string_value", "Test");
+
+    write_int(0, 320, 0, 2, offset rrb);
+    write_int(0, 320, 10, 2, offset rri);
+    write(0, 320, 20, 2, rrs);
+
+    write_int(0, 320, 40, 2, offset rsb);
+    write_int(0, 320, 50, 2, offset rsi);
+    write(0, 320, 60, 2, rss);
+
+    loop
+        frame;
+    end
 end
 
 process test_input()

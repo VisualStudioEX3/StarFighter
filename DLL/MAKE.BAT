@@ -19,6 +19,7 @@ call MAKE.BAT
 echo:
 echo Copy %1.DLL to parent folder...
 copy %1.DLL .. /y
+copy %1.DLL C:\DOS\DIV2\DLL\ /y
 
 echo:
 echo Clean project...

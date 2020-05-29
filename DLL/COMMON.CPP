@@ -8,9 +8,10 @@
 
 void strCase(char* str, const int mode)
 {
-    if (str == NULL || strlen(str) == 0) return;
+    int len = strlen(str);
+    if (str == NULL || len == 0) return;
     
-    for(int i = 0; i < strlen(str); i++) 
+    for(int i = 0; i < len; i++) 
     {
         str[i] = mode ? tolower(str[i]) : toupper(str[i]);
     }
@@ -18,16 +19,18 @@ void strCase(char* str, const int mode)
 
 void strTrim(char* str)
 {
-    if (str == NULL || strlen(str) == 0) return;
+    int len = strlen(str);
+    
+    if (str == NULL || len == 0) return;
 
     int s, e, i;
     
-    for (s = 0; s < strlen(str); s++)
+    for (s = 0; s < len; s++)
     {
         if (str[s] != ' ') break;
     }
     
-    for (e = strlen(str) - 1; e >= 0; e--)
+    for (e = len - 1; e >= 0; e--)
     {
         if (str[e] != ' ') 
         {
@@ -46,9 +49,11 @@ void strTrim(char* str)
 
 void strReplace(char * str, const char o, const char n)
 {
-    if (str == NULL || strlen(str) == 0) return;
+    int len = strlen(str);
+    
+    if (str == NULL || len == 0) return;
 
-    for (int i = 0; i < strlen(str); i++)
+    for (int i = 0; i < len; i++)
     {
         if (str[i] == o) str[i] = n;
     }

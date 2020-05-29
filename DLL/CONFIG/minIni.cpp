@@ -542,6 +542,7 @@ static void writesection(TCHAR *LocalBuffer, const TCHAR *Section, INI_FILETYPE 
 {
   if (Section != NULL && _tcslen(Section) > 0) {
     TCHAR *p;
+    (void)ini_write(INI_LINETERM, fp); // Added new line before the section header.
     LocalBuffer[0] = '[';
     ini_strncpy(LocalBuffer + 1, Section, INI_BUFFERSIZE - 4, QUOTE_NONE);  /* -1 for '[', -1 for ']', -2 for '\r\n' */
     p = _tcschr(LocalBuffer, '\0');
@@ -560,7 +561,9 @@ static void writekey(TCHAR *LocalBuffer, const TCHAR *Key, const TCHAR *Value, I
   ini_strncpy(LocalBuffer, Key, INI_BUFFERSIZE - 3, QUOTE_NONE);  /* -1 for '=', -2 for '\r\n' */
   p = _tcschr(LocalBuffer, '\0');
   assert(p != NULL);
+  *p++ = ' '; // Added space separator.
   *p++ = '=';
+  *p++ = ' '; // Added space separator.
   ini_strncpy(p, Value, INI_BUFFERSIZE - (p - LocalBuffer) - 2, option); /* -2 for '\r\n' */
   p = _tcschr(LocalBuffer, '\0');
   assert(p != NULL);

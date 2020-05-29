@@ -17,6 +17,7 @@
 #define __CONFIG_H_
 
 #include "..\common.h"
+#include "divfio.h"
 #include "minIni.h"
 
 #define TEMP_BUFFER     256
@@ -24,7 +25,7 @@
 char* filename;
 char* section;
 
-void openFile();
+void setFile();
 void setSection();
 
 void readBool();

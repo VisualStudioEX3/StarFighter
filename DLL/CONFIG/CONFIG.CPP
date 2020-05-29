@@ -19,7 +19,7 @@
 *
 * @param {string} filename - INI filename.
 */
-void openFile()
+void setFile()
 {
     filename = getStrParm();
     retval(RESULT_OK);
@@ -46,7 +46,7 @@ void readBool()
 {
     int defValue = getparm();
     char* key = getStrParm();
-    
+
     retval((int)ini_getbool(section, key, defValue, filename));
 }
 
@@ -61,7 +61,7 @@ void readInt()
 {
     int defValue = getparm();
     char* key = getStrParm();
-    
+
     retval((int)ini_getl(section, key, defValue, filename));
 }
 
@@ -76,9 +76,9 @@ void readInt()
 void readString()
 {
     char* dest = getStrParm();
-    int defValue = getparm();
+    char* defValue = getStrParm();
     char* key = getStrParm();
-    
+
     retval(ini_gets(section, key, defValue, dest, TEMP_BUFFER, filename));    
 }
 
@@ -93,7 +93,7 @@ void writeBool()
 {
     int value = getparm();
     char* key = getStrParm();
-    
+
     retval(ini_puts(section, 
                     key, 
                     value % 2 == 0 ? 
@@ -113,7 +113,7 @@ void writeInt()
 {
     int value = getparm();
     char* key = getStrParm();
-    
+
     retval(ini_putl(section, key, (long)value, filename));
 }
 
@@ -128,20 +128,23 @@ void writeString()
 {
     char* value = getStrParm();
     char* key = getStrParm();
-    
+
     retval(ini_puts(section, key, value, filename));
 }
 
 void __export divlibrary(LIBRARY_PARAMS)
 {
-    COM_export("config_open_file", openFile, 1);
-    COM_export("config_set_section", setSection, 1);
-    COM_export("config_read_bool", readBool, 2);
-    COM_export("config_read_int", readInt, 2);
-    COM_export("config_read_string", readString, 3);
-    COM_export("config_write_bool", writeBool, 2);
-    COM_export("config_write_int", writeInt, 2);
-    COM_export("config_write_string", writeString, 2);
+    file_open = div_fopen;
+    file_close = div_fclose;
+    
+    COM_export("config_set_file",       setFile,        1);
+    COM_export("config_set_section",    setSection,     1);
+    COM_export("config_read_bool",      readBool,       2);
+    COM_export("config_read_int",       readInt,        2);
+    COM_export("config_read_string",    readString,     3);
+    COM_export("config_write_bool",     writeBool,      2);
+    COM_export("config_write_int",      writeInt,       2);
+    COM_export("config_write_string",   writeString,    2);
 }
 
 void __export divmain(COMMON_PARAMS)
