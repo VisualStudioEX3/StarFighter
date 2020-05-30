@@ -1,0 +1,1 @@
+wcl386 TIMER.CPP /l=div_dll -s
