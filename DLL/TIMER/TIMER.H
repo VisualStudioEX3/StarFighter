@@ -29,5 +29,6 @@ void freeAll();
 void getTime();
 void frameTimers();
 void pause();
+void resume();
 void isPaused();
 void reset();

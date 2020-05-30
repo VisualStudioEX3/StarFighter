@@ -123,7 +123,7 @@ void frameTimers()
    retval(RESULT_OK);
 }
 
-/** Pause or resume active timer.
+/** Pause active timer.
 *
 * @param {int} index - Timer index.
 *
@@ -136,14 +136,35 @@ void pause()
    if (isIndexValid(index))
    {
        struct TimerData* t = &timers[index];
-       if (t->paused)
+       if (!t->paused)
        {
            t->pauseDelta = clock();
            t->paused = 1;
        }
-       else
+
+       retval(RESULT_OK);
+       return;
+   }
+
+   retval(RESULT_ERROR);
+}
+
+/** Resume active and paused timer.
+*
+* @param {int} index - Timer index.
+*
+* @return {int} - Returns RESULT_ERROR if the timer index is not valid or timer is not active.
+*/
+void resume()
+{
+   int index = getparm();
+
+   if (isIndexValid(index))
+   {
+       struct TimerData* t = &timers[index];
+       if (t->paused)
        {
-           t->startTime = clock() - t->pauseDelta;
+           t->startTime += clock() - t->pauseDelta;
            t->paused = 0;
        }
 
@@ -181,7 +202,6 @@ void isPaused()
 */
 void reset()
 {
-   int paused = getparm();
    int index = getparm();
 
    if (isIndexValid(index))
@@ -189,6 +209,7 @@ void reset()
        struct TimerData* t = &timers[index];
        t->startTime = clock();
        t->pauseDelta = 0;
+       t->paused = 0;       
 
        retval(RESULT_OK);
        return;
@@ -207,6 +228,7 @@ void __export divlibrary(LIBRARY_PARAMS)
     COM_export("get_time",             getTime,         1);
     COM_export("frame_timers",         frameTimers,     0);
     COM_export("pause_timer",          pause,           1);
+    COM_export("resume_timer",         resume,          1);
     COM_export("is_timer_paused",      isPaused,        1);
     COM_export("reset_timer",          reset,           1);
 }
