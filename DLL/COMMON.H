@@ -18,8 +18,8 @@
 #define TRUE            1
 #define FALSE           0
 
-#define RESULT_OK      -1
-#define RESULT_ERROR   -2
+#define RESULT_OK       0
+#define RESULT_ERROR   -1
 
 // Math function macros:
 #define _min(a, b) a < b ? a : b
