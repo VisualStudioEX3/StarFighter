@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------------------
- * PROCESS.DLL - Functions to operate with process in DIV Games Studio 2.
+ * PROCESS.DLL - Functions to operate with processes in DIV Games Studio 2.
  * (C) VisualStudioEX3, José Miguel Sánchez Fernández - 2020
  * DIV Games Studio 2 (C) Hammer Technologies - 1998, 1999
  * ---------------------------------------------------------------------------- */
