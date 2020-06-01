@@ -36,6 +36,9 @@
 // Convert string to lower case:
 #define strLwr(s) strCase(s, 1)
 
+// Custom implementation of realloc to works with DIV memory:
+void *div_realloc(void *ptr, size_t size);
+
 // String functions:
 void strCase(char* str, const int mode);
 void strTrim(char* str);

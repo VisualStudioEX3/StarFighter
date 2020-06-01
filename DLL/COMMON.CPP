@@ -6,6 +6,15 @@
 
 #include "common.h"
 
+void *div_realloc(void *ptr, size_t size)
+{
+    void *newPtr = div_malloc(size);
+    memcpy(newPtr, ptr, size);
+    div_free(ptr);
+    
+    return newPtr;
+}
+
 void strCase(char* str, const int mode)
 {
     int len = strlen(str);
