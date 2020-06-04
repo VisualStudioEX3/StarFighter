@@ -28,7 +28,6 @@ char*   consoleBuffer;          // (strLength + 1) * maxLines.
 int     consoleWriteIndex;      // Line to write.
 
 void _log(char* message);
-void createLogFolder();
 void cwrite(int index, char* text);
 char* cread(int index);
 void cclear();
