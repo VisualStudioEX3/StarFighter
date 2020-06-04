@@ -16,11 +16,12 @@ void init()
     separator = strAlloc(consoleStrLen);
     memset(separator, '=', consoleStrLen);
 
+    struct tm *now = getDateTime();
+
     if (fileEnable)
     {
         // Log filename format: "LOGS\yyyyMMdd\HHmmss.LOG"
         char filename[12];
-        struct tm *now = getDateTime();
 
         // Move or create base log's folder:
         mkdir(log_folder);
@@ -60,12 +61,14 @@ void init()
     if (consoleEnable)
     {
         consoleBuffer = strAlloc(console_buffer_size);
-        consoleLineIndex = 0;
-        clearBuffer();
+        cclear();
     }
     consoleVisible = 0;
 
-    _log("Log started!");
+    char* timeStamp = strAlloc(consoleStrLen);
+    strftime(timeStamp, consoleStrLen, "Log started on %c", now);
+    _log(timeStamp);
+    div_free(timeStamp);
     _log(separator);
 
     retval(RESULT_OK);
@@ -81,26 +84,32 @@ void isConsoleEnabled()
     retval(consoleEnable);
 }
 
+void cwrite(int index, char* text)
+{
+    int len = _min(strlen(text), consoleStrLen);
+    memmove(&consoleBuffer[index * console_full_line_len], text, len);
+    consoleBuffer[(index * console_full_line_len) + len] = '\0';
+}
+
+char* cread(int index)
+{
+    return &consoleBuffer[index * console_full_line_len];
+}
+
+void cclear()
+{
+    memset(consoleBuffer, '\0', console_buffer_size);
+    consoleWriteIndex = 0;
+}
+
 void _log(char* message)
 {
     if (fileEnable)
     {
+        // "[dd/MM/yyyy HH:mm:ss] %message%"
         struct tm *now = getDateTime();
-
-        /* This method print wrong value in Watcom/DOS:
-        char timeStamp[14];
-        strftime(timeStamp, 14, "[%x %X]\n", now);
         fprintf(file,
-                "%s %s\n",
-                timeStamp,
-                message); */
-
-        // "[dd/MM/yyyy HH:mm:ss]: %message%"
-        fprintf(file,
-                "[%02i/%02i/%04i %02i:%02i:%02i]: %s\n",
-                now->tm_mday,
-                now->tm_mon + 1,
-                now->tm_year + 1900,
+                "[%02i:%02i:%02i] %s\n",
                 now->tm_hour,
                 now->tm_min,
                 now->tm_sec,
@@ -109,17 +118,16 @@ void _log(char* message)
     
     if (consoleEnable)
     {
-        if (console_write_index == consoleMaxLines - 1)
+        if (consoleWriteIndex == consoleMaxLines - 1)
         {
-            for (int i = 1; i < consoleMaxLines; i++)
+            for (int x = 0, y = 1; y < consoleMaxLines; x++, y++)
             {
-                memcpy(line(i - 1), line(i), console_full_line_len);
+                cwrite(x, cread(y));
             }
         }
 
-        memcpy(line(console_write_index), 
-               message, 
-               _min(strlen(message), consoleStrLen));
+        cwrite(consoleWriteIndex, message);
+        consoleWriteIndex = _min(++consoleWriteIndex, consoleMaxLines - 1);
     }
 }
 
@@ -154,8 +162,7 @@ void clear()
 {
     if (consoleEnable)
     {
-        clearBuffer();
-        consoleLineIndex = 0;
+        cclear();
     }
     retval(RESULT_OK);
 }
@@ -169,7 +176,7 @@ void post_process_buffer(void)
 
         for (int i = 0; i < consoleMaxLines; i++)
         {
-            div_text_out(line(i), 0, i * 10);
+            div_text_out(cread(i), 0, i * 10);
         }
     }
 }

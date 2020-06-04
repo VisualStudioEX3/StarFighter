@@ -15,11 +15,6 @@
 #define console_full_line_len       consoleStrLen + 1 // strlen + \0
 #define console_buffer_size         console_full_line_len * consoleMaxLines
 
-#define clearBuffer()               memset(consoleBuffer, '\0', console_buffer_size)
-#define line(i)                     &consoleBuffer[i * console_full_line_len]
-
-#define console_write_index         _min(++consoleLineIndex, consoleMaxLines - 1)
-
 int     fileEnable;
 FILE*   file;
 
@@ -30,10 +25,13 @@ int     consoleVisible;
 int     consoleStrLen;
 int     consoleMaxLines;        // Max lines to show.
 char*   consoleBuffer;          // (strLength + 1) * maxLines.
-int     consoleLineIndex;       // Line to write.
+int     consoleWriteIndex;      // Line to write.
 
 void _log(char* message);
 void createLogFolder();
+void cwrite(int index, char* text);
+char* cread(int index);
+void cclear();
 
 void init();
 void isFileEnabled();
