@@ -15,6 +15,14 @@ void *div_realloc(void *ptr, size_t size)
     return newPtr;
 }
 
+char* strAlloc(size_t size)
+{
+    size_t len = size + 1;
+    char* ptr = (char*)div_malloc(len);
+    memset(ptr, '\0', len);
+    return ptr;
+}
+
 void strCase(char* str, const int mode)
 {
     int len = strlen(str);
@@ -66,4 +74,11 @@ void strReplace(char * str, const char o, const char n)
     {
         if (str[i] == o) str[i] = n;
     }
+}
+
+struct tm *getDateTime()
+{
+    time_t now;
+    time(&now);
+    return localtime(&now);
 }

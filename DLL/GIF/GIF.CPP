@@ -24,27 +24,25 @@ void startGIF()
     char* filename = getStrParm();
     
     animation = gd_open_gif(filename);
+    startTime = clock();
     
-    retval(animation != NULL);
+    retval(animation != NULL ? RESULT_OK : RESULT_ERROR);
 }
 
-/** End and unload GIF animation.
-*
-* @return {int} - Returns RESULT_OK if GIF is stoped and unloaded to reproduce or RESULT_ERROR if any error ocurrs.
-*/
+/** End and unload GIF animation. */
 void endGIF()
 {
     gd_close_gif(animation);
+    animation = NULL;
+    startTime = 0;
     retval(RESULT_OK);
 }
 
-/** Reset GIF animation.
-*
-* @return {int} - Returns RESULT_OK if GIF is rewinded or RESULT_ERROR if any error ocurrs.
-*/
+/** Reset GIF animation. */
 void resetGIF()
 {
     gd_rewind(animation);
+    startTime = 0;
     retval(RESULT_OK);
 }
 
@@ -54,16 +52,29 @@ void resetGIF()
 */
 void frameGIF()
 {
-    // TODO: Implement frame delay.
-    int res = gd_get_frame(animation);
+    int res = RESULT_ERROR;
     
-    if (res != 0)
+    if (file_loaded)
     {
-        // TODO: Write animation->palette
-        // TODO: Write animation->frame data to DIV screen buffer.
+        if (update_frame)
+        {
+            startTime = clock();
+            res = gd_get_frame(animation);
+            
+            if (res != 0)
+            {
+                // TODO: Write animation->palette
+                // TODO: Write animation->frame data to DIV screen buffer.
+            }
+        }
     }
     
     retval(ret);
+}
+
+void post_process_buffer(void) 
+{
+    
 }
 
 void __export divlibrary(LIBRARY_PARAMS)
@@ -77,4 +88,6 @@ void __export divlibrary(LIBRARY_PARAMS)
 void __export divmain(COMMON_PARAMS)
 {
   GLOBAL_IMPORT();
+  
+  DIV_export("post_process_buffer",post_process_buffer);
 }

@@ -88,6 +88,11 @@ void typeOf()
     retval(0);
 }
 
+void post_process_buffer(void)
+{
+    div_text_out("Hello, world!", 0, 0);
+}
+
 void __export divlibrary(LIBRARY_PARAMS)
 {
     COM_export("initTimer", initTimer, 0);
@@ -100,5 +105,8 @@ void __export divlibrary(LIBRARY_PARAMS)
 
 void __export divmain(COMMON_PARAMS)
 {
+  //AutoLoad();
   GLOBAL_IMPORT();
+  
+  DIV_export("post_process_buffer", post_process_buffer);
 }

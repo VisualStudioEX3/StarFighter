@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #define GLOBALS
 #include "div.h"
@@ -29,8 +30,6 @@
 
 // Gets the string parameter from DIV call:
 #define getStrParm() (char*)&mem[text_offset + getparm()]
-// Allocate string pointer in div memory:
-#define strAlloc(len) (char*)div_malloc(len + 1)
 // Convert string to upper case:
 #define strUpr(s) strCase(s, 0)
 // Convert string to lower case:
@@ -39,9 +38,15 @@
 // Custom implementation of realloc to works with DIV memory:
 void *div_realloc(void *ptr, size_t size);
 
+// Allocate string pointer in div memory (full set to null chars):
+char* strAlloc(size_t size);
+
 // String functions:
 void strCase(char* str, const int mode);
 void strTrim(char* str);
 void strReplace(char * str, const char o, const char n);
+
+// Return current date time:
+struct tm *getDateTime();
 
 #endif

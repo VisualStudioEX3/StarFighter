@@ -24,22 +24,22 @@ begin
     proc = ball();
 
     a = type ball;
-    write_int(0, 0, 0, 0, offset a);
+    write_int(0, 0, 10, 0, offset a);
 
     b = proc.reserved.process_type;
-    write_int(0, 0, 10, 0, offset b);
+    write_int(0, 0, 20, 0, offset b);
 
     t = typeof(proc);
-    write_int(0, 0, 20, 0, offset t);
+    write_int(0, 0, 30, 0, offset t);
 
-    write_int(0, 0, 30, 0, offset proc);
+    write_int(0, 0, 40, 0, offset proc);
 
     if (typeof(proc) == type ball)
-        write(0, 0, 40, 0, "Process match!");
+        write(0, 0, 50, 0, "Process match!");
     end
 
     loop
-        test_text_out(s);
+        //test_text_out(s);
         frame;
     end
 end

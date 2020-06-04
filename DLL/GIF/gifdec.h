@@ -18,7 +18,7 @@ typedef struct gd_GCE {
 } gd_GCE;
 
 typedef struct gd_GIF {
-    int fd;
+    FILE *fd;
     off_t anim_start;
     uint16_t width, height;
     uint16_t depth;

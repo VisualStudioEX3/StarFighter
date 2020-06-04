@@ -24,7 +24,7 @@ typedef struct Table {
 } Table;
 
 static uint16_t
-read_num(int fd)
+read_num(FILE *fd)
 {
     uint8_t bytes[2];
 
@@ -35,7 +35,7 @@ read_num(int fd)
 gd_GIF *
 gd_open_gif(const char *fname)
 {
-    int fd;
+    FILE *fd;
     uint8_t sigver[3];
     uint16_t width, height, depth;
     uint8_t fdsz, bgidx, aspect;
@@ -77,7 +77,7 @@ gd_open_gif(const char *fname)
     fgets(&aspect, 1, fd); // read(fd, &aspect, 1);
     /* Create gd_GIF Structure. */
     //gif = calloc(1, sizeof(*gif) + 4 * width * height);
-    gif = div_malloc(sizeof(*gif) + 4 * width * height);
+    gif = (gd_GIF *)div_malloc(sizeof(*gif) + 4 * width * height);
     if (!gif) goto fail;
     gif->fd = fd;
     gif->width  = width;
@@ -224,7 +224,7 @@ new_table(int key_size)
 {
     int key;
     int init_bulk = _max(1 << (key_size + 1), 0x100);
-    Table *table = div_malloc(sizeof(*table) + sizeof(Entry) * init_bulk);
+    Table *table = (Table *)div_malloc(sizeof(*table) + sizeof(Entry) * init_bulk);
     if (table) {
         table->bulk = init_bulk;
         table->nentries = (1 << key_size) + 2;
@@ -245,7 +245,7 @@ add_entry(Table **tablep, uint16_t length, uint16_t prefix, uint8_t suffix)
     Table *table = *tablep;
     if (table->nentries == table->bulk) {
         table->bulk *= 2;
-        table = div_realloc(table, sizeof(*table) + sizeof(Entry) * table->bulk);
+        table = (Table *)div_realloc(table, sizeof(*table) + sizeof(Entry) * table->bulk);
         if (!table) return -1;
         table->entries = (Entry *) &table[1];
         *tablep = table;

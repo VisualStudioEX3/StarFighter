@@ -1,0 +1,1 @@
+wcl386 LOGGER.CPP ..\COMMON.CPP /l=div_dll -s

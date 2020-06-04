@@ -115,12 +115,12 @@ void isFrozen()
 
 void __export divlibrary(LIBRARY_PARAMS)
 {    
-    COM_export("typeof", typeOf, 1);
-    COM_export("get_status", getStatus, 1);
-    COM_export("exists", exists, 1);
-    COM_export("is_alive", isAlive, 1);
-    COM_export("is_asleep", isAsleep, 1);
-    COM_export("is_frozen", isFrozen, 1);
+    COM_export("typeof",        typeOf,     1);
+    COM_export("get_status",    getStatus,  1);
+    COM_export("exists",        exists,     1);
+    COM_export("is_alive",      isAlive,    1);
+    COM_export("is_asleep",     isAsleep,   1);
+    COM_export("is_frozen",     isFrozen,   1);
 }
 
 void __export divmain(COMMON_PARAMS)
