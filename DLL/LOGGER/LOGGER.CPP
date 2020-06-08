@@ -67,6 +67,12 @@ int log(char* message)
     return RESULT_ERROR;
 }
 
+/** Write message to log file.
+*
+* @param {string} message - Message to log.
+*
+* @return {int} - Returns RESULT_ERROR if the log file is not created, else RETURN_OK.
+*/
 void div_log()
 {
     retval(log(getStrParm()));
