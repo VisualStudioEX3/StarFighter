@@ -38,6 +38,9 @@ begin
     print_input_action_values(_input_down);
 
     ball();
+    test_any_key();
+    test_any_key_down();
+    test_any_key_up();
 
     repeat
         frame_input();
@@ -121,6 +124,48 @@ begin
 
         if (input_up(_input_down))
             y++;
+        end
+
+        frame;
+    end
+end
+
+process test_any_key()
+begin
+    x = timer[0];
+    write_int(0, 0, 100, 0, offset x);
+
+    loop
+        if (any_key())
+            x = timer[0];
+        end
+
+        frame;
+    end
+end
+
+process test_any_key_down()
+begin
+    x = timer[1];
+    write_int(0, 0, 110, 0, offset x);
+
+    loop
+        if (any_key_down())
+            x = timer[1];
+        end
+
+        frame;
+    end
+end
+
+process test_any_key_up()
+begin
+    x = timer[2];
+    write_int(0, 0, 120, 0, offset x);
+
+    loop
+        if (any_key_up())
+            x = timer[2];
         end
 
         frame;

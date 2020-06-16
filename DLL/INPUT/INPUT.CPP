@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------------------------
  * INPUT.DLL - Input Manager for DIV Games Studio.
- * (C) VisualStudioEX3, José Miguel Sánchez Fernández - 2020
+ * (C) VisualStudioEX3, Josï¿½ Miguel Sï¿½nchez Fernï¿½ndez - 2020
  * DIV Games Studio 2 (C) Hammer Technologies - 1998, 1999
  * ---------------------------------------------------------------------------- */
 
@@ -198,7 +198,38 @@ void frame()
                                 getJoyButtonState(action->bind.joyButton);
     }
 
+    anyKey.state.down = anyKey.state.up = anyKey.state.pressed;
+    anyKey.state.pressed = (_readKeyboard() != KEY_NONE) ||
+                           (_readJoystick() != JOY_NONE);
+
     retval(RESULT_OK);
+}
+
+/** Check if any key or joystick button is pressed.
+*
+* @return {int} - Returns TRUE if any key or joystick button is pressed.
+*/
+void isAnyKeyPress()
+{
+    retval(anyKey.state.pressed);
+}
+
+/** Check if any key or joystick button has been pressed (single hit).
+*
+* @return {int} - Returns TRUE if any key or joystick button has been pressed (single hit).
+*/
+void isAnyKeyDown()
+{
+    retval(!anyKey.state.down && anyKey.state.pressed);
+}
+
+/** Check if any key or joystick button is released.
+*
+* @return {int} - Returns TRUE if any key or joystick button is released.
+*/
+void isAnyKeyUp()
+{
+    retval(anyKey.state.up && !anyKey.state.pressed);
 }
 
 /** Check if an action is pressed.
@@ -263,22 +294,46 @@ void inputUp()
     retval(action->state.up && !action->state.pressed);
 }
 
+int _readKeyboard()
+{
+    for (int i = KEY_ESC; i < KEY_F2; i++)
+    {
+        if (key[i])
+        {
+            return i;
+        }
+    }
+
+    return KEY_NONE;
+}
+
 /** Get the key pressed.
 *
 * @return {int} - Returns key code of the first button pressed. KEY_NONE if not has any key pressed.
 */
 void readKeyboard()
 {
-    for (int i = KEY_ESC; i < KEY_F2; i++)
+    retval(_readKeyboard());
+}
+
+int _readJoystick()
+{
+    for (int i = JOY_LEFT; i < JOY_BUTTON4; i++)
     {
-        if (key[i])
+        switch (i)
         {
-            retval(i);
-            return;
+            case JOY_LEFT:      if (JOY->left)      return JOY_LEFT;
+            case JOY_UP:        if (JOY->up)        return JOY_UP;
+            case JOY_RIGHT:     if (JOY->right)     return JOY_RIGHT;
+            case JOY_DOWN:      if (JOY->down)      return JOY_DOWN;
+            case JOY_BUTTON1:   if (JOY->button1)   return JOY_BUTTON1;
+            case JOY_BUTTON2:   if (JOY->button2)   return JOY_BUTTON2;
+            case JOY_BUTTON3:   if (JOY->button3)   return JOY_BUTTON3;
+            case JOY_BUTTON4:   if (JOY->button4)   return JOY_BUTTON4;
         }
     }
 
-    retval(KEY_NONE);
+    return JOY_NONE;
 }
 
 /** Get the joystick button pressed.
@@ -287,22 +342,7 @@ void readKeyboard()
 */
 void readJoystick()
 {
-    for (int i = JOY_LEFT; i < JOY_BUTTON4; i++)
-    {
-        switch (i)
-        {
-            case JOY_LEFT:      if (JOY->left)      retval(JOY_LEFT);       return;
-            case JOY_UP:        if (JOY->up)        retval(JOY_UP);         return;
-            case JOY_RIGHT:     if (JOY->right)     retval(JOY_RIGHT);      return;
-            case JOY_DOWN:      if (JOY->down)      retval(JOY_DOWN);       return;
-            case JOY_BUTTON1:   if (JOY->button1)   retval(JOY_BUTTON1);    return;
-            case JOY_BUTTON2:   if (JOY->button2)   retval(JOY_BUTTON2);    return;
-            case JOY_BUTTON3:   if (JOY->button3)   retval(JOY_BUTTON3);    return;
-            case JOY_BUTTON4:   if (JOY->button4)   retval(JOY_BUTTON4);    return;
-        }
-    }
-
-    retval(JOY_NONE);
+    retval(_readJoystick());
 }
 
 const char* _toKeyName(int keyCode)
@@ -630,6 +670,9 @@ void __export divlibrary(LIBRARY_PARAMS)
     COM_export("get_input_key",         getKey,             2);
     COM_export("get_input_joy",         getJoyButton,       1);
     COM_export("frame_input",           frame,              0);
+    COM_export("any_key",               isAnyKeyPress,      0);
+    COM_export("any_key_down",          isAnyKeyDown,       0);
+    COM_export("any_key_up",            isAnyKeyUp,         0);
     COM_export("input_pressed",         inputPressed,       1);
     COM_export("input_down",            inputDown,          1);
     COM_export("input_up",              inputUp,            1);
