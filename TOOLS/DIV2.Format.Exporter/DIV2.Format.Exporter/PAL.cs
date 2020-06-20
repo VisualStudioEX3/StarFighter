@@ -7,7 +7,7 @@ namespace DIV2.Format.Exporter
     /// <summary>
     /// PAL importer.
     /// </summary>
-    class PAL
+    public class PAL
     {
         #region Constants
         public const int COLOR_TABLE_LENGTH = 768;
@@ -15,12 +15,16 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Properties
-        public byte[] ColorTable { get; private set; }
-        public byte[] RangeTable { get; private set; }
+        public byte[] ColorTable { get; }
+        public byte[] RangeTable { get; }
         #endregion
 
         #region Constructors
-        public PAL(string filename, bool DAC = true)
+        /// <summary>
+        /// Imports a <see cref="PAL"/> file data.
+        /// </summary>
+        /// <param name="filename"><see cref="PAL"/> filename.</param>
+        public PAL(string filename)
         {
             using (var file = new BinaryReader(File.OpenRead(filename)))
             {
@@ -36,16 +40,23 @@ namespace DIV2.Format.Exporter
             }
         }
 
+        /// <summary>
+        /// Creates new <see cref="PAL"/> instance from color array.
+        /// </summary>
+        /// <param name="colors"><see cref="byte"/> array of RGB colors in DAC format (value ranges 0-63).</param>
+        /// <remarks>Warning: Import array color with full RGB range (0-255) may cause bad behaviour in DIV Games Studio.
+        /// Hint: If you need to adapt full RGB value to DAC format, divide by 4 each color component.</remarks>
         public PAL(byte[] colors)
         {
             if (colors.Length != PAL.COLOR_TABLE_LENGTH)
             {
-                throw new ArgumentException(nameof(colors), $"The array must be a {PAL.COLOR_TABLE_LENGTH} length.");
+                throw new ArgumentException(nameof(colors), $"The array must be a {PAL.COLOR_TABLE_LENGTH} length (RGB components only).");
             }
 
             this.ColorTable = colors;
             this.RangeTable = new byte[PAL.RANGE_TABLE_LENGHT];
 
+            // Create default range table:
             using (var stream = new BinaryWriter(new MemoryStream(this.RangeTable)))
             {
                 int range = 0;
@@ -69,6 +80,10 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Methods & Functions
+        /// <summary>
+        /// Writes all palette data to the file stream, except the file header.
+        /// </summary>
+        /// <param name="stream">File to write.</param>
         public void Write(BinaryWriter stream)
         {
             stream.Write(this.ColorTable);

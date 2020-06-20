@@ -110,14 +110,31 @@ namespace DIV2.Format.Exporter
 
         #region Properties
         /// <summary>
+        /// <see cref="PAL"/> instance used by this <see cref="FPG"/>.
+        /// </summary>
+        public PAL Palette { get; }
+        /// <summary>
         /// All <see cref="PNGImportDefinition"/> setup for this <see cref="FPG"/>.
         /// </summary>
         public IReadOnlyList<PNGImportDefinition> Maps => this._maps;
         #endregion
 
         #region Constructor
-        public FPG()
+        /// <summary>
+        /// Create new <see cref="FPG"/> instance.
+        /// </summary>
+        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="FPG"/>.</param>
+        public FPG(string palFilename) : this(new PAL(palFilename))
         {
+        }
+
+        /// <summary>
+        /// Create new <see cref="FPG"/> instance.
+        /// </summary>
+        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="FPG"/>.</param>
+        public FPG(PAL palette)
+        {
+            this.Palette = palette;
             this._maps = new List<PNGImportDefinition>();
         }
         #endregion
@@ -143,6 +160,8 @@ namespace DIV2.Format.Exporter
         List<MapRegister> ImportPNGs()
         {
             var mapRegisters = new List<MapRegister>(this._maps.Count);
+
+            PNG2BMP.SetupBMPEncoder(this.Palette);
 
             foreach (var map in this._maps)
             {
@@ -289,24 +308,20 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Imports all <see cref="PNGImportDefinition"/> and write all data to file.
         /// </summary>
-        /// <param name="fpgFilename"><see cref="FPG"/> filename.</param>
-        /// <param name="palFilename"><see cref="PAL"/> file used in this <see cref="FPG"/>.</param>
-        public void Save(string fpgFilename, string palFilename)
+        /// <param name="filename"><see cref="FPG"/> filename.</param>
+        public void Save(string filename)
         {
             if (this._maps.Count == 0)
             {
                 throw new InvalidOperationException("The FPG not contain any MAP to import.");
             }
-
-            var palette = new PAL(palFilename);
-            PNG2BMP.SetupBMPEncoder(palette);
-
+;
             List<MapRegister> mapRegisters = this.ImportPNGs();
 
-            using (var file = new BinaryWriter(File.OpenWrite(fpgFilename)))
+            using (var file = new BinaryWriter(File.OpenWrite(filename)))
             {
                 DIVFormatCommonBase.WriteCommonHeader(file, FPG.HEADER_ID);
-                palette.Write(file);
+                this.Palette.Write(file);
 
                 foreach (var register in mapRegisters)
                 {

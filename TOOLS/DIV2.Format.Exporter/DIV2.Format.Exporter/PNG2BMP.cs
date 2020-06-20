@@ -27,7 +27,7 @@ namespace DIV2.Format.Exporter
             PNG2BMP._encoder = new BmpEncoder()
             {
                 BitsPerPixel = BmpBitsPerPixel.Pixel8,
-                Quantizer = new PaletteQuantizer(new ReadOnlyMemory<Color>(colors), false)
+                Quantizer = new PaletteQuantizer(new ReadOnlyMemory<Color>(colors), new QuantizerOptions() { Dither = null, MaxColors = 256 })
             };
         }
 
@@ -38,7 +38,7 @@ namespace DIV2.Format.Exporter
 
         public static void Convert(byte[] pngFileData, out byte[] pixels, out short width, out short height)
         {
-            const int BMP_HEADER = 54;
+            const int BMP_HEADER_LENGTH = 54;
             const int BMP_PALETTE_LENGTH = 1024; // 256 double WORD (4 bytes) colors.
 
             using (var png = Image.Load(pngFileData))
@@ -53,7 +53,7 @@ namespace DIV2.Format.Exporter
                 {
                     png.Save(stream, PNG2BMP._encoder);
 
-                    stream.Position = BMP_HEADER + BMP_PALETTE_LENGTH;
+                    stream.Position = BMP_HEADER_LENGTH + BMP_PALETTE_LENGTH;
                     int readed = stream.Read(pixels, 0, pixels.Length);
 
                     if (readed != pixels.Length)

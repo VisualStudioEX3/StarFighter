@@ -51,7 +51,7 @@ class Program
             map.AddControlPoint(255, 255);
             map.AddControlPoint(64, 64);
 
-            map.Save(output, asset2);
+            map.Save(output);
 
             Console.WriteLine($"\"{output}\" created!\n");
         }
@@ -66,7 +66,7 @@ class Program
         var getId = new Func<string, int>((filename) => int.Parse(Path.GetFileNameWithoutExtension(filename)));
 
         Console.WriteLine($"Create \"{output}\":");
-        var fpg = new FPG();
+        var fpg = new FPG(asset2);
         {
             foreach (var png in asset)
             {
@@ -75,7 +75,7 @@ class Program
             }
 
             Console.WriteLine("Writing FPG data to file, wait...");
-            fpg.Save(output, asset2);
+            fpg.Save(output);
             Console.WriteLine($"\"{output}\" created!\n");
         }
     }
@@ -89,7 +89,7 @@ class Program
         var getId = new Func<string, int>((filename) => int.Parse(Path.GetFileNameWithoutExtension(filename)));
 
         Console.WriteLine($"Create \"{output}\":");
-        var fpg = new FPG();
+        var fpg = new FPG(asset2);
         {
             foreach (var png in asset)
             {
@@ -98,7 +98,7 @@ class Program
             }
 
             Console.WriteLine("Writing FPG data to file, wait...");
-            fpg.Save(output, asset2);
+            fpg.Save(output);
             Console.WriteLine($"\"{output}\" created!\n");
         }
     }
