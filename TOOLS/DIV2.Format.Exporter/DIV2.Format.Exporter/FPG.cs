@@ -78,10 +78,9 @@ namespace DIV2.Format.Exporter
     /// <summary>
     /// FPG creator.
     /// </summary>
-    public class FPG
+    public class FPG : DIVFormatCommonBase
     {
         #region Constants
-        const string HEADER_ID = "fpg";
         const int HEADER_LENGTH = 64;
         const int MIN_GRAPHID = 1;
         const int MAX_GRAPHID = 999;
@@ -120,6 +119,10 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructor
+        internal FPG() : base("fpg")
+        {
+        }
+
         /// <summary>
         /// Create new <see cref="FPG"/> instance.
         /// </summary>
@@ -132,7 +135,7 @@ namespace DIV2.Format.Exporter
         /// Create new <see cref="FPG"/> instance.
         /// </summary>
         /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="FPG"/>.</param>
-        public FPG(PAL palette)
+        public FPG(PAL palette) : this()
         {
             this.Palette = palette;
             this._maps = new List<PNGImportDefinition>();
@@ -309,24 +312,34 @@ namespace DIV2.Format.Exporter
         /// Imports all <see cref="PNGImportDefinition"/> and write all data to file.
         /// </summary>
         /// <param name="filename"><see cref="FPG"/> filename.</param>
-        public void Save(string filename)
+        public override void Write(BinaryWriter file)
         {
             if (this._maps.Count == 0)
             {
                 throw new InvalidOperationException("The FPG not contain any MAP to import.");
             }
-;
+
             List<MapRegister> mapRegisters = this.ImportPNGs();
 
-            using (var file = new BinaryWriter(File.OpenWrite(filename)))
-            {
-                DIVFormatCommonBase.WriteCommonHeader(file, FPG.HEADER_ID);
-                this.Palette.Write(file);
+            base.Write(file);
+            this.Palette.Write(file);
 
-                foreach (var register in mapRegisters)
-                {
-                    this.WriteMapRegister(file, register);
-                }
+            foreach (var register in mapRegisters)
+            {
+                this.WriteMapRegister(file, register);
+            }
+        }
+
+        /// <summary>
+        /// Validates if the file is a valid <see cref="FPG"/> file.
+        /// </summary>
+        /// <param name="filename"><see cref="FPG"/> filename.</param>
+        /// <returns>Returns true if the file contains a valid <see cref="FPG"/> header format.</returns>
+        public static bool Validate(string filename)
+        {
+            using (var file = new BinaryReader(File.OpenRead(filename)))
+            {
+                return new FPG().Validate(file);
             }
         }
         #endregion

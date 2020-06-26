@@ -6,7 +6,7 @@ class Program
 {
     static void Main(string[] args)
     {
-        //CreateMAPTest();
+        CreateMAPTest();
         //CreateFPGFromFileTest();
         CreateFPGFromMemoryTest();
 

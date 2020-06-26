@@ -22,12 +22,8 @@ namespace DIV2.Format.Exporter
     /// <summary>
     /// MAP exporter.
     /// </summary>
-    public class MAP
+    public class MAP : DIVFormatCommonBase
     {
-        #region Constants
-        const string HEADER_ID = "map"; 
-        #endregion
-
         #region Internal vars
         short _width;
         short _height;
@@ -49,6 +45,10 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructor
+        internal MAP() : base("map")
+        {
+        }
+
         /// <summary>
         /// Imports a PNG file and convert to <see cref="MAP"/> format.
         /// </summary>
@@ -111,7 +111,7 @@ namespace DIV2.Format.Exporter
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Description (32 characters maximum).</param>
         /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
-        public MAP(string pngFilename, PAL palette, int graphId, string description, ControlPoint[] controlPoints)
+        public MAP(string pngFilename, PAL palette, int graphId, string description, ControlPoint[] controlPoints) : this()
         {
             this.Palette = palette;
             PNG2BMP.SetupBMPEncoder(this.Palette);
@@ -124,15 +124,6 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Methods & Functions
-        void WriteHeader(BinaryWriter file)
-        {
-            DIVFormatCommonBase.WriteCommonHeader(file, MAP.HEADER_ID);
-            file.Write(this._width);
-            file.Write(this._height);
-            file.Write(this._graphId);
-            file.Write(this._description.GetASCIIZString(32));
-        }
-        
         void WriteControlPoints(BinaryWriter file)
         {
             file.Write((short)this._controlPoints.Count);
@@ -183,16 +174,33 @@ namespace DIV2.Format.Exporter
         /// Write all data to file.
         /// </summary>
         /// <param name="filename"><see cref="MAP"/> filename.</param>
-        public void Save(string filename)
+        public override void Write(BinaryWriter file)
         {
-            using (var file = new BinaryWriter(File.OpenWrite(filename)))
+            base.Write(file);
+
+            file.Write(this._width);
+            file.Write(this._height);
+            file.Write(this._graphId);
+            file.Write(this._description.GetASCIIZString(32));
+
+            this.Palette.Write(file);
+
+            this.WriteControlPoints(file);
+            file.Write(this._bitmap);
+        }
+
+        /// <summary>
+        /// Validates if the file is a valid <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="filename"><see cref="MAP"/> filename.</param>
+        /// <returns>Returns true if the file contains a valid <see cref="MAP"/> header format.</returns>
+        public static bool Validate(string filename)
+        {
+            using (var file = new BinaryReader(File.OpenRead(filename)))
             {
-                this.WriteHeader(file);
-                this.Palette.Write(file);
-                this.WriteControlPoints(file);
-                file.Write(this._bitmap);
+                return new MAP().Validate(file);
             }
-        } 
+        }
         #endregion
     } 
     #endregion

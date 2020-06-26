@@ -9,6 +9,14 @@ namespace DIV2.Format.Exporter
 {
     class PNG2BMP
     {
+        #region Constants
+        const int RGB_PAL_LENGTH = 256;
+
+        const int BMP_HEADER_LENGTH = 54;
+        const int BMP_PALETTE_LENGTH = 1024; // 256 double WORD (4 bytes) colors.
+        const int BMP_FIRST_PIXEL = PNG2BMP.BMP_HEADER_LENGTH + PNG2BMP.BMP_PALETTE_LENGTH;
+        #endregion
+
         #region Internal vars
         static BmpEncoder _encoder;
         #endregion
@@ -16,18 +24,19 @@ namespace DIV2.Format.Exporter
         #region Methods & Functions
         public static void SetupBMPEncoder(PAL palette)
         {
-            var colors = new Color[256];
+            var rgb = palette.DAC2RGB();
+            var colors = new Color[PNG2BMP.RGB_PAL_LENGTH];
             int index = -1;
 
-            for (int i = 0; i < 256; i++)
+            for (int i = 0; i < PNG2BMP.RGB_PAL_LENGTH; i++)
             {
-                colors[i] = Color.FromRgb((byte)(palette.ColorTable[++index] * 4), (byte)(palette.ColorTable[++index] * 4), (byte)(palette.ColorTable[++index] * 4)); // From DAC to full RGB.
+                colors[i] = Color.FromRgb(rgb[++index], rgb[++index], rgb[++index]);
             }
 
             PNG2BMP._encoder = new BmpEncoder()
             {
                 BitsPerPixel = BmpBitsPerPixel.Pixel8,
-                Quantizer = new PaletteQuantizer(new ReadOnlyMemory<Color>(colors), new QuantizerOptions() { Dither = null, MaxColors = 256 })
+                Quantizer = new PaletteQuantizer(new ReadOnlyMemory<Color>(colors), new QuantizerOptions() { Dither = null, MaxColors = PNG2BMP.RGB_PAL_LENGTH })
             };
         }
 
@@ -38,9 +47,6 @@ namespace DIV2.Format.Exporter
 
         public static void Convert(byte[] pngFileData, out byte[] pixels, out short width, out short height)
         {
-            const int BMP_HEADER_LENGTH = 54;
-            const int BMP_PALETTE_LENGTH = 1024; // 256 double WORD (4 bytes) colors.
-
             using (var png = Image.Load(pngFileData))
             {
                 pixels = new byte[png.Width * png.Height];
@@ -53,7 +59,7 @@ namespace DIV2.Format.Exporter
                 {
                     png.Save(stream, PNG2BMP._encoder);
 
-                    stream.Position = BMP_HEADER_LENGTH + BMP_PALETTE_LENGTH;
+                    stream.Position = PNG2BMP.BMP_FIRST_PIXEL;
                     int readed = stream.Read(pixels, 0, pixels.Length);
 
                     if (readed != pixels.Length)
