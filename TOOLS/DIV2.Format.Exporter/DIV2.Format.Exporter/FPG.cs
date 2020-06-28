@@ -81,11 +81,11 @@ namespace DIV2.Format.Exporter
     public class FPG : DIVFormatCommonBase
     {
         #region Constants
-        const int HEADER_LENGTH = 64;
-        const int MIN_GRAPHID = 1;
-        const int MAX_GRAPHID = 999;
-        const int DESCRIPTION_LENGTH = 32;
-        const int FILENAME_LENGTH = 12;
+        public const int HEADER_LENGTH = 64;
+        public const int MIN_GRAPHID = 1;
+        public const int MAX_GRAPHID = 999;
+        public const int DESCRIPTION_LENGTH = 32;
+        public const int FILENAME_LENGTH = 12;
         #endregion
 
         #region Structures
