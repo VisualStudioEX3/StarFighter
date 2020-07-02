@@ -82,6 +82,7 @@ namespace DIV2.Format.Exporter
     {
         #region Constants
         public const int HEADER_LENGTH = 64;
+        public const int CONTROLPOINT_LENGTH = 4;
         public const int MIN_GRAPHID = 1;
         public const int MAX_GRAPHID = 999;
         public const int DESCRIPTION_LENGTH = 32;
@@ -99,6 +100,13 @@ namespace DIV2.Format.Exporter
             public int height;
             public ControlPoint[] controlPoints;
             public byte[] bitmap;
+            #endregion
+
+            #region Methods & Functions
+            public int GetSize()
+            {
+                return FPG.HEADER_LENGTH + (FPG.CONTROLPOINT_LENGTH * controlPoints.Length) + bitmap.Length;
+            } 
             #endregion
         }
         #endregion
@@ -146,7 +154,7 @@ namespace DIV2.Format.Exporter
         void WriteMapRegister(BinaryWriter file, MapRegister register)
         {
             file.Write(register.graphId);
-            file.Write(register.bitmap.Length + FPG.HEADER_LENGTH);
+            file.Write(register.GetSize());
             file.Write(register.description.GetASCIIZString(FPG.DESCRIPTION_LENGTH));
             file.Write(register.filename.GetASCIIZString(FPG.FILENAME_LENGTH));
             file.Write(register.width);

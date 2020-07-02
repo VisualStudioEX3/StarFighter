@@ -4,10 +4,14 @@ using DIV2.Format.Exporter;
 
 class Program
 {
+    const string OUTPUT_DIRECTORY = "Output";
+
     static void Main(string[] args)
     {
+        CleanOutputFolder();
+
         CreateMAPTest();
-        //CreateFPGFromFileTest();
+        CreateFPGFromFileTest();
         CreateFPGFromMemoryTest();
 
         Console.Beep();
@@ -21,8 +25,6 @@ class Program
 
     static string GetOutputFilename(string filename)
     {
-        const string OUTPUT_DIRECTORY = "Output";
-
         if (!Directory.Exists(OUTPUT_DIRECTORY))
         {
             Directory.CreateDirectory(OUTPUT_DIRECTORY);
@@ -36,6 +38,17 @@ class Program
         }
 
         return newFilename;
+    }
+
+    static void CleanOutputFolder()
+    {
+        if (!Directory.Exists(OUTPUT_DIRECTORY))
+        {
+            foreach (var file in Directory.GetFiles(OUTPUT_DIRECTORY, "*.*", SearchOption.AllDirectories))
+            {
+                File.Delete(file);
+            }
+        }
     }
 
     static void CreateMAPTest()
@@ -61,7 +74,7 @@ class Program
     {
         string[] asset = Directory.GetFiles(@"Assets\ENEMY\");
         string asset2 = GetAssetFilename("SPACE.PAL");
-        string output = GetOutputFilename("TEST.FPG");
+        string output = GetOutputFilename("TESTFILE.FPG");
 
         var getId = new Func<string, int>((filename) => int.Parse(Path.GetFileNameWithoutExtension(filename)));
 
@@ -84,7 +97,7 @@ class Program
     {
         string[] asset = Directory.GetFiles(@"Assets\ENEMY\");
         string asset2 = GetAssetFilename("SPACE.PAL");
-        string output = GetOutputFilename("TEST.FPG");
+        string output = GetOutputFilename("TESTMEM.FPG");
 
         var getId = new Func<string, int>((filename) => int.Parse(Path.GetFileNameWithoutExtension(filename)));
 
@@ -93,7 +106,7 @@ class Program
         {
             foreach (var png in asset)
             {
-                fpg.AddMap(File.ReadAllBytes(png), getId(png), $"Test FPG: {getId(png)}");
+                fpg.AddMap(File.ReadAllBytes(png), getId(png), $"Test FPG: {getId(png)}", GenerateRandomControlPoints(256, 256, 7));
                 Console.WriteLine($"- Added \"{png}\" definition (from memory)...");
             }
 
@@ -101,5 +114,18 @@ class Program
             fpg.Save(output);
             Console.WriteLine($"\"{output}\" created!\n");
         }
+    }
+
+    static ControlPoint[] GenerateRandomControlPoints(int width, int height, int count)
+    {
+        var points = new ControlPoint[count];
+        var random = new Random();
+
+        for (int i = 0; i < count; i++)
+        {
+            points[i] = new ControlPoint() { x = (short)random.Next(0, width), y = (short)random.Next(0, height) };
+        }
+
+        return points;
     }
 }
