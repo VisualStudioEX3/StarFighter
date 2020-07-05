@@ -45,7 +45,7 @@ namespace DIV2.Format.Exporter
         /// <param name="description">Optional MAP description (32 characters maximum).</param>
         /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
         public PNGImportDefinition(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null) :
-            this(true, buffer, String.Empty, graphId, description, controlPoints)
+            this(true, buffer, string.Empty, graphId, description, controlPoints)
         {
         }
 

@@ -15,6 +15,32 @@ namespace DIV2.Format.Exporter
         #region Public vars
         public short x, y;
         #endregion
+
+        #region Constructors
+        public ControlPoint(short x, short y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+
+        public ControlPoint(int x, int y)
+        {
+            this.x = (short)x;
+            this.y = (short)y;
+        }
+
+        public ControlPoint(float x, float y)
+        {
+            this.x = (short)x;
+            this.y = (short)y;
+        }
+
+        public ControlPoint(double x, double y)
+        {
+            this.x = (short)x;
+            this.y = (short)y;
+        }
+        #endregion
     }
     #endregion
 
