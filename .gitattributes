@@ -1,2 +1,3 @@
 # Force DIV Games Studio PRGs files to show as "Pascal" language instead of "xBase":
+*.prg linguist-detectable=true
 *.prg linguist-language=Pascal
