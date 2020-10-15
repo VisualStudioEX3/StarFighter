@@ -15,6 +15,32 @@ namespace DIV2.Format.Exporter
         #region Public vars
         public short x, y;
         #endregion
+
+        #region Constructors
+        public ControlPoint(short x, short y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+
+        public ControlPoint(int x, int y)
+        {
+            this.x = (short)x;
+            this.y = (short)y;
+        }
+
+        public ControlPoint(float x, float y)
+        {
+            this.x = (short)x;
+            this.y = (short)y;
+        }
+
+        public ControlPoint(double x, double y)
+        {
+            this.x = (short)x;
+            this.y = (short)y;
+        }
+        #endregion
     }
     #endregion
 
@@ -22,12 +48,8 @@ namespace DIV2.Format.Exporter
     /// <summary>
     /// MAP exporter.
     /// </summary>
-    public class MAP
+    public class MAP : DIVFormatCommonBase
     {
-        #region Constants
-        const string HEADER_ID = "map"; 
-        #endregion
-
         #region Internal vars
         short _width;
         short _height;
@@ -39,16 +61,25 @@ namespace DIV2.Format.Exporter
 
         #region Properties
         /// <summary>
+        /// <see cref="PAL"/> instance used by this <see cref="MAP"/>.
+        /// </summary>
+        public PAL Palette { get; }
+        /// <summary>
         /// <see cref="ControlPoint"/> list of this <see cref="MAP"/>.
         /// </summary>
         public IReadOnlyList<ControlPoint> ControlPoints => this._controlPoints;
         #endregion
 
         #region Constructor
+        internal MAP() : base("map")
+        {
+        }
+
         /// <summary>
         /// Imports a PNG file and convert to <see cref="MAP"/> format.
         /// </summary>
         /// <param name="pngFilename">PNG filename to export.</param>
+        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         public MAP(string pngFilename, string palFilename, int graphId) : this(pngFilename, palFilename, graphId, string.Empty)
         {
@@ -58,6 +89,17 @@ namespace DIV2.Format.Exporter
         /// Imports a PNG file and convert to <see cref="MAP"/> format.
         /// </summary>
         /// <param name="pngFilename">PNG filename to export.</param>
+        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        public MAP(string pngFilename, PAL palette, int graphId) : this(pngFilename, palette, graphId, string.Empty)
+        {
+        }
+
+        /// <summary>
+        /// Imports a PNG file and convert to <see cref="MAP"/> format.
+        /// </summary>
+        /// <param name="pngFilename">PNG filename to export.</param>
+        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Description (32 characters maximum).</param>
         public MAP(string pngFilename, string palFilename, int graphId, string description) : this(pngFilename, palFilename, graphId, description, new ControlPoint[0])
@@ -68,12 +110,37 @@ namespace DIV2.Format.Exporter
         /// Imports a PNG file and convert to <see cref="MAP"/> format.
         /// </summary>
         /// <param name="pngFilename">PNG filename to export.</param>
+        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        /// <param name="description">Description (32 characters maximum).</param>
+        public MAP(string pngFilename, PAL palette, int graphId, string description) : this(pngFilename, palette, graphId, description, new ControlPoint[0])
+        {
+        }
+
+        /// <summary>
+        /// Imports a PNG file and convert to <see cref="MAP"/> format.
+        /// </summary>
+        /// <param name="pngFilename">PNG filename to export.</param>
+        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Description (32 characters maximum).</param>
         /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
-        public MAP(string pngFilename, string palFilename, int graphId, string description, ControlPoint[] controlPoints)
+        public MAP(string pngFilename, string palFilename, int graphId, string description, ControlPoint[] controlPoints) : this(pngFilename, new PAL(palFilename), graphId, description, controlPoints)
         {
-            PNG2BMP.SetupBMPEncoder(new PAL(palFilename));
+        }
+
+        /// <summary>
+        /// Imports a PNG file and convert to <see cref="MAP"/> format.
+        /// </summary>
+        /// <param name="pngFilename">PNG filename to export.</param>
+        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        /// <param name="description">Description (32 characters maximum).</param>
+        /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
+        public MAP(string pngFilename, PAL palette, int graphId, string description, ControlPoint[] controlPoints) : this()
+        {
+            this.Palette = palette;
+            PNG2BMP.SetupBMPEncoder(this.Palette);
             PNG2BMP.Convert(pngFilename, out this._bitmap, out this._width, out this._height);
 
             this._graphId = graphId;
@@ -83,15 +150,6 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Methods & Functions
-        void WriteHeader(BinaryWriter file)
-        {
-            DIVFormatCommonBase.WriteCommonHeader(file, MAP.HEADER_ID);
-            file.Write(this._width);
-            file.Write(this._height);
-            file.Write(this._graphId);
-            file.Write(this._description.GetASCIIZString(32));
-        }
-        
         void WriteControlPoints(BinaryWriter file)
         {
             file.Write((short)this._controlPoints.Count);
@@ -141,18 +199,34 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Write all data to file.
         /// </summary>
-        /// <param name="mapFilename"><see cref="MAP"/> filename.</param>
-        /// <param name="palFilename"><see cref="PAL"/> filename to use in this <see cref="MAP"/>.</param>
-        public void Save(string mapFilename, string palFilename)
+        /// <param name="filename"><see cref="MAP"/> filename.</param>
+        public override void Write(BinaryWriter file)
         {
-            using (var file = new BinaryWriter(File.OpenWrite(mapFilename)))
+            base.Write(file);
+
+            file.Write(this._width);
+            file.Write(this._height);
+            file.Write(this._graphId);
+            file.Write(this._description.GetASCIIZString(32));
+
+            this.Palette.Write(file);
+
+            this.WriteControlPoints(file);
+            file.Write(this._bitmap);
+        }
+
+        /// <summary>
+        /// Validates if the file is a valid <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="filename"><see cref="MAP"/> filename.</param>
+        /// <returns>Returns true if the file contains a valid <see cref="MAP"/> header format.</returns>
+        public static bool Validate(string filename)
+        {
+            using (var file = new BinaryReader(File.OpenRead(filename)))
             {
-                this.WriteHeader(file);
-                new PAL(palFilename).Write(file);
-                this.WriteControlPoints(file);
-                file.Write(this._bitmap);
+                return new MAP().Validate(file);
             }
-        } 
+        }
         #endregion
     } 
     #endregion

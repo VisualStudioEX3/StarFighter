@@ -45,7 +45,7 @@ namespace DIV2.Format.Exporter
         /// <param name="description">Optional MAP description (32 characters maximum).</param>
         /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
         public PNGImportDefinition(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null) :
-            this(true, buffer, String.Empty, graphId, description, controlPoints)
+            this(true, buffer, string.Empty, graphId, description, controlPoints)
         {
         }
 
@@ -78,15 +78,15 @@ namespace DIV2.Format.Exporter
     /// <summary>
     /// FPG creator.
     /// </summary>
-    public class FPG
+    public class FPG : DIVFormatCommonBase
     {
         #region Constants
-        const string HEADER_ID = "fpg";
-        const int HEADER_LENGTH = 64;
-        const int MIN_GRAPHID = 1;
-        const int MAX_GRAPHID = 999;
-        const int DESCRIPTION_LENGTH = 32;
-        const int FILENAME_LENGTH = 12;
+        public const int HEADER_LENGTH = 64;
+        public const int CONTROLPOINT_LENGTH = 4;
+        public const int MIN_GRAPHID = 1;
+        public const int MAX_GRAPHID = 999;
+        public const int DESCRIPTION_LENGTH = 32;
+        public const int FILENAME_LENGTH = 12;
         #endregion
 
         #region Structures
@@ -101,6 +101,13 @@ namespace DIV2.Format.Exporter
             public ControlPoint[] controlPoints;
             public byte[] bitmap;
             #endregion
+
+            #region Methods & Functions
+            public int GetSize()
+            {
+                return FPG.HEADER_LENGTH + (FPG.CONTROLPOINT_LENGTH * controlPoints.Length) + bitmap.Length;
+            } 
+            #endregion
         }
         #endregion
 
@@ -110,14 +117,35 @@ namespace DIV2.Format.Exporter
 
         #region Properties
         /// <summary>
+        /// <see cref="PAL"/> instance used by this <see cref="FPG"/>.
+        /// </summary>
+        public PAL Palette { get; }
+        /// <summary>
         /// All <see cref="PNGImportDefinition"/> setup for this <see cref="FPG"/>.
         /// </summary>
         public IReadOnlyList<PNGImportDefinition> Maps => this._maps;
         #endregion
 
         #region Constructor
-        public FPG()
+        internal FPG() : base("fpg")
         {
+        }
+
+        /// <summary>
+        /// Create new <see cref="FPG"/> instance.
+        /// </summary>
+        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="FPG"/>.</param>
+        public FPG(string palFilename) : this(new PAL(palFilename))
+        {
+        }
+
+        /// <summary>
+        /// Create new <see cref="FPG"/> instance.
+        /// </summary>
+        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="FPG"/>.</param>
+        public FPG(PAL palette) : this()
+        {
+            this.Palette = palette;
             this._maps = new List<PNGImportDefinition>();
         }
         #endregion
@@ -126,7 +154,7 @@ namespace DIV2.Format.Exporter
         void WriteMapRegister(BinaryWriter file, MapRegister register)
         {
             file.Write(register.graphId);
-            file.Write(register.bitmap.Length + FPG.HEADER_LENGTH);
+            file.Write(register.GetSize());
             file.Write(register.description.GetASCIIZString(FPG.DESCRIPTION_LENGTH));
             file.Write(register.filename.GetASCIIZString(FPG.FILENAME_LENGTH));
             file.Write(register.width);
@@ -143,6 +171,8 @@ namespace DIV2.Format.Exporter
         List<MapRegister> ImportPNGs()
         {
             var mapRegisters = new List<MapRegister>(this._maps.Count);
+
+            PNG2BMP.SetupBMPEncoder(this.Palette);
 
             foreach (var map in this._maps)
             {
@@ -289,29 +319,35 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Imports all <see cref="PNGImportDefinition"/> and write all data to file.
         /// </summary>
-        /// <param name="fpgFilename"><see cref="FPG"/> filename.</param>
-        /// <param name="palFilename"><see cref="PAL"/> file used in this <see cref="FPG"/>.</param>
-        public void Save(string fpgFilename, string palFilename)
+        /// <param name="filename"><see cref="FPG"/> filename.</param>
+        public override void Write(BinaryWriter file)
         {
             if (this._maps.Count == 0)
             {
                 throw new InvalidOperationException("The FPG not contain any MAP to import.");
             }
 
-            var palette = new PAL(palFilename);
-            PNG2BMP.SetupBMPEncoder(palette);
-
             List<MapRegister> mapRegisters = this.ImportPNGs();
 
-            using (var file = new BinaryWriter(File.OpenWrite(fpgFilename)))
-            {
-                DIVFormatCommonBase.WriteCommonHeader(file, FPG.HEADER_ID);
-                palette.Write(file);
+            base.Write(file);
+            this.Palette.Write(file);
 
-                foreach (var register in mapRegisters)
-                {
-                    this.WriteMapRegister(file, register);
-                }
+            foreach (var register in mapRegisters)
+            {
+                this.WriteMapRegister(file, register);
+            }
+        }
+
+        /// <summary>
+        /// Validates if the file is a valid <see cref="FPG"/> file.
+        /// </summary>
+        /// <param name="filename"><see cref="FPG"/> filename.</param>
+        /// <returns>Returns true if the file contains a valid <see cref="FPG"/> header format.</returns>
+        public static bool Validate(string filename)
+        {
+            using (var file = new BinaryReader(File.OpenRead(filename)))
+            {
+                return new FPG().Validate(file);
             }
         }
         #endregion
