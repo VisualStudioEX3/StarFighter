@@ -1,1 +1,0 @@
-wcl386 GIF.CPP gifdec.cpp ..\COMMON.CPP /l=div_dll -s
