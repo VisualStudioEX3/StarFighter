@@ -4,13 +4,14 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <Authors>José Miguel Sánchez Fernández</Authors>
     <Company>Visual Studio EX3</Company>
-    <Description>An util to export PNG files as DIV Game Studio MAP format and generate FPG files.</Description>
+    <Description>A tool to export PNG files as DIV Games Studio MAP format and generate FPG files.</Description>
     <Copyright>© Visual Studio EX3, José Miguel Sánchez Fernández - 2020</Copyright>
     <PackageProjectUrl>https://github.com/VisualStudioEX3/StarFighter/tree/develop/TOOLS/DIV2Tools</PackageProjectUrl>
     <RepositoryUrl>https://github.com/VisualStudioEX3/StarFighter/tree/develop/TOOLS/DIV2Tools</RepositoryUrl>
     <RepositoryType>GitHub</RepositoryType>
     <PackageTags>DIV DIV2 DIVGameStudio DIVGameStudio2 Games Graphics Tool</PackageTags>
     <Platforms>AnyCPU;x64</Platforms>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -34,7 +35,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-rc0002" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.1" />
   </ItemGroup>
 
 </Project>

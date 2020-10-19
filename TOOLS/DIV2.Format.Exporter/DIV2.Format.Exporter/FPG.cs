@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using DIV2.Format.Exporter.MethodExtensions;
+using System.Linq;
 
 namespace DIV2.Format.Exporter
 {
@@ -61,6 +62,16 @@ namespace DIV2.Format.Exporter
         {
         }
 
+        /// <summary>
+        /// Creates a PNG Import Definition for load PNG file.
+        /// </summary>
+        /// <param name="filename">PNG file to import.</param>
+        /// <param name="metadata"><see cref="MAPHeader"/> instance with all metadata for the <see cref="MAP"/> creation.</param>
+        public PNGImportDefinition(string filename, MAPHeader metadata) :
+            this(false, null, filename, metadata.GraphId, metadata.Description, metadata.ControlPoints.ToArray())
+        {
+        }
+
         PNGImportDefinition(bool binaryLoad, byte[] buffer, string filename, int graphId, string description, ControlPoint[] controlPoints)
         {
             this.BinaryLoad = binaryLoad;
@@ -90,7 +101,7 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Structures
-        struct MapRegister
+        struct Register
         {
             #region Public vars
             public int graphId;
@@ -120,6 +131,7 @@ namespace DIV2.Format.Exporter
         /// <see cref="PAL"/> instance used by this <see cref="FPG"/>.
         /// </summary>
         public PAL Palette { get; }
+
         /// <summary>
         /// All <see cref="PNGImportDefinition"/> setup for this <see cref="FPG"/>.
         /// </summary>
@@ -127,7 +139,7 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructor
-        internal FPG() : base("fpg")
+        FPG() : base("fpg")
         {
         }
 
@@ -148,10 +160,49 @@ namespace DIV2.Format.Exporter
             this.Palette = palette;
             this._maps = new List<PNGImportDefinition>();
         }
+        
+        /// <summary>
+        /// Create new <see cref="FPG"/> instace importing PNG files from a directory.
+        /// </summary>
+        /// <param name="palFilename"><see cref="PAL"/> file used to convert PNG colors to <see cref="MAP"/>.</param>
+        /// <param name="importPath">Directory to import.</param>
+        /// <remarks>Each PNG file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
+        public FPG(string palFilename, string importPath) : this(new PAL(palFilename), importPath)
+        {
+        }
+
+        /// <summary>
+        /// Create new <see cref="FPG"/> instance importing PNG files from a directory.
+        /// </summary>
+        /// <param name="palette">The <see cref="PAL"/> instance used to convert PNG colors to <see cref="MAP"/>.</param>
+        /// <param name="importPath">Directory to import.</param>
+        /// <remarks>Each PNG file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
+        public FPG(PAL palette, string importPath) : this()
+        {
+            // Key = PNG file, Value = JSON file:
+            Dictionary<string, string> files = Directory.GetFiles(importPath, "*.PNG").ToDictionary(e => Path.ChangeExtension(e, ".JSON"));
+
+            var fpg = new FPG(palette);
+            {
+                foreach (var file in files)
+                {
+                    if (File.Exists(file.Value))
+                    {
+                        string pngFile = file.Key;
+                        var metadata = MAPHeader.FromJSON(file.Value);
+                        fpg.AddMap(new PNGImportDefinition(pngFile, metadata));
+                    }
+                    else
+                    {
+                        throw new FileNotFoundException($"The JSON file \"{file.Value}\" not exists. Each PNG file must be follow by their JSON file, a serialized {nameof(MAPHeader)} object, with all {nameof(MAP)} metadata.");
+                    }
+                }
+            }
+        }
         #endregion
 
         #region Methods & Functions
-        void WriteMapRegister(BinaryWriter file, MapRegister register)
+        void WriteMapRegister(BinaryWriter file, Register register)
         {
             file.Write(register.graphId);
             file.Write(register.GetSize());
@@ -168,9 +219,9 @@ namespace DIV2.Format.Exporter
             file.Write(register.bitmap);
         }
 
-        List<MapRegister> ImportPNGs()
+        List<Register> ImportPNGs()
         {
-            var mapRegisters = new List<MapRegister>(this._maps.Count);
+            var mapRegisters = new List<Register>(this._maps.Count);
 
             PNG2BMP.SetupBMPEncoder(this.Palette);
 
@@ -188,7 +239,7 @@ namespace DIV2.Format.Exporter
                     PNG2BMP.Convert(map.Filename, out pixels, out width, out height);
                 }
 
-                mapRegisters.Add(new MapRegister()
+                mapRegisters.Add(new Register()
                 {
                     graphId = map.GraphId,
                     description = map.Description,
@@ -327,7 +378,7 @@ namespace DIV2.Format.Exporter
                 throw new InvalidOperationException("The FPG not contain any MAP to import.");
             }
 
-            List<MapRegister> mapRegisters = this.ImportPNGs();
+            List<Register> mapRegisters = this.ImportPNGs();
 
             base.Write(file);
             this.Palette.Write(file);

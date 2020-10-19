@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using DIV2.Format.Exporter.MethodExtensions;
 
 namespace DIV2.Format.Exporter
 {

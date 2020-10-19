@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using DIV2.Format.Exporter.MethodExtensions;
+using Newtonsoft.Json;
 
 namespace DIV2.Format.Exporter
 {
@@ -42,6 +43,164 @@ namespace DIV2.Format.Exporter
         }
         #endregion
     }
+
+    /// <summary>
+    /// MAP metadata.
+    /// </summary>
+    [Serializable]
+    public class MAPHeader
+    {
+        #region Constants
+        const string OUT_OF_RANGE_EXCEPTION_MESSAGE = "The \"{0}\" property must be a value between {1} and {2}.";
+        const short MIN_PIXEL_SIZE = 1;
+
+        public const int MIN_GRAPHID = 1;
+        public const int MAX_GRAPHID = 999;
+        public const int DESCRIPTION_LENGTH = 32;
+        #endregion
+
+        short _width;
+        short _height;
+        int _graphId;
+        string _description;
+
+        #region Public vars
+        ArgumentOutOfRangeException FormatException(string parameter, int min, int max)
+        {
+            return new ArgumentOutOfRangeException(string.Format(MAPHeader.OUT_OF_RANGE_EXCEPTION_MESSAGE, parameter, min, max));
+        }
+
+        /// <summary>
+        /// <see cref="MAP"/> width.
+        /// </summary>
+        public short Width 
+        {
+            get => this._width;
+            set
+            {
+                if (!value.IsClamped(MAPHeader.MIN_PIXEL_SIZE, short.MaxValue))
+                {
+                    throw this.FormatException(nameof(Width), MAPHeader.MIN_PIXEL_SIZE, short.MaxValue);
+                }
+                this._width = value;
+            }
+        }
+
+        /// <summary>
+        /// <see cref="MAP"/> height.
+        /// </summary>
+        public short Height
+        {
+            get => this._height;
+            set
+            {
+                if (!value.IsClamped(MAPHeader.MIN_PIXEL_SIZE, short.MaxValue))
+                {
+                    throw this.FormatException(nameof(Height), MAPHeader.MIN_PIXEL_SIZE, short.MaxValue);
+                }
+                this._height = value;
+            }
+        }
+
+        /// <summary>
+        /// <see cref="MAP"/> Graph ID, a value between 1 and 999, used only on FPGs.
+        /// </summary>
+        public int GraphId
+        {
+            get => this._graphId;
+            set
+            {
+                if (!value.IsClamped(MAPHeader.MIN_GRAPHID, MAPHeader.MAX_GRAPHID))
+                {
+                    throw this.FormatException(nameof(GraphId), MAPHeader.MIN_GRAPHID, MAPHeader.MAX_GRAPHID);
+                }
+                this._graphId = value;
+            }
+        }
+
+
+        /// <summary>
+        /// Optional <see cref="MAP"/> description. Maximum 32 characteres.
+        /// </summary>
+        public string Description { get; set; }
+
+        /// <summary>
+        /// Optional list with <see cref="MAP"/> <see cref="ControlPoint"/>s.
+        /// </summary>
+        public List<ControlPoint> ControlPoints { get; set; }
+        #endregion
+
+        #region Constructors
+        /// <summary>
+        /// Create new instance with default values.
+        /// </summary>
+        public MAPHeader()
+        {
+            this.Width = this.Height = MAPHeader.MIN_PIXEL_SIZE;
+            this.GraphId = MAPHeader.MIN_GRAPHID;
+            this.ControlPoints = new List<ControlPoint>();
+        }
+
+        /// <summary>
+        /// Create new instance.
+        /// </summary>
+        /// <param name="width"><see cref="MAP"/> width.</param>
+        /// <param name="height"><see cref="MAP"/> height.</param>
+        /// <param name="graphId"><see cref="MAP"/> Graph ID, a value between 1 and 999, used only on FPGs.</param>
+        /// <param name="description">Optional <see cref="MAP"/> description. Maximum 32 characteres.</param>
+        /// <param name="controlPoints">Optional list with <see cref="MAP"/> <see cref="ControlPoint"/>s.</param>
+        public MAPHeader(short width, short height, int graphId, string description = "", ControlPoint[] controlPoints = null)
+        {
+            this.Width = width;
+            this.Height = height;
+            this.GraphId = graphId;
+            this.Description = description;
+            if (controlPoints != null)
+            {
+                this.ControlPoints = new List<ControlPoint>(controlPoints);
+            }
+        } 
+        #endregion
+
+        #region Methods & Functions
+        /// <summary>
+        /// Create new instance from JSON file.
+        /// </summary>
+        /// <param name="filename">JSON file to import.</param>
+        /// <returns>Returns the new instance of <see cref="MAPHeader"/> from JSON data.</returns>
+        public static MAPHeader FromJSON(string filename)
+        {
+            return JsonConvert.DeserializeObject<MAPHeader>(filename);
+        }
+
+        /// <summary>
+        /// Serialized this instance to JSON format.
+        /// </summary>
+        /// <param name="filename">JSON file to serialize this instance.</param>
+        public void ToJSON(string filename)
+        {
+            string json = JsonConvert.SerializeObject(this);
+            File.WriteAllText(filename, json);
+        }
+
+        public void Write(BinaryWriter file, PAL palette)
+        {
+            file.Write(this.Width);
+            file.Write(this.Height);
+            file.Write(this.GraphId);
+            file.Write(this.Description.GetASCIIZString(MAPHeader.DESCRIPTION_LENGTH));
+
+            palette.Write(file);
+
+            file.Write((short)this.ControlPoints.Count);
+            foreach (var point in this.ControlPoints)
+            {
+                file.Write(point.x);
+                file.Write(point.y);
+            }
+        } 
+        #endregion
+    }
     #endregion
 
     #region Class
@@ -51,11 +210,7 @@ namespace DIV2.Format.Exporter
     public class MAP : DIVFormatCommonBase
     {
         #region Internal vars
-        short _width;
-        short _height;
-        int _graphId;
-        string _description;
-        List<ControlPoint> _controlPoints;
+        MAPHeader _header;
         byte[] _bitmap;
         #endregion
 
@@ -67,12 +222,13 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// <see cref="ControlPoint"/> list of this <see cref="MAP"/>.
         /// </summary>
-        public IReadOnlyList<ControlPoint> ControlPoints => this._controlPoints;
+        public IReadOnlyList<ControlPoint> ControlPoints => this._header.ControlPoints;
         #endregion
 
         #region Constructor
         internal MAP() : base("map")
         {
+            this._header = new MAPHeader();
         }
 
         /// <summary>
@@ -141,25 +297,19 @@ namespace DIV2.Format.Exporter
         {
             this.Palette = palette;
             PNG2BMP.SetupBMPEncoder(this.Palette);
-            PNG2BMP.Convert(pngFilename, out this._bitmap, out this._width, out this._height);
 
-            this._graphId = graphId;
-            this._description = description;
-            this._controlPoints = new List<ControlPoint>(controlPoints);
+            short width, height;
+            PNG2BMP.Convert(pngFilename, out this._bitmap, out width, out height);
+
+            this._header.Width = width;
+            this._header.Height = height;
+            this._header.GraphId = graphId;
+            this._header.Description = description;
+            this._header.ControlPoints = new List<ControlPoint>(controlPoints);
         }
         #endregion
 
         #region Methods & Functions
-        void WriteControlPoints(BinaryWriter file)
-        {
-            file.Write((short)this._controlPoints.Count);
-            foreach (var point in this._controlPoints)
-            {
-                file.Write(point.x);
-                file.Write(point.y);
-            }
-        }
-
         /// <summary>
         /// Adds a <see cref="ControlPoint"/> to this <see cref="MAP"/>.
         /// </summary>
@@ -176,7 +326,7 @@ namespace DIV2.Format.Exporter
         /// <param name="point"><see cref="ControlPoint"/> data.</param>
         public void AddControlPoint(ControlPoint point)
         {
-            this._controlPoints.Add(point);
+            this._header.ControlPoints.Add(point);
         }
 
         /// <summary>
@@ -185,7 +335,7 @@ namespace DIV2.Format.Exporter
         /// <param name="index"><see cref="ControlPoint"/> index.</param>
         public void RemoveControlPoint(int index)
         {
-            this._controlPoints.RemoveAt(index);
+            this._header.ControlPoints.RemoveAt(index);
         }
 
         /// <summary>
@@ -193,7 +343,7 @@ namespace DIV2.Format.Exporter
         /// </summary>
         public void RemoveAllControlPoints()
         {
-            this._controlPoints.Clear();
+            this._header.ControlPoints.Clear();
         }
 
         /// <summary>
@@ -203,15 +353,7 @@ namespace DIV2.Format.Exporter
         public override void Write(BinaryWriter file)
         {
             base.Write(file);
-
-            file.Write(this._width);
-            file.Write(this._height);
-            file.Write(this._graphId);
-            file.Write(this._description.GetASCIIZString(32));
-
-            this.Palette.Write(file);
-
-            this.WriteControlPoints(file);
+            this._header.Write(file, this.Palette);
             file.Write(this._bitmap);
         }
 
@@ -228,6 +370,6 @@ namespace DIV2.Format.Exporter
             }
         }
         #endregion
-    } 
+    }
     #endregion
 }
