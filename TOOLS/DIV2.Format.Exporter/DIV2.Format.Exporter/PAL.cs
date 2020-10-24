@@ -114,7 +114,7 @@ namespace DIV2.Format.Exporter
         /// Writes all palette data to the file stream, except the file header.
         /// </summary>
         /// <param name="stream">File to write.</param>
-        public override void Write(BinaryWriter stream)
+        internal override void Write(BinaryWriter stream)
         {
             stream.Write(this.ColorTable);
             stream.Write(this.RangeTable);

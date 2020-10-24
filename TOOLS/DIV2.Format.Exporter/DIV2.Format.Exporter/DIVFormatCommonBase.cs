@@ -38,8 +38,8 @@ namespace DIV2.Format.Exporter
         /// Writes the data to file.
         /// </summary>
         /// <param name="file"><see cref="BinaryWriter"/> instance.</param>
-        /// <remarks>Call base implementation to write the header data.</remarks>
-        public virtual void Write(BinaryWriter file)
+        /// <remarks>Call base implementation to write the common file header data.</remarks>
+        internal virtual void Write(BinaryWriter file)
         {
             this.WriteHeader(file);
         }

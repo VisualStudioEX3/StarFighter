@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using DIV2.Format.Exporter.MethodExtensions;
 using Newtonsoft.Json;
 
@@ -42,6 +43,38 @@ namespace DIV2.Format.Exporter
             this.y = (short)y;
         }
         #endregion
+
+        #region Methods & Functions
+        public void Write(BinaryWriter file)
+        {
+            file.Write(this.x);
+            file.Write(this.y);
+        } 
+        #endregion
+    }
+
+    public static class ControlPointExtensions
+    {
+        /// <summary>
+        /// Serialize the <see cref="ControlPoint"/> list as DIV formats expected.
+        /// </summary>
+        /// <typeparam name="T">Type of the counter value must be writed. Only <see cref="short"/> and <see cref="int"/> types are valid.</typeparam>
+        /// <param name="points"><see cref="ControlPoint"/> list to serialize.</param>
+        /// <param name="file"><see cref="BinaryWriter"/> instance.</param>
+        internal static void Write<T>(this IEnumerable<ControlPoint> points, BinaryWriter file) where T : struct
+        {
+            if (typeof(T) != typeof(short) ||
+                typeof(T) != typeof(int))
+            {
+                throw new ArgumentException($"Invalid type for counter. Only short and int types are valid.");
+            }
+
+            file.Write(typeof(T) != typeof(short) ? (short)points.Count() : points.Count());
+            foreach (var point in points)
+            {
+                point.Write(file);
+            }
+        }
     }
 
     /// <summary>
@@ -59,12 +92,13 @@ namespace DIV2.Format.Exporter
         public const int DESCRIPTION_LENGTH = 32;
         #endregion
 
+        #region Internal vars
         short _width;
         short _height;
-        int _graphId;
-        string _description;
+        int _graphId; 
+        #endregion
 
-        #region Public vars
+        #region Properties
         ArgumentOutOfRangeException FormatException(string parameter, int min, int max)
         {
             return new ArgumentOutOfRangeException(string.Format(MAPHeader.OUT_OF_RANGE_EXCEPTION_MESSAGE, parameter, min, max));
@@ -103,7 +137,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// <see cref="MAP"/> Graph ID, a value between 1 and 999, used only on FPGs.
+        /// <see cref="MAP"/> Graph Id, a value between 1 and 999, used only on FPGs.
         /// </summary>
         public int GraphId
         {
@@ -164,40 +198,32 @@ namespace DIV2.Format.Exporter
 
         #region Methods & Functions
         /// <summary>
-        /// Create new instance from JSON file.
+        /// Create new instance from JSON data.
         /// </summary>
-        /// <param name="filename">JSON file to import.</param>
+        /// <param name="data">JSON data to import.</param>
         /// <returns>Returns the new instance of <see cref="MAPHeader"/> from JSON data.</returns>
-        public static MAPHeader FromJSON(string filename)
+        public static MAPHeader FromJSON(string data)
         {
-            return JsonConvert.DeserializeObject<MAPHeader>(filename);
+            return JsonConvert.DeserializeObject<MAPHeader>(data);
         }
 
         /// <summary>
         /// Serialized this instance to JSON format.
         /// </summary>
-        /// <param name="filename">JSON file to serialize this instance.</param>
-        public void ToJSON(string filename)
+        /// <returns>Returns the <see cref="MAPHeader"/> instance serialized as JSON data.</returns>
+        public string ToJSON()
         {
-            string json = JsonConvert.SerializeObject(this);
-            File.WriteAllText(filename, json);
+            return JsonConvert.SerializeObject(this);
         }
 
-        public void Write(BinaryWriter file, PAL palette)
+        internal void Write(BinaryWriter file, PAL palette)
         {
             file.Write(this.Width);
             file.Write(this.Height);
             file.Write(this.GraphId);
             file.Write(this.Description.GetASCIIZString(MAPHeader.DESCRIPTION_LENGTH));
-
             palette.Write(file);
-
-            file.Write((short)this.ControlPoints.Count);
-            foreach (var point in this.ControlPoints)
-            {
-                file.Write(point.x);
-                file.Write(point.y);
-            }
+            this.ControlPoints.Write<short>(file);
         } 
         #endregion
     }
@@ -350,7 +376,7 @@ namespace DIV2.Format.Exporter
         /// Write all data to file.
         /// </summary>
         /// <param name="filename"><see cref="MAP"/> filename.</param>
-        public override void Write(BinaryWriter file)
+        internal override void Write(BinaryWriter file)
         {
             base.Write(file);
             this._header.Write(file, this.Palette);

@@ -189,7 +189,7 @@ namespace DIV2.Format.Exporter
                     if (File.Exists(file.Value))
                     {
                         string pngFile = file.Key;
-                        var metadata = MAPHeader.FromJSON(file.Value);
+                        var metadata = MAPHeader.FromJSON(File.ReadAllText(file.Value));
                         fpg.AddMap(new PNGImportDefinition(pngFile, metadata));
                     }
                     else
@@ -210,12 +210,7 @@ namespace DIV2.Format.Exporter
             file.Write(register.filename.GetASCIIZString(FPG.FILENAME_LENGTH));
             file.Write(register.width);
             file.Write(register.height);
-            file.Write(register.controlPoints.Length);
-            foreach (var point in register.controlPoints)
-            {
-                file.Write(point.x);
-                file.Write(point.y);
-            }
+            register.controlPoints.Write<int>(file);
             file.Write(register.bitmap);
         }
 
@@ -296,22 +291,22 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Adds a <see cref="PNGImportDefinition"/> to import in the <see cref="FPG"/>.
         /// </summary>
-        /// <param name="pngFile"><see cref="PNGImportDefinition"/> data to import.</param>
-        public void AddMap(PNGImportDefinition pngFile)
+        /// <param name="definition"><see cref="PNGImportDefinition"/> data to import.</param>
+        public void AddMap(PNGImportDefinition definition)
         {
-            if (!pngFile.GraphId.IsClamped(FPG.MIN_GRAPHID, FPG.MAX_GRAPHID))
+            if (!definition.GraphId.IsClamped(FPG.MIN_GRAPHID, FPG.MAX_GRAPHID))
             {
-                throw new ArgumentOutOfRangeException(nameof(pngFile.GraphId), $"The GraphID must be a value between {FPG.MIN_GRAPHID} and {FPG.MAX_GRAPHID} (Current GraphId: {pngFile.GraphId})");
+                throw new ArgumentOutOfRangeException(nameof(definition.GraphId), $"The GraphID must be a value between {FPG.MIN_GRAPHID} and {FPG.MAX_GRAPHID} (Current GraphId: {definition.GraphId})");
             }
 
             int mapIndex;
-            if (!this.TryGetMapIndexByGraphId(pngFile.GraphId, out mapIndex))
+            if (!this.TryGetMapIndexByGraphId(definition.GraphId, out mapIndex))
             {
-                this._maps.Add(pngFile);
+                this._maps.Add(definition);
             }
             else
             {
-                throw new ArgumentException(nameof(pngFile.GraphId), $"The GraphID {pngFile.GraphId} is already in use by other map (Map index: {mapIndex})");
+                throw new ArgumentException(nameof(definition.GraphId), $"The GraphID {definition.GraphId} is already in use by other map (Map index: {mapIndex})");
             }
         }
 
@@ -371,7 +366,7 @@ namespace DIV2.Format.Exporter
         /// Imports all <see cref="PNGImportDefinition"/> and write all data to file.
         /// </summary>
         /// <param name="filename"><see cref="FPG"/> filename.</param>
-        public override void Write(BinaryWriter file)
+        internal override void Write(BinaryWriter file)
         {
             if (this._maps.Count == 0)
             {
