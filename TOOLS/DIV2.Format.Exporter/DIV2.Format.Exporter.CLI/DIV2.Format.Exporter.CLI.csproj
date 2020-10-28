@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Copyright>© Visual Studio EX3, José Miguel Sánchez Fernández - 2020</Copyright>
+    <Description>Command line interface for DIV2.Format.Exporter.</Description>
+    <Company>Visual Studio EX3</Company>
+    <Authors>José Miguel Sánchez Fernández</Authors>
+    <PackageId>DIV2.Format.Exporter Command Line Interface</PackageId>
+    <Product>DIV2.Format.Exporter Command Line Interface</Product>
+    <PackageProjectUrl>https://github.com/VisualStudioEX3/StarFighter/tree/develop/TOOLS/DIV2Tools</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/VisualStudioEX3/StarFighter/tree/develop/TOOLS/DIV2Tools</RepositoryUrl>
+    <RepositoryType>GitHub</RepositoryType>
+    <PackageTags>DIV DIV2 DIVGameStudio DIVGameStudio2 Games Graphics Tool</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DIV2.Format.Exporter\DIV2.Format.Exporter.csproj" />
+  </ItemGroup>
+
+</Project>
