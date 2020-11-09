@@ -1,30 +1,33 @@
-﻿using System;
+﻿using DIV2.Format.Exporter.Converters;
+using DIV2.Format.Exporter.MethodExtensions;
+using DIV2.Format.Importer;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using DIV2.Format.Exporter.MethodExtensions;
 using System.Linq;
 
 namespace DIV2.Format.Exporter
 {
     #region Structures
     /// <summary>
-    /// PNG import definition data.
+    /// Image import definition data.
     /// </summary>
+    /// <remarks>Supported formats are Jpeg, Png, Bmp, Gif and Tga.</remarks>
     [Serializable]
-    public struct PNGImportDefinition
+    public struct ImportDefinition
     {
         #region Properties
         internal bool BinaryLoad { get; private set; }
         /// <summary>
-        /// PNG data to import.
+        /// Image data to import.
         /// </summary>
         public byte[] Buffer { get; private set; }
         /// <summary>
-        /// PNG filename to import.
+        /// Image filename to import.
         /// </summary>
         public string Filename { get; private set; }
         /// <summary>
-        /// <see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the FPG.
+        /// <see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the <see cref="FPG"/>.
         /// </summary>
         public int GraphId { get; private set; }
         /// <summary>
@@ -39,40 +42,40 @@ namespace DIV2.Format.Exporter
 
         #region Constructors
         /// <summary>
-        /// Creates a PNG Import Definition for load buffer data.
+        /// Creates an Image Import Definition for load buffer data.
         /// </summary>
-        /// <param name="buffer"><see cref="byte"/> array with the PNG data to import.</param>
+        /// <param name="buffer"><see cref="byte"/> array with the image data to import.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Optional MAP description (32 characters maximum).</param>
+        /// <param name="description">Optional <see cref="MAP>"/> description (32 characters maximum).</param>
         /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
-        public PNGImportDefinition(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null) :
+        public ImportDefinition(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null) :
             this(true, buffer, string.Empty, graphId, description, controlPoints)
         {
         }
 
         /// <summary>
-        /// Creates a PNG Import Definition for load PNG file.
+        /// Creates an Image Import Definition for load PNG file.
         /// </summary>
-        /// <param name="filename">PNG file to import.</param>
+        /// <param name="filename">Image file to import.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Optional MAP description (32 characters maximum).</param>
+        /// <param name="description">Optional <see cref="MAP"/> description (32 characters maximum).</param>
         /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
-        public PNGImportDefinition(string filename, int graphId, string description = "", ControlPoint[] controlPoints = null) :
+        public ImportDefinition(string filename, int graphId, string description = "", ControlPoint[] controlPoints = null) :
             this(false, null, filename, graphId, description, controlPoints)
         {
         }
 
         /// <summary>
-        /// Creates a PNG Import Definition for load PNG file.
+        /// Creates an Image Import Definition for load PNG file.
         /// </summary>
-        /// <param name="filename">PNG file to import.</param>
+        /// <param name="filename">Image file to import.</param>
         /// <param name="metadata"><see cref="MAPHeader"/> instance with all metadata for the <see cref="MAP"/> creation.</param>
-        public PNGImportDefinition(string filename, MAPHeader metadata) :
+        public ImportDefinition(string filename, MAPHeader metadata) :
             this(false, null, filename, metadata.GraphId, metadata.Description, metadata.ControlPoints.ToArray())
         {
         }
 
-        PNGImportDefinition(bool binaryLoad, byte[] buffer, string filename, int graphId, string description, ControlPoint[] controlPoints)
+        ImportDefinition(bool binaryLoad, byte[] buffer, string filename, int graphId, string description, ControlPoint[] controlPoints)
         {
             this.BinaryLoad = binaryLoad;
             this.Filename = filename;
@@ -92,12 +95,14 @@ namespace DIV2.Format.Exporter
     public class FPG : DIVFormatCommonBase
     {
         #region Constants
-        public const int HEADER_LENGTH = 64;
+        public const int MAP_BASE_METADATA_LENGTH = 64;
         public const int CONTROLPOINT_LENGTH = 4;
         public const int MIN_GRAPHID = 1;
         public const int MAX_GRAPHID = 999;
         public const int DESCRIPTION_LENGTH = 32;
         public const int FILENAME_LENGTH = 12;
+
+        readonly static string[] SUPPORTED_IMAGE_EXTENSIONS = { "jpg", "jpeg", "png", "bmp", "gif", "tga", "pcx" };
         #endregion
 
         #region Structures
@@ -116,14 +121,14 @@ namespace DIV2.Format.Exporter
             #region Methods & Functions
             public int GetSize()
             {
-                return FPG.HEADER_LENGTH + (FPG.CONTROLPOINT_LENGTH * controlPoints.Length) + bitmap.Length;
-            } 
+                return FPG.MAP_BASE_METADATA_LENGTH + (FPG.CONTROLPOINT_LENGTH * controlPoints.Length) + bitmap.Length;
+            }
             #endregion
         }
         #endregion
 
         #region Internal vars
-        List<PNGImportDefinition> _maps;
+        List<ImportDefinition> _maps;
         #endregion
 
         #region Properties
@@ -133,9 +138,9 @@ namespace DIV2.Format.Exporter
         public PAL Palette { get; }
 
         /// <summary>
-        /// All <see cref="PNGImportDefinition"/> setup for this <see cref="FPG"/>.
+        /// All <see cref="ImportDefinition"/> setup for this <see cref="FPG"/>.
         /// </summary>
-        public IReadOnlyList<PNGImportDefinition> Maps => this._maps;
+        public IReadOnlyList<ImportDefinition> Maps => this._maps;
         #endregion
 
         #region Constructor
@@ -158,9 +163,9 @@ namespace DIV2.Format.Exporter
         public FPG(PAL palette) : this()
         {
             this.Palette = palette;
-            this._maps = new List<PNGImportDefinition>();
+            this._maps = new List<ImportDefinition>();
         }
-        
+
         /// <summary>
         /// Create new <see cref="FPG"/> instace importing PNG files from a directory.
         /// </summary>
@@ -174,27 +179,41 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Create new <see cref="FPG"/> instance importing PNG files from a directory.
         /// </summary>
-        /// <param name="palette">The <see cref="PAL"/> instance used to convert PNG colors to <see cref="MAP"/>.</param>
+        /// <param name="palette">The <see cref="PAL"/> instance used to convert image colors to <see cref="MAP"/>.</param>
         /// <param name="importPath">Directory to import.</param>
-        /// <remarks>Each PNG file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
+        /// <remarks>Supported formats are Jpeg, Png, Bmp, Gif and Tga. Each Image file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
         public FPG(PAL palette, string importPath) : this()
         {
-            // Key = PNG file, Value = JSON file:
-            Dictionary<string, string> files = Directory.GetFiles(importPath, "*.PNG").ToDictionary(e => Path.ChangeExtension(e, ".JSON"));
+            // Get all files of the first extension detected:
+            string[] images = null;
+            
+            foreach (var ext in FPG.SUPPORTED_IMAGE_EXTENSIONS)
+            {
+                if (images is null || images.Length == 0)
+                {
+                    images = Directory.GetFiles(importPath, $"?.{ext}");
+                }
+            }
+
+            if (images.Length == 0)
+            {
+                throw new FileNotFoundException($"The directory \"{importPath}\" not contain any supported image file.");
+            }
 
             var fpg = new FPG(palette);
             {
-                foreach (var file in files)
+                // Key = PNG file, Value = JSON file:
+                foreach (var file in images.ToDictionary(e => Path.ChangeExtension(e, ".json")))
                 {
                     if (File.Exists(file.Value))
                     {
                         string pngFile = file.Key;
                         var metadata = MAPHeader.FromJSON(File.ReadAllText(file.Value));
-                        fpg.AddMap(new PNGImportDefinition(pngFile, metadata));
+                        fpg.AddMap(new ImportDefinition(pngFile, metadata));
                     }
                     else
                     {
-                        throw new FileNotFoundException($"The JSON file \"{file.Value}\" not exists. Each PNG file must be follow by their JSON file, a serialized {nameof(MAPHeader)} object, with all {nameof(MAP)} metadata.");
+                        throw new FileNotFoundException($"The JSON file \"{file.Value}\" not exists. Each Image file must be follow by their JSON file, a serialized {nameof(MAPHeader)} object, with all {nameof(MAP)} metadata.");
                     }
                 }
             }
@@ -214,25 +233,15 @@ namespace DIV2.Format.Exporter
             file.Write(register.bitmap);
         }
 
-        List<Register> ImportPNGs()
+        List<Register> ImportImages()
         {
             var mapRegisters = new List<Register>(this._maps.Count);
 
-            PNG2BMP.SetupBMPEncoder(this.Palette);
-
             foreach (var map in this._maps)
             {
-                byte[] pixels;
-                short width, height;
+                byte[] buffer = map.BinaryLoad ? map.Buffer : File.ReadAllBytes(map.Filename);
 
-                if (map.BinaryLoad)
-                {
-                    PNG2BMP.Convert(map.Buffer, out pixels, out width, out height);
-                }
-                else
-                {
-                    PNG2BMP.Convert(map.Filename, out pixels, out width, out height);
-                }
+                BMP256Converter.Convert(buffer, out byte[] bitmap, out short width, out short height, this.Palette);
 
                 mapRegisters.Add(new Register()
                 {
@@ -242,7 +251,7 @@ namespace DIV2.Format.Exporter
                     width = width,
                     height = height,
                     controlPoints = map.ControlPoints,
-                    bitmap = pixels
+                    bitmap = bitmap
                 });
             }
 
@@ -265,34 +274,34 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Adds a PNG definition to import in the <see cref="FPG"/>.
+        /// Adds an image definition to import in the <see cref="FPG"/>.
         /// </summary>
-        /// <param name="buffer">PNG data to import.</param>
+        /// <param name="buffer">Image data to import.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the <see cref="FPG"/>.</param>
         /// <param name="description">Optional graphic description. 32 characters maximum.</param>
         /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
         public void AddMap(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null)
         {
-            this.AddMap(new PNGImportDefinition(buffer, graphId, description, controlPoints ?? new ControlPoint[0]));
+            this.AddMap(new ImportDefinition(buffer, graphId, description, controlPoints ?? new ControlPoint[0]));
         }
 
         /// <summary>
-        /// Adds a PNG definition to import in the <see cref="FPG"/>.
+        /// Adds an image definition to import in the <see cref="FPG"/>.
         /// </summary>
-        /// <param name="filename">PNG filename to import.</param>
+        /// <param name="filename">Image filename to import.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the <see cref="FPG"/>.</param>
         /// <param name="description">Optional graphic description. 32 characters maximum.</param>
         /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
         public void AddMap(string filename, int graphId, string description = "", ControlPoint[] controlPoints = null)
         {
-            this.AddMap(new PNGImportDefinition(filename, graphId, description, controlPoints ?? new ControlPoint[0]));
+            this.AddMap(new ImportDefinition(filename, graphId, description, controlPoints ?? new ControlPoint[0]));
         }
 
         /// <summary>
-        /// Adds a <see cref="PNGImportDefinition"/> to import in the <see cref="FPG"/>.
+        /// Adds an <see cref="ImportDefinition"/> to import in the <see cref="FPG"/>.
         /// </summary>
-        /// <param name="definition"><see cref="PNGImportDefinition"/> data to import.</param>
-        public void AddMap(PNGImportDefinition definition)
+        /// <param name="definition"><see cref="ImportDefinition"/> data to import.</param>
+        public void AddMap(ImportDefinition definition)
         {
             if (!definition.GraphId.IsClamped(FPG.MIN_GRAPHID, FPG.MAX_GRAPHID))
             {
@@ -311,18 +320,18 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Removes a <see cref="PNGImportDefinition"/> from the <see cref="FPG"/>.
+        /// Removes a <see cref="ImportDefinition"/> from the <see cref="FPG"/>.
         /// </summary>
-        /// <param name="index">Index of the <see cref="PNGImportDefinition"/>.</param>
+        /// <param name="index">Index of the <see cref="ImportDefinition"/>.</param>
         public void RemoveMap(int index)
         {
             this._maps.RemoveAt(index);
         }
 
         /// <summary>
-        /// Removes a <see cref="PNGImportDefinition"/> from the <see cref="FPG"/> using their graphic id.
+        /// Removes a <see cref="ImportDefinition"/> from the <see cref="FPG"/> using their graphic id.
         /// </summary>
-        /// <param name="graphId">Graphic id of the <see cref="PNGImportDefinition"/>.</param>
+        /// <param name="graphId">Graphic id of the <see cref="ImportDefinition"/>.</param>
         public void RemoveMapByGraphId(short graphId)
         {
             int mapIndex;
@@ -337,7 +346,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Removes all <see cref="PNGImportDefinition"/>s from the <see cref="FPG"/>.
+        /// Removes all <see cref="ImportDefinition"/>s from the <see cref="FPG"/>.
         /// </summary>
         public void RemoveAllMaps()
         {
@@ -345,11 +354,11 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Search a <see cref="PNGImportDefinition"/> by their graphic id.
+        /// Search a <see cref="ImportDefinition"/> by their graphic id.
         /// </summary>
-        /// <param name="graphId">Graphic id of the <see cref="PNGImportDefinition"/>.</param>
-        /// <returns>Returns the <see cref="PNGImportDefinition"/> data.</returns>
-        public PNGImportDefinition FindByGraphId(short graphId)
+        /// <param name="graphId">Graphic id of the <see cref="ImportDefinition"/>.</param>
+        /// <returns>Returns the <see cref="ImportDefinition"/> data.</returns>
+        public ImportDefinition FindByGraphId(short graphId)
         {
             int mapIndex;
             if (this.TryGetMapIndexByGraphId(graphId, out mapIndex))
@@ -363,7 +372,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Imports all <see cref="PNGImportDefinition"/> and write all data to file.
+        /// Imports all <see cref="ImportDefinition"/> and write all data to file.
         /// </summary>
         /// <param name="filename"><see cref="FPG"/> filename.</param>
         internal override void Write(BinaryWriter file)
@@ -373,27 +382,14 @@ namespace DIV2.Format.Exporter
                 throw new InvalidOperationException("The FPG not contain any MAP to import.");
             }
 
-            List<Register> mapRegisters = this.ImportPNGs();
+            List<Register> mapRegisters = this.ImportImages();
 
             base.Write(file);
-            this.Palette.Write(file);
+            this.Palette.WriteEmbebed(file);
 
             foreach (var register in mapRegisters)
             {
                 this.WriteMapRegister(file, register);
-            }
-        }
-
-        /// <summary>
-        /// Validates if the file is a valid <see cref="FPG"/> file.
-        /// </summary>
-        /// <param name="filename"><see cref="FPG"/> filename.</param>
-        /// <returns>Returns true if the file contains a valid <see cref="FPG"/> header format.</returns>
-        public static bool Validate(string filename)
-        {
-            using (var file = new BinaryReader(File.OpenRead(filename)))
-            {
-                return new FPG().Validate(file);
             }
         }
         #endregion

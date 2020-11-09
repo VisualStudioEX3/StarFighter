@@ -1,4 +1,6 @@
-﻿using System;
+﻿using DIV2.Format.Exporter.Converters;
+using DIV2.Format.Importer;
+using System;
 using System.IO;
 
 namespace DIV2.Format.Exporter
@@ -14,13 +16,33 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Properties
-        public byte[] ColorTable { get; }
-        public byte[] RangeTable { get; }
+        /// <summary>
+        /// Palette colors in DAC format [0..63].
+        /// </summary>
+        public byte[] ColorTable { get; private set; }
+        /// <summary>
+        /// Color ranges table.
+        /// </summary>
+        public byte[] RangeTable { get; private set; }
+        #endregion
+
+        #region Operators
+        public static bool operator ==(PAL a, PAL b)
+        {
+            return a.GetHashCode() == b.GetHashCode();
+        }
+
+        public static bool operator !=(PAL a, PAL b)
+        {
+            return !(a == b);
+        }
         #endregion
 
         #region Constructors
         internal PAL() : base("pal")
         {
+            this.ColorTable = new byte[PAL.COLOR_TABLE_LENGTH];
+            this.RangeTable = new byte[PAL.RANGE_TABLE_LENGHT];
         }
 
         /// <summary>
@@ -44,18 +66,24 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Creates new <see cref="PAL"/> instance from color array.
         /// </summary>
-        /// <param name="colors"><see cref="byte"/> array of RGB colors in DAC format (value ranges 0-63).</param>
-        /// <remarks>Warning: Import array color with full RGB range (0-255) may cause bad behaviour in DIV Games Studio.
-        /// Hint: If you need to adapt full RGB value to DAC format, divide by 4 each color component.</remarks>
-        public PAL(byte[] colors) : this()
+        /// <param name="colors"><see cref="byte"/> array of RGB colors.</param>
+        /// <param name="convertToDAC">If the source is full RGB range [0..255], convert all values to DAC format [0..63]. By default is false.</param>
+        public PAL(byte[] colors, bool convertToDAC = false) : this()
         {
             if (colors.Length != PAL.COLOR_TABLE_LENGTH)
             {
                 throw new ArgumentException(nameof(colors), $"The array must be a {PAL.COLOR_TABLE_LENGTH} length (RGB components only).");
             }
 
-            this.ColorTable = colors;
-            this.RangeTable = new byte[PAL.RANGE_TABLE_LENGHT];
+            colors.CopyTo(this.ColorTable, 0);
+
+            if (convertToDAC)
+            {
+                for (int i = 0; i < PAL.COLOR_TABLE_LENGTH; i++)
+                {
+                    this.ColorTable[i] = (byte)(this.ColorTable[i] > 0 ? this.ColorTable[i] / 4 : 0);
+                }
+            }
 
             // Create default range table:
             using (var stream = new BinaryWriter(new MemoryStream(this.RangeTable)))
@@ -70,7 +98,7 @@ namespace DIV2.Format.Exporter
                     for (int j = 0; j < 32; j++)
                     {
                         stream.Write((byte)range);
-                        if (++range > 255)
+                        if (++range > byte.MaxValue)
                         {
                             range = 0;
                         }
@@ -82,20 +110,65 @@ namespace DIV2.Format.Exporter
 
         #region Methods & Functions
         /// <summary>
-        /// Validates if the file is a valid <see cref="PAL"/> file.
+        /// Create a <see cref="PAL"/> instance from PNG image.
         /// </summary>
-        /// <param name="filename"><see cref="PAL"/> filename.</param>
-        /// <returns>Returns true if the file contains a valid <see cref="PAL"/> header format.</returns>
-        public static bool Validate(string filename)
+        /// <param name="filename">Supported image file used to create the palette.</param>
+        /// <returns>Returns a new <see cref="PAL"/> instance with the supported image file, converted to 256 color PNG format, color palette data.</returns>
+        /// <remarks>Supported formats are Jpeg, Png, Bmp, Gif and Tga.</remarks>
+        public static PAL FromImage(string filename)
         {
-            using (var file = new BinaryReader(File.OpenRead(filename)))
+            byte[] file = File.ReadAllBytes(filename);
+            MemoryStream stream = PNG2PAL.ConvertToIndexedPNG(file);
+            return PNG2PAL.CreatePalette(stream);
+        }
+
+        /// <summary>
+        /// Create a <see cref="PAL"/> instance from PCX image.
+        /// </summary>
+        /// <param name="filename">PCX file used to create the palette.</param>
+        /// <returns>Returns a new <see cref="PAL"/> instance with the PCX color palette data.</returns>
+        /// <remarks>Only supported 256 colors PCX images.</remarks>
+        public static PAL FromPCX(string filename)
+        {
+            return PCX.CreatePalette(new BinaryReader(new MemoryStream(File.ReadAllBytes(filename))));
+        }
+
+        /// <summary>
+        /// Create a <see cref="PAL"/> instance from <see cref="MAP"/> image.
+        /// </summary>
+        /// <param name="filename"><see cref="MAP"/> file used to create the palette.</param>
+        /// <returns>Returns a new <see cref="PAL"/> instance with the <see cref="MAP"/> color palette data.</returns>
+        public static PAL FromMAP(string filename)
+        {
+            return PAL.FromDIVFile(filename, MAP.HEADER_LENGTH);
+        }
+
+        /// <summary>
+        /// Create a <see cref="PAL"/> instance from <see cref="FPG"/> image.
+        /// </summary>
+        /// <param name="filename"><see cref="FPG"/> file used to create the palette.</param>
+        /// <returns>Returns a new <see cref="PAL"/> instance with the <see cref="FPG"/> color palette data.</returns>
+        public static PAL FromFPG(string filename)
+        {
+            return PAL.FromDIVFile(filename, DIVFormatCommonBase.BASE_HEADER_LENGTH);
+        }
+
+        static PAL FromDIVFile(string filename, int position)
+        {
+            using (var file = new BinaryReader(new MemoryStream(File.ReadAllBytes(filename))))
             {
-                return new PAL().Validate(file);
+                file.BaseStream.Position = position;
+
+                return new PAL()
+                {
+                    ColorTable = file.ReadBytes(PAL.COLOR_TABLE_LENGTH),
+                    RangeTable = file.ReadBytes(PAL.RANGE_TABLE_LENGHT)
+                };
             }
         }
 
         /// <summary>
-        /// Converts all color values from DAC format to full RGB format.
+        /// Converts all color values from DAC format [0..63] to full RGB format [0..255].
         /// </summary>
         /// <returns>Returns new array with the RGB values.</returns>
         public byte[] DAC2RGB()
@@ -111,13 +184,36 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Writes all palette data to the file stream, except the file header.
+        /// Writes all palette data to the file stream.
         /// </summary>
         /// <param name="stream">File to write.</param>
         internal override void Write(BinaryWriter stream)
         {
+            base.Write(stream);
             stream.Write(this.ColorTable);
             stream.Write(this.RangeTable);
+        }
+
+        /// <summary>
+        /// Writes all palette data to the file stream skiping the header data.
+        /// </summary>
+        /// <param name="stream">File to write.</param>
+        internal void WriteEmbebed(BinaryWriter stream)
+        {
+            stream.Write(this.ColorTable);
+            stream.Write(this.RangeTable);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is PAL)) return false;
+
+            return this == (PAL)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            return BitConverter.ToString(this.ColorTable).GetHashCode();
         }
         #endregion
     }

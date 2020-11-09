@@ -8,11 +8,13 @@ class Program
 
     static void Main(string[] args)
     {
-        CleanOutputFolder();
+        //PNG256Test.ConvertTo256colors(@"Assets\PLAYER.PNG", @"Output\PLAYER256.PNG");
 
-        CreateMAPTest();
-        CreateFPGFromFileTest();
-        CreateFPGFromMemoryTest();
+        //CleanOutputFolder();
+
+        //CreateMAPTest();
+        //CreateFPGFromFileTest();
+        //CreateFPGFromMemoryTest();
 
         Console.Beep();
         Console.ReadKey();
