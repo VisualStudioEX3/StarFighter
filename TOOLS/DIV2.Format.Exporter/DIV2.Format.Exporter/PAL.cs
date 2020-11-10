@@ -7,7 +7,7 @@ using System.IO;
 namespace DIV2.Format.Exporter
 {
     /// <summary>
-    /// PAL importer.
+    /// PAL importer & exporter.
     /// </summary>
     public class PAL : DIVFormatCommonBase
     {

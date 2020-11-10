@@ -171,7 +171,7 @@ namespace DIV2.Format.Exporter
         /// </summary>
         /// <param name="palFilename"><see cref="PAL"/> file used to convert PNG colors to <see cref="MAP"/>.</param>
         /// <param name="importPath">Directory to import.</param>
-        /// <remarks>Each PNG file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files. Each image file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
         public FPG(string palFilename, string importPath) : this(new PAL(palFilename), importPath)
         {
         }
@@ -181,7 +181,7 @@ namespace DIV2.Format.Exporter
         /// </summary>
         /// <param name="palette">The <see cref="PAL"/> instance used to convert image colors to <see cref="MAP"/>.</param>
         /// <param name="importPath">Directory to import.</param>
-        /// <remarks>Supported formats are Jpeg, Png, Bmp, Gif and Tga. Each Image file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files. Each image file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
         public FPG(PAL palette, string importPath) : this()
         {
             // Get all files of the first extension detected:
@@ -195,26 +195,23 @@ namespace DIV2.Format.Exporter
                 }
             }
 
-            if (images.Length == 0)
+            if (images == null || images.Length == 0)
             {
                 throw new FileNotFoundException($"The directory \"{importPath}\" not contain any supported image file.");
             }
 
-            var fpg = new FPG(palette);
+            // Key = image file, Value = JSON file:
+            foreach (var file in images.ToDictionary(e => Path.ChangeExtension(e, ".json")))
             {
-                // Key = PNG file, Value = JSON file:
-                foreach (var file in images.ToDictionary(e => Path.ChangeExtension(e, ".json")))
+                if (File.Exists(file.Value))
                 {
-                    if (File.Exists(file.Value))
-                    {
-                        string pngFile = file.Key;
-                        var metadata = MAPHeader.FromJSON(File.ReadAllText(file.Value));
-                        fpg.AddMap(new ImportDefinition(pngFile, metadata));
-                    }
-                    else
-                    {
-                        throw new FileNotFoundException($"The JSON file \"{file.Value}\" not exists. Each Image file must be follow by their JSON file, a serialized {nameof(MAPHeader)} object, with all {nameof(MAP)} metadata.");
-                    }
+                    string imageFile = file.Key;
+                    var metadata = MAPHeader.FromJSON(File.ReadAllText(file.Value));
+                    this.AddMap(new ImportDefinition(imageFile, metadata));
+                }
+                else
+                {
+                    throw new FileNotFoundException($"The JSON file \"{file.Value}\" not exists. Each Image file must be follow by their JSON file, a serialized {nameof(MAPHeader)} object, with all {nameof(MAP)} metadata.");
                 }
             }
         }
