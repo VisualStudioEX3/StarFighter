@@ -109,7 +109,7 @@ namespace DIV2.Format.Importer
 
             if (file.ReadByte() == PCX.PALETTE_MARKER)
             {
-                return new PAL(file.ReadBytes(PAL.COLOR_TABLE_LENGTH), true);
+                return PAL.CreatePalette(file.ReadBytes(PAL.COLOR_TABLE_LENGTH), true);
             }
             else
             {

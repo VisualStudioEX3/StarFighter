@@ -29,12 +29,7 @@ namespace DIV2.Format.Exporter
             file.Write((byte)0);
         }
 
-        /// <summary>
-        /// Validates if the file is a valid file.
-        /// </summary>
-        /// <param name="file"><see cref="BinaryReader"/> instance, that contains the file data to validate format.</param>
-        /// <returns>Returns true if the file contains a valid header format.</returns>
-        public bool Validate(BinaryReader file)
+        protected bool Validate(BinaryReader file)
         {
             return file.ReadBytes(3).ToASCIIString() == this._id &&
                    file.CompareSignatures(DIVFormatCommonBase.MAGIC_NUMBER) &&

@@ -6,9 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace DIV2.Format.Exporter.Processors
+namespace DIV2.Format.Exporter.Processors.Images
 {
-    class MapProcessor : IImageProcessor
+    class MapImageProcessor : IImageProcessor
     {
         #region Constants
         const int MAP_HEADER_WIDTH_OFFSET = 8;
@@ -17,7 +17,7 @@ namespace DIV2.Format.Exporter.Processors
         #endregion
 
         #region Properties
-        public static MapProcessor Instance { get; } = new MapProcessor(); 
+        public static MapImageProcessor Instance { get; } = new MapImageProcessor(); 
         #endregion
 
         #region Methods & Functions
@@ -42,9 +42,9 @@ namespace DIV2.Format.Exporter.Processors
         {
             using (var stream = new MemoryStream(buffer))
             {
-                width = this.ReadInt16(stream, MapProcessor.MAP_HEADER_WIDTH_OFFSET);
-                height = this.ReadInt16(stream, MapProcessor.MAP_HEADER_HEIGHT_OFFSET);
-                palette = new PAL(this.ReadBytes(stream, MapProcessor.MAP_HEADER_PALETTE_OFFSET, PAL.COLOR_TABLE_LENGTH));
+                width = this.ReadInt16(stream, MapImageProcessor.MAP_HEADER_WIDTH_OFFSET);
+                height = this.ReadInt16(stream, MapImageProcessor.MAP_HEADER_HEIGHT_OFFSET);
+                palette = PAL.CreatePalette(this.ReadBytes(stream, MapImageProcessor.MAP_HEADER_PALETTE_OFFSET, PAL.COLOR_TABLE_LENGTH), false);
 
                 int length = width * height;
                 pixels = this.ReadBytes(stream, (int)(stream.Length - length), length);

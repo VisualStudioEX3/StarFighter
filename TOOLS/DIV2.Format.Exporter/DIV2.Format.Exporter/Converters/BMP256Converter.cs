@@ -1,5 +1,5 @@
 ﻿using DIV2.Format.Exporter.MethodExtensions;
-using DIV2.Format.Exporter.Processors;
+using DIV2.Format.Exporter.Processors.Images;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -16,7 +16,6 @@ namespace DIV2.Format.Exporter.Converters
         const int BMP_HEADER_LENGTH = 54;
         const int BMP_PALETTE_LENGTH = 1024; // 256 double WORD (4 bytes) colors.
         const int BMP_FIRST_PIXEL = BMP256Converter.BMP_HEADER_LENGTH + BMP256Converter.BMP_PALETTE_LENGTH;
-        static readonly IImageProcessor[] IMAGE_PROCESSORS = { ImageSharpProcessor.Instance, PcxProcessor.Instance, MapProcessor.Instance };
         #endregion
 
         #region Internal vars
@@ -39,24 +38,11 @@ namespace DIV2.Format.Exporter.Converters
             }
         }
 
-        static Image ProcessImage(byte[] buffer, out IImageFormat mime)
-        {
-            foreach (var processor in BMP256Converter.IMAGE_PROCESSORS)
-            {
-                if (processor.CheckFormat(buffer))
-                {
-                    return processor.Process(buffer, out mime);
-                }
-            }
-
-            throw new FormatException("Invalid image format.");
-        }
-
         public static void Convert(byte[] buffer, out byte[] bitmap, out short width, out short height, PAL palette)
         {
             BMP256Converter.SetupPalette(palette);
 
-            using (Image image = BMP256Converter.ProcessImage(buffer, out IImageFormat mime))
+            using (Image image = ImageProcessor.ProcessImage(buffer, out IImageFormat mime))
             {
                 width = (short)image.Width;
                 height = (short)image.Height;

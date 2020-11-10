@@ -6,12 +6,12 @@ using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
 
-namespace DIV2.Format.Exporter.Processors
+namespace DIV2.Format.Exporter.Processors.Images
 {
-    class PcxProcessor : IImageProcessor
+    class PcxImageProcessor : IImageProcessor
     {
         #region Properties
-        public static PcxProcessor Instance { get; } = new PcxProcessor();
+        public static PcxImageProcessor Instance { get; } = new PcxImageProcessor();
         #endregion
 
         #region Methods & Functions

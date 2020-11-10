@@ -12,7 +12,7 @@ namespace DIV2.Format.Exporter
     /// <summary>
     /// Image import definition data.
     /// </summary>
-    /// <remarks>Supported formats are Jpeg, Png, Bmp, Gif and Tga.</remarks>
+    /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
     [Serializable]
     public struct ImportDefinition
     {
@@ -102,7 +102,7 @@ namespace DIV2.Format.Exporter
         public const int DESCRIPTION_LENGTH = 32;
         public const int FILENAME_LENGTH = 12;
 
-        readonly static string[] SUPPORTED_IMAGE_EXTENSIONS = { "jpg", "jpeg", "png", "bmp", "gif", "tga", "pcx" };
+        readonly static string[] SUPPORTED_IMAGE_EXTENSIONS = { "jpg", "jpeg", "png", "bmp", "gif", "tga", "pcx", "map" };
         #endregion
 
         #region Structures
@@ -144,7 +144,7 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructor
-        FPG() : base("fpg")
+        internal FPG() : base("fpg")
         {
         }
 

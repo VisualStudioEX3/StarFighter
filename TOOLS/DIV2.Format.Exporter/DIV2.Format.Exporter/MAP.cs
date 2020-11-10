@@ -320,80 +320,150 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Imports a image file and convert to <see cref="MAP"/> format.
+        /// Imports an image file and convert to <see cref="MAP"/> format.
         /// </summary>
-        /// <param name="filename">Image filename to export.</param>
+        /// <param name="filename">Image file to import.</param>
         /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA, and also supported 256 color PCX images.</remarks>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
         public MAP(string filename, string palFilename, int graphId) : this(filename, palFilename, graphId, string.Empty)
         {
         }
 
         /// <summary>
-        /// Imports a PNG file and convert to <see cref="MAP"/> format.
+        /// Imports an image file and convert to <see cref="MAP"/> format.
         /// </summary>
-        /// <param name="filename">PNG filename to export.</param>
+        /// <param name="image">Image file data to import.</param>
+        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
+        public MAP(byte[] image, string palFilename, int graphId) : this(image, palFilename, graphId, string.Empty)
+        {
+        }
+
+        /// <summary>
+        /// Imports an image file and convert to <see cref="MAP"/> format.
+        /// </summary>
+        /// <param name="filename">Image file to import.</param>
         /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA, and also supported 256 color PCX images.</remarks>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
         public MAP(string filename, PAL palette, int graphId) : this(filename, palette, graphId, string.Empty)
         {
         }
 
         /// <summary>
-        /// Imports a PNG file and convert to <see cref="MAP"/> format.
+        /// Imports an image file and convert to <see cref="MAP"/> format.
         /// </summary>
-        /// <param name="filename">PNG filename to export.</param>
+        /// <param name="image">Image file data to import.</param>
+        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
+        public MAP(byte[] image, PAL palette, int graphId) : this(image, palette, graphId, string.Empty)
+        {
+        }
+
+        /// <summary>
+        /// Imports an image file and convert to <see cref="MAP"/> format.
+        /// </summary>
+        /// <param name="filename">Image file to import.</param>
         /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Description (32 characters maximum).</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA, and also supported 256 color PCX images.</remarks>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
         public MAP(string filename, string palFilename, int graphId, string description) : this(filename, palFilename, graphId, description, new ControlPoint[0])
         {
         }
 
         /// <summary>
-        /// Imports a PNG file and convert to <see cref="MAP"/> format.
+        /// Imports an image file and convert to <see cref="MAP"/> format.
         /// </summary>
-        /// <param name="filename">PNG filename to export.</param>
+        /// <param name="image">Image file data to import.</param>
+        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        /// <param name="description">Description (32 characters maximum).</param>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
+        public MAP(byte[] image, string palFilename, int graphId, string description) : this(image, palFilename, graphId, description, new ControlPoint[0])
+        {
+        }
+
+        /// <summary>
+        /// Imports an image file and convert to <see cref="MAP"/> format.
+        /// </summary>
+        /// <param name="filename">Image file to import.</param>
         /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Description (32 characters maximum).</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA, and also supported 256 color PCX images.</remarks>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
         public MAP(string filename, PAL palette, int graphId, string description) : this(filename, palette, graphId, description, new ControlPoint[0])
         {
         }
 
         /// <summary>
-        /// Imports a PNG file and convert to <see cref="MAP"/> format.
+        /// Imports an image file and convert to <see cref="MAP"/> format.
         /// </summary>
-        /// <param name="filename">PNG filename to export.</param>
+        /// <param name="image">Image file data to import.</param>
+        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        /// <param name="description">Description (32 characters maximum).</param>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
+        public MAP(byte[] image, PAL palette, int graphId, string description) : this(image, palette, graphId, description, new ControlPoint[0])
+        {
+        }
+
+        /// <summary>
+        /// Imports an image file and convert to <see cref="MAP"/> format.
+        /// </summary>
+        /// <param name="filename">Image file to import.</param>
         /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Description (32 characters maximum).</param>
         /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA, and also supported 256 color PCX images.</remarks>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
         public MAP(string filename, string palFilename, int graphId, string description, ControlPoint[] controlPoints) : this(filename, new PAL(palFilename), graphId, description, controlPoints)
         {
         }
 
         /// <summary>
-        /// Imports a PNG file and convert to <see cref="MAP"/> format.
+        /// Imports an image file and convert to <see cref="MAP"/> format.
         /// </summary>
-        /// <param name="filename">PNG filename to export.</param>
+        /// <param name="image">Image file data to import.</param>
+        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        /// <param name="description">Description (32 characters maximum).</param>
+        /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
+        public MAP(byte[] image, string palFilename, int graphId, string description, ControlPoint[] controlPoints) : this(image, new PAL(palFilename), graphId, description, controlPoints)
+        {
+        }
+
+        /// <summary>
+        /// Imports an image file and convert to <see cref="MAP"/> format.
+        /// </summary>
+        /// <param name="filename">Image file to import.</param>
         /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
         /// <param name="description">Description (32 characters maximum).</param>
         /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA, and also supported 256 color PCX images.</remarks>
-        public MAP(string filename, PAL palette, int graphId, string description, ControlPoint[] controlPoints) : this()
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
+        public MAP(string filename, PAL palette, int graphId, string description, ControlPoint[] controlPoints) : this(File.ReadAllBytes(filename), palette, graphId, description, controlPoints)
         {
-            byte[] buffer = File.ReadAllBytes(filename);
+        }
 
+        /// <summary>
+        /// Imports an image file and convert to <see cref="MAP"/> format.
+        /// </summary>
+        /// <param name="image">Image file data to import.</param>
+        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
+        /// <param name="description">Description (32 characters maximum).</param>
+        /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
+        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
+        public MAP(byte[] image, PAL palette, int graphId, string description, ControlPoint[] controlPoints) : this()
+        {
             this.Palette = palette;
 
-            BMP256Converter.Convert(buffer, out this._bitmap, out short width, out short height, palette);
+            BMP256Converter.Convert(image, out this._bitmap, out short width, out short height, palette);
 
             this._header = new MAPHeader(width, height, graphId, description, controlPoints);
         }
@@ -442,7 +512,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Creates a new <see cref="MAP"/> instance using another <see cref="MAP"/> image converting to a new <see cref="PAL"/> colors.
+        /// Creates a new <see cref="MAP"/> instance using another <see cref="MAP"/> image converting to a new <see cref="PAL"/> colors, keeping the all metadata (graphId, description and control points).
         /// </summary>
         /// <param name="mapFilename"><see cref="MAP"/> file to convert.</param>
         /// <param name="palFilename"><see cref="PAL"/> file used to convert colors.</param>
@@ -460,7 +530,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Creates a new <see cref="MAP"/> instance using another <see cref="MAP"/> image converting to a new <see cref="PAL"/> colors.
+        /// Creates a new <see cref="MAP"/> instance using another <see cref="MAP"/> image converting to a new <see cref="PAL"/> colors, keeping the all metadata (graphId, description and control points).
         /// </summary>
         /// <param name="buffer"><see cref="byte"/> array <see cref="MAP"/> data to convert.</param>
         /// <param name="palette"><see cref="PAL"/> palette used to convert colors.</param>

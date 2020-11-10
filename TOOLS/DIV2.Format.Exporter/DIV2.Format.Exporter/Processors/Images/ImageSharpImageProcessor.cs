@@ -1,15 +1,13 @@
 ﻿using DIV2.Format.Importer;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.PixelFormats;
-using System;
 
-namespace DIV2.Format.Exporter.Processors
+namespace DIV2.Format.Exporter.Processors.Images
 {
-    class ImageSharpProcessor : IImageProcessor
+    class ImageSharpImageProcessor : IImageProcessor
     {
         #region Properties
-        public static ImageSharpProcessor Instance { get; } = new ImageSharpProcessor();
+        public static ImageSharpImageProcessor Instance { get; } = new ImageSharpImageProcessor();
         #endregion
 
         #region Methods & Functions
