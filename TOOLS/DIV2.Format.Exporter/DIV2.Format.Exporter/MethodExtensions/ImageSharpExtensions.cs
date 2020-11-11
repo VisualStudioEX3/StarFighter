@@ -1,4 +1,4 @@
-﻿using DIV2.Format.Exporter.Processors;
+﻿using DIV2.Format.Exporter.Processors.Images;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -11,7 +11,6 @@ namespace DIV2.Format.Exporter.MethodExtensions
     public static class ImageSharpExtensions
     {
         #region Constants
-        const int BPP_8 = 8;
         const int PALETTE_RGB_LENGTH = PAL.COLOR_TABLE_LENGTH / 3;
         static readonly Dictionary<SupportedMimeTypes, string> SUPPORTED_MIME_TYPES = new Dictionary<SupportedMimeTypes, string>()
         {
@@ -59,7 +58,7 @@ namespace DIV2.Format.Exporter.MethodExtensions
 
         internal static bool IsSupportedFormat(this Image instance, SupportedMimeTypes format, IImageFormat mime)
         {
-            return ImageSharpExtensions.SUPPORTED_MIME_TYPES[format] == mime.DefaultMimeType && instance.PixelType.BitsPerPixel == ImageSharpExtensions.BPP_8;
+            return ImageSharpExtensions.SUPPORTED_MIME_TYPES[format] == mime.DefaultMimeType && instance.PixelType.BitsPerPixel == (int)BmpBitsPerPixel.Pixel8;
         } 
         #endregion
     }

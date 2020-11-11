@@ -11,9 +11,9 @@ namespace DIV2.Format.Exporter.Processors.Images
     class MapImageProcessor : IImageProcessor
     {
         #region Constants
-        const int MAP_HEADER_WIDTH_OFFSET = 8;
-        const int MAP_HEADER_HEIGHT_OFFSET = 10;
-        const int MAP_HEADER_PALETTE_OFFSET = 48;
+        const int MAP_HEADER_WIDTH_OFFSET = MAP.BASE_HEADER_LENGTH;
+        const int MAP_HEADER_HEIGHT_OFFSET = MAP.BASE_HEADER_LENGTH + sizeof(short);
+        const int MAP_HEADER_PALETTE_OFFSET = MAP.HEADER_LENGTH;
         #endregion
 
         #region Properties

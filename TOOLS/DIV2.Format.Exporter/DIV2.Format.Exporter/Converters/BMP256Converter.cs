@@ -15,7 +15,7 @@ namespace DIV2.Format.Exporter.Converters
         #region Constants
         const int BMP_HEADER_LENGTH = 54;
         const int BMP_PALETTE_LENGTH = 1024; // 256 double WORD (4 bytes) colors.
-        const int BMP_FIRST_PIXEL = BMP256Converter.BMP_HEADER_LENGTH + BMP256Converter.BMP_PALETTE_LENGTH;
+        const int BMP_IMAGE_OFFSET = BMP256Converter.BMP_HEADER_LENGTH + BMP256Converter.BMP_PALETTE_LENGTH;
         #endregion
 
         #region Internal vars
@@ -56,7 +56,7 @@ namespace DIV2.Format.Exporter.Converters
                     image.Save(stream, BMP256Converter._encoder);
 
                     bitmap = new byte[width * height];
-                    stream.Position = BMP256Converter.BMP_FIRST_PIXEL;
+                    stream.Position = BMP256Converter.BMP_IMAGE_OFFSET;
 
                     int readed = stream.Read(bitmap, 0, bitmap.Length);
                     

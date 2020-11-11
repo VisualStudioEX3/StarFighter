@@ -1,6 +1,4 @@
-﻿using DIV2.Format.Exporter.Converters;
-using DIV2.Format.Exporter.Processors.Palettes;
-using DIV2.Format.Importer;
+﻿using DIV2.Format.Exporter.Processors.Palettes;
 using System;
 using System.IO;
 

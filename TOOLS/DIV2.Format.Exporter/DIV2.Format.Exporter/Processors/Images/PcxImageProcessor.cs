@@ -3,7 +3,6 @@ using DIV2.Format.Importer;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
-using System;
 using System.Collections.Generic;
 
 namespace DIV2.Format.Exporter.Processors.Images
