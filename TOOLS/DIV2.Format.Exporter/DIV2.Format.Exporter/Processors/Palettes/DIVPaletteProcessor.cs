@@ -15,12 +15,12 @@ namespace DIV2.Format.Exporter.Processors.Palettes
         #region Methods & Functions
         public bool CheckFormat(byte[] buffer)
         {
-            if (new MAP().Validate(buffer))
+            if (MAP.Instance.CheckHeader(buffer))
             {
                 this._offset = MAP.HEADER_LENGTH;
                 return true;
             }
-            else if (new FPG().Validate(buffer))
+            else if (FPG.Instance.CheckHeader(buffer))
             {
                 this._offset = FPG.BASE_HEADER_LENGTH;
                 return true;

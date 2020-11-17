@@ -31,16 +31,20 @@ namespace DIV2.Format.Importer
         #region Constructor
         internal static bool IsPCX(byte[] buffer)
         {
-            return buffer[0] == PCX.HEADER_SIGNATURE &&
-                   buffer[1].IsClamped(PCX.HEADER_MIN_VERSION, PCX.HEADER_MAX_VERSION) &&
-                   buffer[2].IsClamped(PCX.HEADER_UNCOMPRESSED, PCX.HEADER_RLE_ENCODED);
+            bool signature = buffer[0] == PCX.HEADER_SIGNATURE;
+            bool version = buffer[1].IsClamped(PCX.HEADER_MIN_VERSION, PCX.HEADER_MAX_VERSION);
+            bool compress = buffer[2].IsClamped(PCX.HEADER_UNCOMPRESSED, PCX.HEADER_RLE_ENCODED);
+
+            return signature && version && compress;
         }
 
         internal static bool IsPCX256(byte[] buffer)
         {
-            return PCX.IsPCX(buffer) &&
-                   buffer[3] == PCX.HEADER_BPP_8 &&
-                   buffer[buffer.Length - PAL.COLOR_TABLE_LENGTH - 1] == PCX.PALETTE_MARKER;
+            bool header = PCX.IsPCX(buffer);
+            bool isBpp8 = buffer[3] == PCX.HEADER_BPP_8;
+            bool paletteMarker = buffer[buffer.Length - PAL.COLOR_TABLE_LENGTH - 1] == PCX.PALETTE_MARKER;
+
+            return header && isBpp8 && paletteMarker;
         }
 
         internal static void Import(byte[] buffer, out short width, out short height, out byte[] bitmap, out PAL palette)

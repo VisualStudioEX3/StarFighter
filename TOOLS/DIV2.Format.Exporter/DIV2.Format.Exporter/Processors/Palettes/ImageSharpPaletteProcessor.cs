@@ -22,13 +22,17 @@ namespace DIV2.Format.Exporter.Processors.Palettes
         #endregion
 
         #region Properties
-        public static ImageSharpPaletteProcessor Instance { get; } = new ImageSharpPaletteProcessor(); 
+        public static ImageSharpPaletteProcessor Instance { get; } = new ImageSharpPaletteProcessor();
         #endregion
 
         #region Methods & Functions
         public bool CheckFormat(byte[] buffer)
         {
-            return !(PCX.IsPCX(buffer) && new MAP().Validate(buffer) && new FPG().Validate(buffer));
+            bool isPCX = PCX.IsPCX(buffer);
+            bool isMAP = MAP.Instance.CheckHeader(buffer);
+            bool isFPG = FPG.Instance.CheckHeader(buffer);
+
+            return !(isPCX || isMAP || isFPG);
         }
 
         public PAL Process(byte[] buffer)
@@ -48,11 +52,10 @@ namespace DIV2.Format.Exporter.Processors.Palettes
                 }
                 else
                 {
-                    using (var stream = new MemoryStream())
-                    {
-                        image.Save(stream, ImageSharpPaletteProcessor.UNCOMPRESSED_256_COLORS_PNG_ENCODER);
-                        return stream;
-                    }
+                    var stream = new MemoryStream();
+                    image.Save(stream, ImageSharpPaletteProcessor.UNCOMPRESSED_256_COLORS_PNG_ENCODER);
+
+                    return stream;
                 }
             }
         }
@@ -78,7 +81,7 @@ namespace DIV2.Format.Exporter.Processors.Palettes
                     throw new FormatException("The PNG image not contains a 256 color palette (PLTE chunk not found).");
                 }
             }
-        } 
+        }
         #endregion
     }
 }

@@ -224,7 +224,7 @@ namespace DIV2.Format.Exporter
         /// <returns>Returns the new instance of <see cref="MAPHeader"/> from <see cref="MAP"/> data.</returns>
         public static MAPHeader FromMAP(byte[] buffer)
         {
-            if (new MAP().Validate(buffer))
+            if (new MAP().CheckHeader(buffer))
             {
                 using (var reader = new BinaryReader(new MemoryStream(buffer)))
                 {
@@ -300,6 +300,11 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Properties
+        /// <summary>
+        /// Global instance of this class.
+        /// </summary>
+        public static MAP Instance => new MAP();
+
         /// <summary>
         /// <see cref="PAL"/> instance used by this <see cref="MAP"/>.
         /// </summary>

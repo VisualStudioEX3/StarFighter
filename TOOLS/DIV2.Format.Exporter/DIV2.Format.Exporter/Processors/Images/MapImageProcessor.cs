@@ -23,7 +23,7 @@ namespace DIV2.Format.Exporter.Processors.Images
         #region Methods & Functions
         public bool CheckFormat(byte[] buffer)
         {
-            return new MAP().Validate(buffer);
+            return MAP.Instance.CheckHeader(buffer);
         }
 
         public Image Process(byte[] buffer, out IImageFormat mime)

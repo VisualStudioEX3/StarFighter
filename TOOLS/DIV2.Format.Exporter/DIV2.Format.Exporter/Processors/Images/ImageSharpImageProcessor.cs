@@ -13,7 +13,10 @@ namespace DIV2.Format.Exporter.Processors.Images
         #region Methods & Functions
         public bool CheckFormat(byte[] buffer)
         {
-            return !(PCX.IsPCX(buffer) && new MAP().Validate(buffer));
+            bool isPCX = PCX.IsPCX(buffer);
+            bool isMAP = MAP.Instance.CheckHeader(buffer);
+
+            return !(isPCX || isMAP);
         }
 
         public Image Process(byte[] buffer, out IImageFormat mime)

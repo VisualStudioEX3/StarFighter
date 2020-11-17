@@ -23,6 +23,11 @@ namespace DIV2.Format.Exporter
         /// Color ranges table.
         /// </summary>
         public byte[] RangeTable { get; private set; }
+
+        /// <summary>
+        /// Global instance of this class.
+        /// </summary>
+        public static PAL Instance => new PAL();
         #endregion
 
         #region Operators
@@ -66,7 +71,7 @@ namespace DIV2.Format.Exporter
         {
             using (var file = new BinaryReader(new MemoryStream(buffer)))
             {
-                if (!this.Validate(file))
+                if (!this.CheckHeader(file))
                 {
                     throw new FormatException("Invalid PAL file.");
                 }

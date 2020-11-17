@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <Authors>José Miguel Sánchez Fernández</Authors>
     <Company>Visual Studio EX3</Company>
     <Description>A tool to export PNG files as DIV Games Studio MAP format and generate FPG files.</Description>

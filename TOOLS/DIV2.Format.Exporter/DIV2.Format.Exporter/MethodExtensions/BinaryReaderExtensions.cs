@@ -36,7 +36,10 @@ namespace DIV2.Format.Exporter.MethodExtensions
         /// <returns>Returns true if the both signatures are equals.</returns>
         public static bool CompareSignatures(this BinaryReader stream, byte[] signature)
         {
-            return stream.ReadInt32() == BitConverter.ToInt32(signature, 0);
+            int input = stream.ReadInt32();
+            int model = BitConverter.ToInt32(signature, 0);
+
+            return input == model;
         }
     }
 }

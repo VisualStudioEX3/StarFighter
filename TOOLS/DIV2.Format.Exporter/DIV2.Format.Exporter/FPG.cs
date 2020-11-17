@@ -132,6 +132,11 @@ namespace DIV2.Format.Exporter
 
         #region Properties
         /// <summary>
+        /// Global instance of this class.
+        /// </summary>
+        public static FPG Instance => new FPG();
+
+        /// <summary>
         /// <see cref="PAL"/> instance used by this <see cref="FPG"/>.
         /// </summary>
         public PAL Palette { get; }
