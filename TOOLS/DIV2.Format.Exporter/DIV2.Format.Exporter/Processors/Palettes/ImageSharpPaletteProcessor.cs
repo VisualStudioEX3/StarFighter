@@ -29,8 +29,8 @@ namespace DIV2.Format.Exporter.Processors.Palettes
         public bool CheckFormat(byte[] buffer)
         {
             bool isPCX = PCX.IsPCX(buffer);
-            bool isMAP = MAP.Instance.CheckHeader(buffer);
-            bool isFPG = FPG.Instance.CheckHeader(buffer);
+            bool isMAP = MAP.ValidateFormat(buffer);
+            bool isFPG = FPG.ValidateFormat(buffer);
 
             return !(isPCX || isMAP || isFPG);
         }
@@ -38,8 +38,8 @@ namespace DIV2.Format.Exporter.Processors.Palettes
         public PAL Process(byte[] buffer)
         {
             MemoryStream stream = this.ConvertToIndexedPNG(buffer);
-            byte[] colors = this.ExtractPalette(stream);
-            return PAL.CreatePalette(colors, true);
+            var colors = new ColorPalette(this.ExtractPalette(stream));
+            return new PAL(colors);
         }
 
         MemoryStream ConvertToIndexedPNG(byte[] buffer)
@@ -53,7 +53,7 @@ namespace DIV2.Format.Exporter.Processors.Palettes
                 else
                 {
                     var stream = new MemoryStream();
-                    image.Save(stream, ImageSharpPaletteProcessor.UNCOMPRESSED_256_COLORS_PNG_ENCODER);
+                    image.Save(stream, UNCOMPRESSED_256_COLORS_PNG_ENCODER);
 
                     return stream;
                 }
@@ -65,21 +65,19 @@ namespace DIV2.Format.Exporter.Processors.Palettes
         {
             using (var reader = new BinaryReader(stream))
             {
-                byte[] colors = new byte[PAL.COLOR_TABLE_LENGTH];
+                byte[] colors = new byte[ColorPalette.SIZE];
 
-                reader.BaseStream.Position = ImageSharpPaletteProcessor.PNG_PLTE_CHUNK_POSITION;
+                reader.BaseStream.Position = PNG_PLTE_CHUNK_POSITION;
 
                 int paletteSize = (int)reader.ReadUInt32(true);
 
-                if (reader.CompareSignatures(ImageSharpPaletteProcessor.PNG_PLTE_SIGNATURE)) // Checks if the chunk signature is the PLTE chunk.
+                if (reader.CompareSignatures(PNG_PLTE_SIGNATURE)) // Checks if the chunk signature is the PLTE chunk.
                 {
                     reader.ReadBytes(paletteSize).CopyTo(colors, 0);
                     return colors;
                 }
                 else
-                {
                     throw new FormatException("The PNG image not contains a 256 color palette (PLTE chunk not found).");
-                }
             }
         }
         #endregion

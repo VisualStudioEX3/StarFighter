@@ -11,7 +11,6 @@ namespace DIV2.Format.Exporter.MethodExtensions
     public static class ImageSharpExtensions
     {
         #region Constants
-        const int PALETTE_RGB_LENGTH = PAL.COLOR_TABLE_LENGTH / 3;
         static readonly Dictionary<SupportedMimeTypes, string> SUPPORTED_MIME_TYPES = new Dictionary<SupportedMimeTypes, string>()
         {
             { SupportedMimeTypes.PCX, PcxFormat.Instance.DefaultMimeType },
@@ -32,21 +31,18 @@ namespace DIV2.Format.Exporter.MethodExtensions
         #endregion
 
         #region Methods & Functions
-        internal static Color[] ToColors(this PAL instance)
+        internal static SixLabors.ImageSharp.Color[] ToImageSharpColors(this PAL instance)
         {
-            var rgb = instance.DAC2RGB();
-            var colors = new Color[ImageSharpExtensions.PALETTE_RGB_LENGTH];
-            int index = -1;
+            Color[] rgb = instance.ToRGB();
+            var colors = new SixLabors.ImageSharp.Color[PAL.LENGTH];
 
-            for (int i = 0; i < ImageSharpExtensions.PALETTE_RGB_LENGTH; i++)
-            {
-                colors[i] = Color.FromRgb(rgb[++index], rgb[++index], rgb[++index]);
-            }
+            for (int i = 0; i < PAL.LENGTH; i++)
+                colors[i] = SixLabors.ImageSharp.Color.FromRgb(rgb[i].red, rgb[i].green, rgb[i].blue);
 
             return colors;
         }
 
-        internal static void ComposeBitmap(this Image<Rgb24> instance, byte[] pixels, Color[] palette)
+        internal static void ComposeBitmap(this Image<Rgb24> instance, byte[] pixels, SixLabors.ImageSharp.Color[] palette)
         {
             for (int i = 0; i < pixels.Length; i++)
             {
@@ -58,7 +54,7 @@ namespace DIV2.Format.Exporter.MethodExtensions
 
         internal static bool IsSupportedFormat(this Image instance, SupportedMimeTypes format, IImageFormat mime)
         {
-            return ImageSharpExtensions.SUPPORTED_MIME_TYPES[format] == mime.DefaultMimeType && instance.PixelType.BitsPerPixel == (int)BmpBitsPerPixel.Pixel8;
+            return SUPPORTED_MIME_TYPES[format] == mime.DefaultMimeType && instance.PixelType.BitsPerPixel == (int)BmpBitsPerPixel.Pixel8;
         } 
         #endregion
     }

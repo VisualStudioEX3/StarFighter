@@ -60,7 +60,7 @@ class Program
         string output = GetOutputFilename("TEST.MAP");
 
         Console.WriteLine($"Create \"{output}\":");
-        var map = new MAP(asset, asset2, 123, "Test MAP file.");
+        var map = new OldMAP(asset, asset2, 123, "Test MAP file.");
         {
             map.AddControlPoint(128, 128);
             map.AddControlPoint(255, 255);
@@ -81,7 +81,7 @@ class Program
         var getId = new Func<string, int>((filename) => int.Parse(Path.GetFileNameWithoutExtension(filename)));
 
         Console.WriteLine($"Create \"{output}\":");
-        var fpg = new FPG(asset2);
+        var fpg = new OldFPG(asset2);
         {
             foreach (var png in asset)
             {
@@ -104,7 +104,7 @@ class Program
         var getId = new Func<string, int>((filename) => int.Parse(Path.GetFileNameWithoutExtension(filename)));
 
         Console.WriteLine($"Create \"{output}\":");
-        var fpg = new FPG(asset2);
+        var fpg = new OldFPG(asset2);
         {
             foreach (var png in asset)
             {
@@ -118,14 +118,14 @@ class Program
         }
     }
 
-    static ControlPoint[] GenerateRandomControlPoints(int width, int height, int count)
+    static OldControlPoint[] GenerateRandomControlPoints(int width, int height, int count)
     {
-        var points = new ControlPoint[count];
+        var points = new OldControlPoint[count];
         var random = new Random();
 
         for (int i = 0; i < count; i++)
         {
-            points[i] = new ControlPoint() { x = (short)random.Next(0, width), y = (short)random.Next(0, height) };
+            points[i] = new OldControlPoint() { x = (short)random.Next(0, width), y = (short)random.Next(0, height) };
         }
 
         return points;

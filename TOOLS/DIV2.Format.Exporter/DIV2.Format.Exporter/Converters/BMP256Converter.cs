@@ -15,7 +15,7 @@ namespace DIV2.Format.Exporter.Converters
         #region Constants
         const int BMP_HEADER_LENGTH = 54;
         const int BMP_PALETTE_LENGTH = 1024; // 256 double WORD (4 bytes) colors.
-        const int BMP_IMAGE_OFFSET = BMP256Converter.BMP_HEADER_LENGTH + BMP256Converter.BMP_PALETTE_LENGTH;
+        const int BMP_IMAGE_OFFSET = BMP_HEADER_LENGTH + BMP_PALETTE_LENGTH;
         #endregion
 
         #region Internal vars
@@ -26,21 +26,21 @@ namespace DIV2.Format.Exporter.Converters
         #region Methods & Functions
         static void SetupPalette(PAL palette)
         {
-            if (palette.GetHashCode() != BMP256Converter._currentPaletteHash)
+            if (palette.GetHashCode() != _currentPaletteHash)
             {
-                BMP256Converter._encoder = new BmpEncoder()
+                _encoder = new BmpEncoder()
                 {
                     BitsPerPixel = BmpBitsPerPixel.Pixel8,
-                    Quantizer = new PaletteQuantizer(new ReadOnlyMemory<Color>(palette.ToColors()), new QuantizerOptions() { Dither = null })
+                    Quantizer = new PaletteQuantizer(palette.ToImageSharpColors(), new QuantizerOptions() { Dither = null })
                 };
 
-                BMP256Converter._currentPaletteHash = palette.GetHashCode();
+                _currentPaletteHash = palette.GetHashCode();
             }
         }
 
         public static void Convert(byte[] buffer, out byte[] bitmap, out short width, out short height, PAL palette)
         {
-            BMP256Converter.SetupPalette(palette);
+            SetupPalette(palette);
 
             using (Image image = ImageProcessor.ProcessImage(buffer, out IImageFormat mime))
             {
@@ -53,10 +53,10 @@ namespace DIV2.Format.Exporter.Converters
                     {
                         image.Mutate(x => x.Flip(FlipMode.Vertical)); // Resolves the BMP inverse pixel order. 
                     }
-                    image.Save(stream, BMP256Converter._encoder);
+                    image.Save(stream, _encoder);
 
                     bitmap = new byte[width * height];
-                    stream.Position = BMP256Converter.BMP_IMAGE_OFFSET;
+                    stream.Position = BMP_IMAGE_OFFSET;
 
                     int readed = stream.Read(bitmap, 0, bitmap.Length);
                     

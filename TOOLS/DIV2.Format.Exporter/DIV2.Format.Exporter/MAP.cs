@@ -1,23 +1,82 @@
 ﻿using DIV2.Format.Exporter.Converters;
 using DIV2.Format.Exporter.MethodExtensions;
-using DIV2.Format.Importer;
-using Newtonsoft.Json;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace DIV2.Format.Exporter
 {
-    #region Structures
     /// <summary>
-    /// Control Point data.
+    /// <see cref="MAP"/> Control Point data.
     /// </summary>
     [Serializable]
-    public struct ControlPoint
+    public struct ControlPoint : ISerializableAsset
     {
+        #region Constants
+        /// <summary>
+        /// Number of items.
+        /// </summary>
+        public const int LENGTH = 2;
+        /// <summary>
+        /// Memory size.
+        /// </summary>
+        public const int SIZE = sizeof(short) * LENGTH;
+        #endregion
+
         #region Public vars
-        public short x, y;
+        /// <summary>
+        /// Horizontal coordinate.
+        /// </summary>
+        public short x;
+        /// <summary>
+        /// Vertical coordinate.
+        /// </summary>
+        public short y;
+        #endregion
+
+        #region Properties
+        /// <summary>
+        /// Get or set the coordinate value.
+        /// </summary>
+        /// <param name="index">Index of the coordinate in the structure.</param>
+        /// <returns>Returns the coordinate value.</returns>
+        public short this[int index]
+        {
+            get
+            {
+                switch (index)
+                {
+                    case 0: return this.x;
+                    case 1: return this.y;
+                }
+
+                throw new IndexOutOfRangeException();
+            }
+            set
+            {
+                switch (index)
+                {
+                    case 0: this.x = value; break;
+                    case 1: this.y = value; break;
+                }
+
+                throw new IndexOutOfRangeException();
+            }
+        }
+        #endregion
+
+        #region Operators
+        public static bool operator ==(ControlPoint a, ControlPoint b)
+        {
+            return a.x == b.x &&
+                   a.y == b.y;
+        }
+
+        public static bool operator !=(ControlPoint a, ControlPoint b)
+        {
+            return !(a == b);
+        }
         #endregion
 
         #region Constructors
@@ -28,576 +87,464 @@ namespace DIV2.Format.Exporter
         }
 
         public ControlPoint(int x, int y)
+            : this((short)x, (short)y)
         {
-            this.x = (short)x;
-            this.y = (short)y;
         }
 
         public ControlPoint(float x, float y)
+            : this((short)x, (short)y)
         {
-            this.x = (short)x;
-            this.y = (short)y;
         }
 
         public ControlPoint(double x, double y)
+            : this((short)x, (short)y)
         {
-            this.x = (short)x;
-            this.y = (short)y;
         }
         #endregion
 
         #region Methods & Functions
-        public void Write(BinaryWriter file)
+        public byte[] Serialize()
         {
-            file.Write(this.x);
-            file.Write(this.y);
+            using (var stream = new BinaryWriter(new MemoryStream()))
+            {
+                stream.Write(this.x);
+                stream.Write(this.y);
+
+                return (stream.BaseStream as MemoryStream).GetBuffer();
+            }
+        }
+
+        public void Write(BinaryWriter stream)
+        {
+            stream.Write(this.Serialize());
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is ControlPoint)) return false;
+
+            return this == (ControlPoint)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            return this.x ^ this.y;
         }
         #endregion
-    }
-
-    public static class ControlPointExtensions
-    {
-        /// <summary>
-        /// Serialize the <see cref="ControlPoint"/> list as DIV formats expected.
-        /// </summary>
-        /// <typeparam name="T">Type of the counter value must be writed. Only <see cref="short"/> and <see cref="int"/> types are valid.</typeparam>
-        /// <param name="points"><see cref="ControlPoint"/> list to serialize.</param>
-        /// <param name="file"><see cref="BinaryWriter"/> instance.</param>
-        internal static void Write<T>(this IEnumerable<ControlPoint> points, BinaryWriter file) where T : struct
-        {
-            if (typeof(T) != typeof(short) ||
-                typeof(T) != typeof(int))
-            {
-                throw new ArgumentException($"Invalid type for counter. Only short and int types are valid.");
-            }
-
-            file.Write(typeof(T) != typeof(short) ? (short)points.Count() : points.Count());
-            foreach (var point in points)
-            {
-                point.Write(file);
-            }
-        }
     }
 
     /// <summary>
-    /// MAP metadata.
+    /// A representation of a DIV Games Studio MAP file.
     /// </summary>
-    [Serializable]
-    public class MAPHeader
+    /// <remarks>Implements functions to import and export graphic maps.</remarks>
+    public sealed class MAP : IAssetFile, IEnumerable<byte>
     {
         #region Constants
-        const string OUT_OF_RANGE_EXCEPTION_MESSAGE = "The \"{0}\" property must be a value between {1} and {2}.";
-        const short MIN_PIXEL_SIZE = 1;
+        const int HEADER_LENGTH = DIVHeader.SIZE + (sizeof(short) * 2) + sizeof(int) + DESCRIPTION_LENGTH;
+        const int MIN_PIXEL_COUNT = 1;
 
-        public const int SIZE = 40;
-        public const int MIN_GRAPHID = 1;
-        public const int MAX_GRAPHID = 999;
+        readonly static DIVHeader MAP_FILE_HEADER = new DIVHeader('m', 'a', 'p');
+        readonly static MAP VALIDATOR = new MAP();
+        readonly static string PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} min value accepted is " + MIN_PIXEL_COUNT;
+        readonly static ArgumentOutOfRangeException GRAPHID_OUT_OF_RANGE = new ArgumentOutOfRangeException($"GraphId must be a value between {MIN_GRAPH_ID} and {MAX_GRAPH_ID}.");
+        const string INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE = "The index value must be a value beteween 0 and {0}.";
+        const string COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} coordinate must be a value beteween 0 and {1}.";
+
+        /// <summary>
+        /// Max description character length.
+        /// </summary>
         public const int DESCRIPTION_LENGTH = 32;
+        /// <summary>
+        /// Min allowed graph id value.
+        /// </summary>
+        public const int MIN_GRAPH_ID = 1;
+        /// <summary>
+        /// Max allowed graph id value.
+        /// </summary>
+        public const int MAX_GRAPH_ID = 999;
+        /// <summary>
+        /// Max supported control points value.
+        /// </summary>
+        public const int MAX_CONTROL_POINTS = 999;
         #endregion
 
         #region Internal vars
-        short _width;
-        short _height;
+        int _hash = 0;
         int _graphId;
+        byte[] _bitmap;
         #endregion
 
         #region Properties
-        ArgumentOutOfRangeException FormatException(string parameter, int min, int max)
-        {
-            return new ArgumentOutOfRangeException(string.Format(MAPHeader.OUT_OF_RANGE_EXCEPTION_MESSAGE, parameter, min, max));
-        }
-
         /// <summary>
-        /// <see cref="MAP"/> width.
+        /// Width of the graphic map.
         /// </summary>
-        public short Width
-        {
-            get => this._width;
-            set
-            {
-                if (!value.IsClamped(MAPHeader.MIN_PIXEL_SIZE, short.MaxValue))
-                {
-                    throw this.FormatException(nameof(Width), MAPHeader.MIN_PIXEL_SIZE, short.MaxValue);
-                }
-                this._width = value;
-            }
-        }
-
+        public short Width { get; private set; }
         /// <summary>
-        /// <see cref="MAP"/> height.
+        /// Height of the graphic map.
         /// </summary>
-        public short Height
-        {
-            get => this._height;
-            set
-            {
-                if (!value.IsClamped(MAPHeader.MIN_PIXEL_SIZE, short.MaxValue))
-                {
-                    throw this.FormatException(nameof(Height), MAPHeader.MIN_PIXEL_SIZE, short.MaxValue);
-                }
-                this._height = value;
-            }
-        }
-
+        public short Height { get; private set; }
         /// <summary>
-        /// <see cref="MAP"/> Graph Id, a value between 1 and 999, used only on FPGs.
+        /// Graphic identifiers used in <see cref="FPG"/> files.
         /// </summary>
         public int GraphId
         {
             get => this._graphId;
             set
             {
-                if (!value.IsClamped(MAPHeader.MIN_GRAPHID, MAPHeader.MAX_GRAPHID))
-                {
-                    throw this.FormatException(nameof(GraphId), MAPHeader.MIN_GRAPHID, MAPHeader.MAX_GRAPHID);
-                }
+                if (!value.IsClamped(MIN_GRAPH_ID, MAX_GRAPH_ID))
+                    throw GRAPHID_OUT_OF_RANGE;
+
                 this._graphId = value;
             }
         }
-
-
         /// <summary>
-        /// Optional <see cref="MAP"/> description. Maximum 32 characteres.
+        /// Optional graphic description.
         /// </summary>
+        /// <remarks>The description only allow a 32 length ASCII null terminated string.</remarks>
         public string Description { get; set; }
-
         /// <summary>
-        /// Optional list with <see cref="MAP"/> <see cref="ControlPoint"/>s.
+        /// Color palette used by this graphic map.
         /// </summary>
-        public List<ControlPoint> ControlPoints { get; set; }
+        public PAL Palette { get; private set; }
+        /// <summary>
+        /// Optional control point list.
+        /// </summary>
+        public List<ControlPoint> ControlPoints { get; private set; }
+        /// <summary>
+        /// Get or set the color index in the bitmap.
+        /// </summary>
+        /// <param name="index">Pixel index in the bitmap array.</param>
+        /// <returns>Returns the color index in color palette of the pixel.</returns>
+        public byte this[int index]
+        {
+            get
+            {
+                if (!index.IsClamped(0, this._bitmap.Length))
+                    throw new IndexOutOfRangeException(string.Format(INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE, this._bitmap.Length));
+
+                return this._bitmap[index];
+            }
+            private set
+            {
+                if (!index.IsClamped(0, this._bitmap.Length))
+                    throw new IndexOutOfRangeException(string.Format(INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE, this._bitmap.Length));
+
+                this._bitmap[index] = value;
+            }
+        }
+        /// <summary>
+        /// Get or set the color index in the bitmap.
+        /// </summary>
+        /// <param name="x">Horizontal coordinate of the pixel to read.</param>
+        /// <param name="y">Vertical coordinate of the pixel to read.</param>
+        /// <returns>Returns the color index in color palette of the pixel.</returns>
+        public byte this[int x, int y]
+        {
+            get
+            {
+                if (!x.IsClamped(0, this.Width))
+                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "X", this.Width));
+
+                if (!y.IsClamped(0, this.Width))
+                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Y", this.Height));
+
+                return this._bitmap[this.GetIndex(x, y)];
+            }
+            private set
+            {
+                if (!x.IsClamped(0, this.Width))
+                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "X", this.Width));
+
+                if (!y.IsClamped(0, this.Width))
+                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Y", this.Height));
+
+                this._bitmap[this.GetIndex(x, y)] = value;
+            }
+        }
+        #endregion
+
+        #region Operators
+        public static bool operator ==(MAP a, MAP b)
+        {
+            return a.GetHashCode() == b.GetHashCode();
+        }
+
+        public static bool operator !=(MAP a, MAP b)
+        {
+            return !(a == b);
+        }
         #endregion
 
         #region Constructors
-        /// <summary>
-        /// Create new instance with default values.
-        /// </summary>
-        public MAPHeader()
+        MAP()
         {
-            this.Width = this.Height = MAPHeader.MIN_PIXEL_SIZE;
-            this.GraphId = MAPHeader.MIN_GRAPHID;
             this.ControlPoints = new List<ControlPoint>();
         }
 
         /// <summary>
-        /// Create new instance.
+        /// Creates a new <see cref="MAP"/> instance.
         /// </summary>
-        /// <param name="width"><see cref="MAP"/> width.</param>
-        /// <param name="height"><see cref="MAP"/> height.</param>
-        /// <param name="graphId"><see cref="MAP"/> Graph ID, a value between 1 and 999, used only on FPGs.</param>
-        /// <param name="description">Optional <see cref="MAP"/> description. Maximum 32 characteres.</param>
-        /// <param name="controlPoints">Optional list with <see cref="MAP"/> <see cref="ControlPoint"/>s.</param>
-        public MAPHeader(short width, short height, int graphId, string description = "", ControlPoint[] controlPoints = null)
+        /// <param name="palette"><see cref="PAL"/> instance for this <see cref="MAP"/> instance.</param>
+        /// <param name="width">Bitmap width.</param>
+        /// <param name="height">Bitmap height.</param>
+        /// <param name="graphId"><see cref="MAP"/> graphic identifiers. By default is 1.</param>
+        /// <param name="description">Optional <see cref="MAP"/> description.</param>
+        public MAP(PAL palette, int width, int height, int graphId = MIN_GRAPH_ID, string description = "")
+            : this()
         {
-            this.Width = width;
-            this.Height = height;
+            if (width < MIN_PIXEL_COUNT)
+                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Width"));
+            if (height < MIN_PIXEL_COUNT)
+                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Height"));
+            if (!graphId.IsClamped(MIN_GRAPH_ID, MAX_GRAPH_ID))
+                throw GRAPHID_OUT_OF_RANGE;
+
+            this._bitmap = new byte[width * height];
+
+            this.Palette = palette;
+            this.Width = (short)width;
+            this.Height = (short)height;
             this.GraphId = graphId;
             this.Description = description;
-            if (controlPoints != null)
-            {
-                this.ControlPoints = new List<ControlPoint>(controlPoints);
-            }
-        }
-        #endregion
-
-        #region Methods & Functions
-        /// <summary>
-        /// Create new instance from <see cref="MAP"/> file.
-        /// </summary>
-        /// <param name="filename"><see cref="MAP"/> file to import.</param>
-        /// <returns>Returns the new instance of <see cref="MAPHeader"/> from <see cref="MAP"/> data.</returns>
-        public static MAPHeader FromMAP(string filename)
-        {
-            try
-            {
-                return MAPHeader.FromMAP(File.ReadAllBytes(filename));
-            }
-            catch (Exception)
-            {
-                throw new FormatException($"The file \"{filename}\" not contain a valid DIV MAP image.");
-            }
         }
 
         /// <summary>
-        /// Create new instance from <see cref="MAP"/> file.
+        /// Loads a <see cref="MAP"/> file.
         /// </summary>
-        /// <param name="buffer"><see cref="MAP"/> file data to import.</param>
-        /// <returns>Returns the new instance of <see cref="MAPHeader"/> from <see cref="MAP"/> data.</returns>
-        public static MAPHeader FromMAP(byte[] buffer)
+        /// <param name="filename">Filename to load.</param>
+        public MAP(string filename)
+            : this(File.ReadAllBytes(filename))
         {
-            if (new MAP().CheckHeader(buffer))
+        }
+
+        /// <summary>
+        /// Loads a <see cref="MAP"/> file from memory.
+        /// </summary>
+        /// <param name="buffer"><see cref="byte"/> array that contain the <see cref="MAP"/> file data to load.</param>
+        public MAP(byte[] buffer)
+            : this()
+        {
+            using (var stream = new BinaryReader(new MemoryStream(buffer)))
             {
-                using (var reader = new BinaryReader(new MemoryStream(buffer)))
+                if (MAP_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
                 {
-                    var header = new MAPHeader();
-                    
-                    reader.BaseStream.Position = DIVFormatCommonBase.BASE_HEADER_LENGTH;
-                    
-                    header.Width = reader.ReadInt16();
-                    header.Height = reader.ReadInt16();
-                    header.GraphId = reader.ReadInt32();
-                    header.Description = reader.ReadBytes(MAPHeader.DESCRIPTION_LENGTH).ToASCIIString();
+                    this.Width = stream.ReadInt16();
+                    this.Height = stream.ReadInt16();
+                    this.GraphId = stream.ReadInt32();
+                    this.Description = stream.ReadBytes(DESCRIPTION_LENGTH).ToASCIIString();
+                    this.Palette = new PAL(new ColorPalette(stream.ReadBytes(ColorPalette.SIZE)),
+                                           new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE)));
 
-                    reader.BaseStream.Position += PAL.COLOR_TABLE_LENGTH + PAL.RANGE_TABLE_LENGHT;
+                    short points = stream.ReadInt16();
+                    for (int i = 0; i < points; i++)
+                        this.ControlPoints.Add(new ControlPoint(stream.ReadInt16(), stream.ReadInt16()));
 
-                    header.ControlPoints = new List<ControlPoint>(reader.ReadInt32());
-                    for (int i = 0; i < header.ControlPoints.Capacity; i++)
-                    {
-                        header.ControlPoints.Add(new ControlPoint(reader.ReadInt16(), reader.ReadInt16()));
-                    }
-
-                    return header;
+                    this._bitmap = stream.ReadBytes(this.Width * this.Height);
                 }
+                else
+                    throw new FormatException($"Error loading {nameof(MAP)} file.");
             }
-
-            throw new FormatException("The buffer data not contain a valid DIV MAP image.");
-        }
-
-        /// <summary>
-        /// Create new instance from JSON data.
-        /// </summary>
-        /// <param name="data">JSON data to import.</param>
-        /// <returns>Returns the new instance of <see cref="MAPHeader"/> from JSON data.</returns>
-        public static MAPHeader FromJSON(string data)
-        {
-            return JsonConvert.DeserializeObject<MAPHeader>(data);
-        }
-
-        /// <summary>
-        /// Serialized this instance to JSON format.
-        /// </summary>
-        /// <returns>Returns the <see cref="MAPHeader"/> instance serialized as JSON data.</returns>
-        public string ToJSON()
-        {
-            return JsonConvert.SerializeObject(this);
-        }
-
-        internal void Write(BinaryWriter file, PAL palette)
-        {
-            file.Write(this.Width);
-            file.Write(this.Height);
-            file.Write(this.GraphId);
-            file.Write(this.Description.GetASCIIZString(MAPHeader.DESCRIPTION_LENGTH));
-            palette.WriteEmbebed(file);
-            this.ControlPoints.Write<short>(file);
-        }
-        #endregion
-    }
-    #endregion
-
-    #region Class
-    /// <summary>
-    /// MAP exporter.
-    /// </summary>
-    public class MAP : DIVFormatCommonBase
-    {
-        #region Constants
-        public const int HEADER_LENGTH = DIVFormatCommonBase.BASE_HEADER_LENGTH + MAPHeader.SIZE;
-        #endregion
-
-        #region Internal vars
-        MAPHeader _header;
-        byte[] _bitmap;
-        #endregion
-
-        #region Properties
-        /// <summary>
-        /// Global instance of this class.
-        /// </summary>
-        public static MAP Instance => new MAP();
-
-        /// <summary>
-        /// <see cref="PAL"/> instance used by this <see cref="MAP"/>.
-        /// </summary>
-        public PAL Palette { get; private set; }
-
-        /// <summary>
-        /// <see cref="ControlPoint"/> list of this <see cref="MAP"/>.
-        /// </summary>
-        public IReadOnlyList<ControlPoint> ControlPoints => this._header.ControlPoints;
-        #endregion
-
-        #region Constructor
-        internal MAP() : base("map")
-        {
-            this._header = new MAPHeader();
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="filename">Image file to import.</param>
-        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(string filename, string palFilename, int graphId) : this(filename, palFilename, graphId, string.Empty)
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="image">Image file data to import.</param>
-        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(byte[] image, string palFilename, int graphId) : this(image, palFilename, graphId, string.Empty)
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="filename">Image file to import.</param>
-        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(string filename, PAL palette, int graphId) : this(filename, palette, graphId, string.Empty)
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="image">Image file data to import.</param>
-        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(byte[] image, PAL palette, int graphId) : this(image, palette, graphId, string.Empty)
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="filename">Image file to import.</param>
-        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Description (32 characters maximum).</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(string filename, string palFilename, int graphId, string description) : this(filename, palFilename, graphId, description, new ControlPoint[0])
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="image">Image file data to import.</param>
-        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Description (32 characters maximum).</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(byte[] image, string palFilename, int graphId, string description) : this(image, palFilename, graphId, description, new ControlPoint[0])
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="filename">Image file to import.</param>
-        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Description (32 characters maximum).</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(string filename, PAL palette, int graphId, string description) : this(filename, palette, graphId, description, new ControlPoint[0])
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="image">Image file data to import.</param>
-        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Description (32 characters maximum).</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(byte[] image, PAL palette, int graphId, string description) : this(image, palette, graphId, description, new ControlPoint[0])
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="filename">Image file to import.</param>
-        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Description (32 characters maximum).</param>
-        /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(string filename, string palFilename, int graphId, string description, ControlPoint[] controlPoints) : this(filename, new PAL(palFilename), graphId, description, controlPoints)
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="image">Image file data to import.</param>
-        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Description (32 characters maximum).</param>
-        /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(byte[] image, string palFilename, int graphId, string description, ControlPoint[] controlPoints) : this(image, new PAL(palFilename), graphId, description, controlPoints)
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="filename">Image file to import.</param>
-        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Description (32 characters maximum).</param>
-        /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(string filename, PAL palette, int graphId, string description, ControlPoint[] controlPoints) : this(File.ReadAllBytes(filename), palette, graphId, description, controlPoints)
-        {
-        }
-
-        /// <summary>
-        /// Imports an image file and convert to <see cref="MAP"/> format.
-        /// </summary>
-        /// <param name="image">Image file data to import.</param>
-        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="MAP"/>.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Description (32 characters maximum).</param>
-        /// <param name="controlPoints"><see cref="MAP"/> Control Point list.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-        public MAP(byte[] image, PAL palette, int graphId, string description, ControlPoint[] controlPoints) : this()
-        {
-            this.Palette = palette;
-
-            BMP256Converter.Convert(image, out this._bitmap, out short width, out short height, palette);
-
-            this._header = new MAPHeader(width, height, graphId, description, controlPoints);
         }
         #endregion
 
         #region Methods & Functions
         /// <summary>
-        /// Creates a new <see cref="MAP"/> instance using the bitmap and palette data from a PCX image.
+        /// Creates a new <see cref="MAP"/> instance from a supported image format.
         /// </summary>
-        /// <param name="filename">The PCX image to import.</param>
-        /// <returns>Returns new <see cref="MAP"/> instance from PCX data.</returns>
-        /// <remarks>Only supported 256 color PCX images.</remarks>
-        public static MAP ImportPCX(string filename)
+        /// <param name="filename">Image file to load.</param>
+        /// <param name="palette"><see cref="PAL"/> instance to convert the loaded image.</param>
+        /// <returns>Returns a new <see cref="MAP"/> instance from the loaded image.</returns>
+        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files, without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
+        public static MAP FromImage(string filename, PAL palette)
         {
-            try
-            {
-                return MAP.ImportPCX(File.ReadAllBytes(filename));
-            }
-            catch (Exception)
-            {
-                throw new FormatException($"The file \"{filename}\" not contain a valid 256 color PCX image.");
-            }
+            return FromImage(File.ReadAllBytes(filename), palette);
         }
 
         /// <summary>
-        /// Creates a new <see cref="MAP"/> instance using the bitmap and palette data from a PCX image.
+        /// Creates a new <see cref="MAP"/> instance from a supported image format.
         /// </summary>
-        /// <param name="buffer">The PCX image data to import.</param>
-        /// <returns>Returns new <see cref="MAP"/> instance from PCX data.</returns>
-        /// <remarks>Only supported 256 color PCX images.</remarks>
-        public static MAP ImportPCX(byte[] buffer)
-        {
-            if (PCX.IsPCX256(buffer))
-            {
-                PCX.Import(buffer, out short width, out short height, out byte[] bitmap, out PAL palette);
-
-                return new MAP()
-                {
-                    _header = new MAPHeader(width, height, MAPHeader.MIN_GRAPHID),
-                    Palette = palette,
-                    _bitmap = bitmap
-                };
-            }
-
-            throw new FormatException("The buffer data not contain a valid 256 color PCX image.");
-        }
-
-        /// <summary>
-        /// Creates a new <see cref="MAP"/> instance using another <see cref="MAP"/> image converting to a new <see cref="PAL"/> colors, keeping the all metadata (graphId, description and control points).
-        /// </summary>
-        /// <param name="mapFilename"><see cref="MAP"/> file to convert.</param>
-        /// <param name="palFilename"><see cref="PAL"/> file used to convert colors.</param>
-        /// <returns>Returns a new <see cref="MAP"/> instance with the converted old <see cref="MAP"/> image.</returns>
-        public static MAP Convert(string mapFilename, string palFilename)
-        {
-            try
-            {
-                return MAP.Convert(File.ReadAllBytes(mapFilename), new PAL(palFilename));
-            }
-            catch (Exception)
-            {
-                throw new FormatException($"The file \"{mapFilename}\" not contain a valid DIV MAP image.");
-            }
-        }
-
-        /// <summary>
-        /// Creates a new <see cref="MAP"/> instance using another <see cref="MAP"/> image converting to a new <see cref="PAL"/> colors, keeping the all metadata (graphId, description and control points).
-        /// </summary>
-        /// <param name="buffer"><see cref="byte"/> array <see cref="MAP"/> data to convert.</param>
-        /// <param name="palette"><see cref="PAL"/> palette used to convert colors.</param>
-        /// <returns>Returns a new <see cref="MAP"/> instance with the converted old <see cref="MAP"/> image.</returns>
-        public static MAP Convert(byte[] buffer, PAL palette)
+        /// <param name="buffer"><see cref="byte"/> array that contain a supported image.</param>
+        /// <param name="palette"><see cref="PAL"/> instance to convert the loaded image.</param>
+        /// <returns>Returns a new <see cref="MAP"/> instance from the loaded image.</returns>
+        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files, without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
+        public static MAP FromImage(byte[] buffer, PAL palette)
         {
             BMP256Converter.Convert(buffer, out byte[] bitmap, out short width, out short height, palette);
-            return new MAP()
+            return new MAP(palette, width, height) { _bitmap = bitmap };
+        }
+
+        int GetIndex(int x, int y)
+        {
+            return (this.Width * y) + x;
+        }
+
+        /// <summary>
+        /// Get the bitmap array data of this instance.
+        /// </summary>
+        /// <returns>Returns a <see cref="byte"/> array with all pixels with their color indexes from the <see cref="PAL"/> instance.</returns>
+        public byte[] GetBitmapArray() => this._bitmap;
+
+        /// <summary>
+        /// Set the bitmap array data for this instance.
+        /// </summary>
+        /// <param name="pixels"><see cref="byte"/> array that contains pixel data for this instance.</param>
+        public void SetBitmapArray(byte[] pixels)
+        {
+            if (pixels.Length != this._bitmap.Length)
+                throw new ArgumentOutOfRangeException($"The pixel array must be had the same length that this bitmap instance ({this._bitmap.Length} bytes).");
+
+            this._bitmap = pixels;
+        }
+
+        /// <summary>
+        /// Validate if the file is a valid <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="filename">File to validate.</param>
+        /// <returns>Returns true if the file is a valid <see cref="MAP"/>.</returns>
+        public static bool ValidateFormat(string filename)
+        {
+            return VALIDATOR.Validate(filename);
+        }
+
+        /// <summary>
+        /// Validate if the file is a valid <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="buffer">Memory buffer that contain a <see cref="MAP"/> file data.</param>
+        /// <returns>Returns true if the file is a valid <see cref="MAP"/>.</returns>
+        public static bool ValidateFormat(byte[] buffer)
+        {
+            return VALIDATOR.Validate(buffer);
+        }
+
+        /// <summary>
+        /// Validate if the file is a valid <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="filename">File to validate.</param>
+        /// <returns>Returns true if the file is a valid <see cref="MAP"/>.</returns>
+        public bool Validate(string filename)
+        {
+            return this.Validate(File.ReadAllBytes(filename));
+        }
+
+        /// <summary>
+        /// Validate if the file is a valid <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="buffer">Memory buffer that contain a <see cref="MAP"/> file data.</param>
+        /// <returns>Returns true if the file is a valid <see cref="MAP"/>.</returns>
+        public bool Validate(byte[] buffer)
+        {
+            return MAP_FILE_HEADER.Validate(buffer) && this.TryToReadFile(buffer);
+        }
+
+        bool TryToReadFile(byte[] buffer)
+        {
+            try
             {
-                _header = MAPHeader.FromMAP(buffer),
-                Palette = palette,
-                _bitmap = bitmap,
-            };
+                using (var stream = new BinaryReader(new MemoryStream(buffer)))
+                {
+                    stream.ReadBytes(DIVHeader.SIZE); // DIV Header.
 
-            throw new FormatException($"The buffer data not contain a valid DIV MAP image.");
+                    short width = stream.ReadInt16();
+                    short height = stream.ReadInt16();
+                    int bitmapSize = width * height;
+
+                    stream.ReadInt32(); // GraphId.
+                    stream.ReadBytes(DESCRIPTION_LENGTH); // Description.
+                    stream.ReadBytes(PAL.SIZE); // Palette.
+
+                    short points = stream.ReadInt16(); // Control points counter.
+                    if (points > 0)
+                        stream.ReadBytes(points * ControlPoint.SIZE); // Control points list.
+
+                    stream.ReadBytes(bitmapSize); // Bitmap data.
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
-        /// Adds a <see cref="ControlPoint"/> to this <see cref="MAP"/>.
+        /// Serialize the <see cref="MAP"/> instance in a <see cref="byte"/> array.
         /// </summary>
-        /// <param name="x">X coordinate.</param>
-        /// <param name="y">Y coordinate.</param>
-        public void AddControlPoint(short x, short y)
+        /// <returns>Returns the <see cref="byte"/> array with the <see cref="MAP"/> serialized data.</returns>
+        /// <remarks>This function not include the file header data.</remarks>
+        public byte[] Serialize()
         {
-            this.AddControlPoint(new ControlPoint() { x = x, y = y });
+            using (var stream = new BinaryWriter(new MemoryStream()))
+            {
+                stream.Write(this.Width);
+                stream.Write(this.Height);
+                stream.Write(this.GraphId);
+                stream.Write(this.Description.GetASCIIZString(DESCRIPTION_LENGTH));
+
+                this.Palette.Write(stream);
+
+                var count = (short)Math.Min(this.ControlPoints.Count, MAX_CONTROL_POINTS);
+                stream.Write(count);
+                for (int i = 0; i < count; i++)
+                    this.ControlPoints[i].Write(stream);
+
+                stream.Write(this._bitmap);
+
+                return (stream.BaseStream as MemoryStream).GetBuffer();
+            }
+        }
+
+        public void Write(BinaryWriter stream)
+        {
+            stream.Write(this.Serialize());
         }
 
         /// <summary>
-        /// Adds a <see cref="ControlPoint"/> to this <see cref="MAP"/>.
+        /// Save the instance in a <see cref="MAP"/> file.
         /// </summary>
-        /// <param name="point"><see cref="ControlPoint"/> data.</param>
-        public void AddControlPoint(ControlPoint point)
+        /// <param name="filename">Filename to write the data.</param>
+        public void Save(string filename)
         {
-            this._header.ControlPoints.Add(point);
+            using (var stream = new BinaryWriter(File.OpenWrite(filename)))
+            {
+                MAP_FILE_HEADER.Write(stream);
+                this.Write(stream);
+            }
         }
 
-        /// <summary>
-        /// Removes a <see cref="ControlPoint"/> data of this <see cref="MAP"/>.
-        /// </summary>
-        /// <param name="index"><see cref="ControlPoint"/> index.</param>
-        public void RemoveControlPoint(int index)
+        public IEnumerator<byte> GetEnumerator()
         {
-            this._header.ControlPoints.RemoveAt(index);
+            return this._bitmap.GetEnumerator() as IEnumerator<byte>;
         }
 
-        /// <summary>
-        /// Removes all <see cref="ControlPoint"/>s of this <see cref="MAP"/>.
-        /// </summary>
-        public void RemoveAllControlPoints()
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            this._header.ControlPoints.Clear();
+            return this.GetEnumerator();
         }
 
-        /// <summary>
-        /// Write all data to file.
-        /// </summary>
-        /// <param name="filename"><see cref="MAP"/> filename.</param>
-        internal override void Write(BinaryWriter file)
+        public override bool Equals(object obj)
         {
-            base.Write(file);
-            this._header.Write(file, this.Palette);
-            file.Write(this._bitmap);
+            if (!(obj is MAP)) return false;
+
+            return this == (MAP)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            if (this._hash == 0)
+            {
+                this._hash = this.Width ^ this.Height;
+                foreach (var color in this._bitmap)
+                    this._hash ^= color;
+            }
+
+            int hash = this._hash ^
+                       this.GraphId ^
+                       this.Description.GetHashCode() ^
+                       this.Palette.GetHashCode();
+
+            return hash;
         }
         #endregion
     }
-    #endregion
 }

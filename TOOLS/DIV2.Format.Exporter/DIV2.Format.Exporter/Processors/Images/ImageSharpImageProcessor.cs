@@ -14,7 +14,7 @@ namespace DIV2.Format.Exporter.Processors.Images
         public bool CheckFormat(byte[] buffer)
         {
             bool isPCX = PCX.IsPCX(buffer);
-            bool isMAP = MAP.Instance.CheckHeader(buffer);
+            bool isMAP = MAP.ValidateFormat(buffer);
 
             return !(isPCX || isMAP);
         }

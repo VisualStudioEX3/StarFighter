@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
 {
@@ -12,9 +13,19 @@ namespace DIV2.Format.Exporter.Tests
         #endregion
 
         #region Methods & Functions
-        protected void Log(string message)
+        public void Log(string message)
         {
             this.TestContext.WriteLine(message);
+        }
+
+        public string GetAssetPath(string filename)
+        {
+            return Path.Combine(SharedConstants.ASSET_FOLDERNAME, filename);
+        }
+
+        public string GetOutputPath(string filename)
+        {
+            return Path.Combine(SharedConstants.OUTPUT_FOLDERNAME, filename);
         }
         #endregion
     }

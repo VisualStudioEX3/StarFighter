@@ -24,7 +24,7 @@ namespace DIV2.Format.Exporter.Processors.Images
             PCX.Import(buffer, out short width, out short height, out byte[] pixels, out PAL palette);
 
             var image = new Image<Rgb24>(width, height);
-            image.ComposeBitmap(pixels, palette.ToColors());
+            image.ComposeBitmap(pixels, palette.ToImageSharpColors());
 
             mime = new PcxFormat();
 

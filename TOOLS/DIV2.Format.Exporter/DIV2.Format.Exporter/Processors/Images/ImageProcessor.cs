@@ -7,22 +7,20 @@ namespace DIV2.Format.Exporter.Processors.Images
     class ImageProcessor
     {
         #region Constants
-        static readonly IImageProcessor[] IMAGE_PROCESSORS = { 
-            ImageSharpImageProcessor.Instance, 
-            PcxImageProcessor.Instance, 
-            MapImageProcessor.Instance 
+        static readonly IImageProcessor[] IMAGE_PROCESSORS = {
+            ImageSharpImageProcessor.Instance,
+            PcxImageProcessor.Instance,
+            MapImageProcessor.Instance
         };
         #endregion
 
         #region Methods & Functions
         public static Image ProcessImage(byte[] buffer, out IImageFormat mime)
         {
-            foreach (var processor in ImageProcessor.IMAGE_PROCESSORS)
+            foreach (var processor in IMAGE_PROCESSORS)
             {
                 if (processor.CheckFormat(buffer))
-                {
                     return processor.Process(buffer, out mime);
-                }
             }
 
             throw new FormatException("Invalid image format.");

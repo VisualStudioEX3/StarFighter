@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test\Test.csproj", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DIV2.Format.Exporter.CLI", "DIV2.Format.Exporter.CLI\DIV2.Format.Exporter.CLI.csproj", "{FB9A1085-2504-46CD-BA02-C7B65BA92330}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DIV2.Format.Exporter.Tests", "DIV2.Format.Exporter.Tests\DIV2.Format.Exporter.Tests.csproj", "{0490E65E-02FF-44BC-A874-27E47FDE9FE5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DIV2.Format.Exporter.Tests", "DIV2.Format.Exporter.Tests\DIV2.Format.Exporter.Tests.csproj", "{0490E65E-02FF-44BC-A874-27E47FDE9FE5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

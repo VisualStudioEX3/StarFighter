@@ -1,399 +1,461 @@
-﻿using DIV2.Format.Exporter.Converters;
-using DIV2.Format.Exporter.MethodExtensions;
+﻿using DIV2.Format.Exporter.MethodExtensions;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace DIV2.Format.Exporter
 {
-    #region Structures
-    /// <summary>
-    /// Image import definition data.
-    /// </summary>
-    /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files (only image data, discarding all metadata: graphId, description and control points).</remarks>
-    [Serializable]
-    public struct ImportDefinition
-    {
-        #region Properties
-        internal bool BinaryLoad { get; private set; }
-        /// <summary>
-        /// Image data to import.
-        /// </summary>
-        public byte[] Buffer { get; private set; }
-        /// <summary>
-        /// Image filename to import.
-        /// </summary>
-        public string Filename { get; private set; }
-        /// <summary>
-        /// <see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the <see cref="FPG"/>.
-        /// </summary>
-        public int GraphId { get; private set; }
-        /// <summary>
-        /// Optional <see cref="MAP"/> graphic description (32 characters maximum).
-        /// </summary>
-        public string Description { get; private set; }
-        /// <summary>
-        /// Optional <see cref="MAP"/> Control Point list.
-        /// </summary>
-        public ControlPoint[] ControlPoints { get; private set; }
-        #endregion
-
-        #region Constructors
-        /// <summary>
-        /// Creates an Image Import Definition for load buffer data.
-        /// </summary>
-        /// <param name="buffer"><see cref="byte"/> array with the image data to import.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Optional <see cref="MAP>"/> description (32 characters maximum).</param>
-        /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
-        public ImportDefinition(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null) :
-            this(true, buffer, string.Empty, graphId, description, controlPoints)
-        {
-        }
-
-        /// <summary>
-        /// Creates an Image Import Definition for load PNG file.
-        /// </summary>
-        /// <param name="filename">Image file to import.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id.</param>
-        /// <param name="description">Optional <see cref="MAP"/> description (32 characters maximum).</param>
-        /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
-        public ImportDefinition(string filename, int graphId, string description = "", ControlPoint[] controlPoints = null) :
-            this(false, null, filename, graphId, description, controlPoints)
-        {
-        }
-
-        /// <summary>
-        /// Creates an Image Import Definition for load PNG file.
-        /// </summary>
-        /// <param name="filename">Image file to import.</param>
-        /// <param name="metadata"><see cref="MAPHeader"/> instance with all metadata for the <see cref="MAP"/> creation.</param>
-        public ImportDefinition(string filename, MAPHeader metadata) :
-            this(false, null, filename, metadata.GraphId, metadata.Description, metadata.ControlPoints.ToArray())
-        {
-        }
-
-        ImportDefinition(bool binaryLoad, byte[] buffer, string filename, int graphId, string description, ControlPoint[] controlPoints)
-        {
-            this.BinaryLoad = binaryLoad;
-            this.Filename = filename;
-            this.Buffer = buffer;
-            this.GraphId = graphId;
-            this.Description = description;
-            this.ControlPoints = controlPoints;
-        }
-        #endregion
-    }
-    #endregion
-
-    #region Classes
-    /// <summary>
-    /// FPG creator.
-    /// </summary>
-    public class FPG : DIVFormatCommonBase
+    struct Register : ISerializableAsset
     {
         #region Constants
-        public const int MAP_BASE_METADATA_LENGTH = 64;
-        public const int CONTROLPOINT_LENGTH = 4;
-        public const int MIN_GRAPHID = 1;
-        public const int MAX_GRAPHID = 999;
-        public const int DESCRIPTION_LENGTH = 32;
-        public const int FILENAME_LENGTH = 12;
-
-        readonly static string[] SUPPORTED_IMAGE_EXTENSIONS = { "jpg", "jpeg", "png", "bmp", "gif", "tga", "pcx", "map" };
+        const int FILENAME_LENGTH = 12; // DOS 8:3 format.
         #endregion
 
-        #region Structures
-        struct Register
-        {
-            #region Public vars
-            public int graphId;
-            public string description;
-            public string filename;
-            public int width;
-            public int height;
-            public ControlPoint[] controlPoints;
-            public byte[] bitmap;
-            #endregion
-
-            #region Methods & Functions
-            public int GetSize()
-            {
-                return FPG.MAP_BASE_METADATA_LENGTH + (FPG.CONTROLPOINT_LENGTH * controlPoints.Length) + bitmap.Length;
-            }
-            #endregion
-        }
-        #endregion
-
-        #region Internal vars
-        List<ImportDefinition> _maps;
+        #region Public vars
+        public string filename;
+        public MAP map;
         #endregion
 
         #region Properties
-        /// <summary>
-        /// Global instance of this class.
-        /// </summary>
-        public static FPG Instance => new FPG();
-
-        /// <summary>
-        /// <see cref="PAL"/> instance used by this <see cref="FPG"/>.
-        /// </summary>
-        public PAL Palette { get; }
-
-        /// <summary>
-        /// All <see cref="ImportDefinition"/> setup for this <see cref="FPG"/>.
-        /// </summary>
-        public IReadOnlyList<ImportDefinition> Maps => this._maps;
+        public int GraphId => this.map.GraphId;
         #endregion
 
         #region Constructor
-        internal FPG() : base("fpg")
+        public Register(BinaryReader stream, PAL palette)
         {
+            int graphId = stream.ReadInt32();
+            stream.ReadInt32(); // Read register size.
+            string description = stream.ReadBytes(MAP.DESCRIPTION_LENGTH).ToASCIIString();
+            this.filename = stream.ReadBytes(FILENAME_LENGTH).ToASCIIString();
+            int width = stream.ReadInt32();
+            int height = stream.ReadInt32();
+
+            this.map = new MAP(palette, width, height, graphId, description);
+
+            int count = stream.ReadInt32(); // Control Points counter.
+            for (int i = 0; i < count; i++)
+                this.map.ControlPoints.Add(new ControlPoint(stream.ReadInt16(), stream.ReadInt16()));
+
+            this.map.SetBitmapArray(stream.ReadBytes(width * height));
+        }
+        #endregion
+
+        #region Methods & Functions
+        int GetSize()
+        {
+            return (sizeof(int) * 2) + // GraphId + register length value.
+                   (sizeof(byte) * MAP.DESCRIPTION_LENGTH) + // Description.
+                   (sizeof(byte) * FILENAME_LENGTH) + // Filename.
+                   (sizeof(int) * 3) + // Width + Height + Control Points counter.
+                   (ControlPoint.SIZE * this.map.ControlPoints.Count) + // Control Points list.
+                   (sizeof(byte) * (this.map.Width * this.map.Height)); // Bitmap.
+        }
+
+        public byte[] Serialize()
+        {
+            using (var stream = new BinaryWriter(new MemoryStream()))
+            {
+                stream.Write(this.map.GraphId); // GraphId.
+                stream.Write(this.GetSize()); // Register length.
+                stream.Write(this.map.Description); // description.
+                stream.Write(this.filename); // Filename.
+                stream.Write((int)this.map.Width); // Width.
+                stream.Write((int)this.map.Height); // Height.
+
+                int count = Math.Min(this.map.ControlPoints.Count, MAP.MAX_CONTROL_POINTS);
+                stream.Write(count); // Control Points counter.
+                for (int i = 0; i > count; i++)
+                    this.map.ControlPoints[i].Write(stream); // Each Control Point in the list.
+
+                stream.Write(this.map.GetBitmapArray()); // Bitmap array.
+
+                return (stream.BaseStream as MemoryStream).GetBuffer();
+            }
+        }
+
+        public void Write(BinaryWriter stream)
+        {
+            stream.Write(this.Serialize());
+        }
+
+        public static bool TryToRead(BinaryReader stream)
+        {
+            try
+            {
+                stream.ReadInt64(); // GraphId + register length value.
+                stream.ReadBytes(MAP.DESCRIPTION_LENGTH); // Description.
+                stream.ReadBytes(FILENAME_LENGTH); // Filename.
+                int width = stream.ReadInt32();
+                int height = stream.ReadInt32();
+
+                int count = stream.ReadInt32(); // Control Points counter.
+                for (int i = 0; i < count; i++)
+                    stream.ReadInt32(); // Control Point coordinates.
+
+                stream.ReadBytes(width * height); // Bitmap array.
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        #endregion
+    }
+
+    class FPGEnumerator : IEnumerator<MAP>
+    {
+        #region Internal vars
+        List<Register> _registers;
+        int _currentIndex;
+        #endregion
+
+        #region Properties
+        public MAP Current { get; private set; }
+        object IEnumerator.Current => this.Current;
+        #endregion
+
+        #region Constructor & Destructor
+        public FPGEnumerator(List<Register> registers)
+        {
+            this._registers = registers;
+            this.Current = default(MAP);
+            this.Reset();
+        }
+
+        void IDisposable.Dispose()
+        {
+        }
+        #endregion
+
+        #region Methods & Functions
+        public bool MoveNext()
+        {
+            if (++this._currentIndex >= this._registers.Count)
+                return false;
+            else
+                this.Current = this._registers[this._currentIndex].map;
+
+            return true;
+        }
+
+        public void Reset()
+        {
+            this._currentIndex = -1;
+        }
+        #endregion
+    }
+
+    /// <summary>
+    /// A representation of a DIV Games Studio FPG file.
+    /// </summary>
+    /// <remarks>Implements functions to import, export and create File Package Graphic files.</remarks>
+    public sealed class FPG : IAssetFile, IEnumerable<MAP>
+    {
+        #region Constants
+        readonly static DIVHeader FPG_FILE_HEADER = new DIVHeader('f', 'p', 'g');
+        readonly static FPG VALIDATOR = new FPG();
+        #endregion
+
+        #region Internal vars
+        List<Register> _registers;
+        #endregion
+
+        #region Properties
+        /// <summary>
+        /// Color palette used by this FPG.
+        /// </summary>
+        public PAL Palette { get; private set; }
+        /// <summary>
+        /// Number of <see cref="MAP"/> in this FPG.
+        /// </summary>
+        public int Count => this._registers.Count;
+        /// <summary>
+        /// Get a <see cref="MAP"/> instance.
+        /// </summary>
+        /// <param name="index">Index of the <see cref="MAP"/> in the FPG.</param>
+        /// <returns>Returns the <see cref="MAP"/> instance.</returns>
+        public MAP this[int index] => this._registers[index].map;
+        #endregion
+
+        #region Constructors
+        FPG()
+        {
+            this._registers = new List<Register>();
         }
 
         /// <summary>
-        /// Create new <see cref="FPG"/> instance.
+        /// Creates a new <see cref="FPG"/> instance.
         /// </summary>
-        /// <param name="palFilename"><see cref="PAL"/> filename to use with this <see cref="FPG"/>.</param>
-        public FPG(string palFilename) : this(new PAL(palFilename))
-        {
-        }
-
-        /// <summary>
-        /// Create new <see cref="FPG"/> instance.
-        /// </summary>
-        /// <param name="palette"><see cref="PAL"/> instance to use with this <see cref="FPG"/>.</param>
-        public FPG(PAL palette) : this()
+        /// <param name="palette">The <see cref="PAL"/> instance used in this <see cref="FPG"/> instance.</param>
+        public FPG(PAL palette)
+            : this()
         {
             this.Palette = palette;
-            this._maps = new List<ImportDefinition>();
         }
 
         /// <summary>
-        /// Create new <see cref="FPG"/> instace importing PNG files from a directory.
+        /// Loads a <see cref="FPG"/> file.
         /// </summary>
-        /// <param name="palFilename"><see cref="PAL"/> file used to convert PNG colors to <see cref="MAP"/>.</param>
-        /// <param name="importPath">Directory to import.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files. Each image file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
-        public FPG(string palFilename, string importPath) : this(new PAL(palFilename), importPath)
+        /// <param name="filename">Filename to load.</param>
+        public FPG(string filename)
+            : this(File.ReadAllBytes(filename))
         {
         }
 
         /// <summary>
-        /// Create new <see cref="FPG"/> instance importing PNG files from a directory.
+        /// Loads a <see cref="FPG"/> file.
         /// </summary>
-        /// <param name="palette">The <see cref="PAL"/> instance used to convert image colors to <see cref="MAP"/>.</param>
-        /// <param name="importPath">Directory to import.</param>
-        /// <remarks>Supported formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files. Each image file must be follow by their JSON file, a serialized <see cref="MAPHeader"/> object, with all <see cref="MAP"/> metadata.</remarks>
-        public FPG(PAL palette, string importPath) : this()
+        /// <param name="buffer"><see cref="byte"/> array that contain the <see cref="FPG"/> file data to load.</param>
+        public FPG(byte[] buffer)
+            : this()
         {
-            // Get all files of the first extension detected:
-            string[] images = null;
-            
-            foreach (var ext in FPG.SUPPORTED_IMAGE_EXTENSIONS)
+            using (var stream = new BinaryReader(new MemoryStream(buffer)))
             {
-                if (images is null || images.Length == 0)
+                if (FPG_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
                 {
-                    images = Directory.GetFiles(importPath, $"?.{ext}");
-                }
-            }
+                    this.Palette = new PAL(new ColorPalette(stream.ReadBytes(ColorPalette.SIZE)),
+                                           new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE)));
 
-            if (images == null || images.Length == 0)
-            {
-                throw new FileNotFoundException($"The directory \"{importPath}\" not contain any supported image file.");
-            }
-
-            // Key = image file, Value = JSON file:
-            foreach (var file in images.ToDictionary(e => Path.ChangeExtension(e, ".json")))
-            {
-                if (File.Exists(file.Value))
-                {
-                    string imageFile = file.Key;
-                    var metadata = MAPHeader.FromJSON(File.ReadAllText(file.Value));
-                    this.AddMap(new ImportDefinition(imageFile, metadata));
+                    while (stream.BaseStream.Position < stream.BaseStream.Length)
+                        this._registers.Add(new Register(stream, this.Palette));
                 }
                 else
-                {
-                    throw new FileNotFoundException($"The JSON file \"{file.Value}\" not exists. Each Image file must be follow by their JSON file, a serialized {nameof(MAPHeader)} object, with all {nameof(MAP)} metadata.");
-                }
+                    throw new FormatException($"Error loading {nameof(FPG)} file.");
             }
         }
         #endregion
 
         #region Methods & Functions
-        void WriteMapRegister(BinaryWriter file, Register register)
+        /// <summary>
+        /// Adds a <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="filename">Filename to load.</param>
+        public void Add(string filename)
         {
-            file.Write(register.graphId);
-            file.Write(register.GetSize());
-            file.Write(register.description.GetASCIIZString(FPG.DESCRIPTION_LENGTH));
-            file.Write(register.filename.GetASCIIZString(FPG.FILENAME_LENGTH));
-            file.Write(register.width);
-            file.Write(register.height);
-            register.controlPoints.Write<int>(file);
-            file.Write(register.bitmap);
+            this.Add(new MAP(File.ReadAllBytes(filename)));
         }
 
-        List<Register> ImportImages()
+        /// <summary>
+        /// Adds a <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="buffer"><see cref="byte"/> array that contain the <see cref="MAP"/> file data to load.</param>
+        /// <param name="filename">Optional filename value in DOS 8:3 format.</param>
+        public void Add(byte[] buffer, string filename = "")
         {
-            var mapRegisters = new List<Register>(this._maps.Count);
-
-            foreach (var map in this._maps)
-            {
-                byte[] buffer = map.BinaryLoad ? map.Buffer : File.ReadAllBytes(map.Filename);
-
-                BMP256Converter.Convert(buffer, out byte[] bitmap, out short width, out short height, this.Palette);
-
-                mapRegisters.Add(new Register()
-                {
-                    graphId = map.GraphId,
-                    description = map.Description,
-                    filename = string.IsNullOrEmpty(map.Filename) ? string.Empty : Path.GetFileName(map.Filename),
-                    width = width,
-                    height = height,
-                    controlPoints = map.ControlPoints,
-                    bitmap = bitmap
-                });
-            }
-
-            return mapRegisters;
+            this.Add(new MAP(buffer), filename);
         }
 
-        bool TryGetMapIndexByGraphId(int graphId, out int index)
+        /// <summary>
+        /// Adds a <see cref="MAP"/> file.
+        /// </summary>
+        /// <param name="map"><see cref="MAP"/> instance to add.</param>
+        /// <param name="filename">Optional filename value in DOS 8:3 format.</param>
+        public void Add(MAP map, string filename = "")
         {
-            for (int i = 0; i < this._maps.Count; i++)
+            if (this.Contains(map))
+                throw new ArgumentException($"This {nameof(MAP)} already exists.");
+
+            if (this.Contains(map.GraphId))
+                throw new ArgumentException($"This {nameof(MAP.GraphId)} already is in use for some {nameof(MAP)} instance.");
+
+            this._registers.Add(new Register() { map = map, filename = filename });
+
+            // Sort MAP list by graphic identifiers in ascending order:
+            this._registers.Sort((x, y) =>
             {
-                if (this._maps[i].GraphId == graphId)
-                {
-                    index = i;
+                if (x.GraphId > y.GraphId)
+                    return 1;
+                else if (x.GraphId == y.GraphId)
+                    return 0;
+                else
+                    return -1;
+            });
+        }
+
+        /// <summary>
+        /// Determines whether a <see cref="MAP"/> is in this instance.
+        /// </summary>
+        /// <param name="map">The <see cref="MAP"/> to locate in this instance.</param>
+        /// <returns>Returns true if the <see cref="MAP"/> exists.</returns>
+        public bool Contains(MAP map)
+        {
+            foreach (var item in this)
+                if (item == map)
                     return true;
-                }
-            }
 
-            index = -1;
             return false;
         }
 
         /// <summary>
-        /// Adds an image definition to import in the <see cref="FPG"/>.
+        /// Determines whether a <see cref="MAP"/> with a graphic identifiers is in this instance.
         /// </summary>
-        /// <param name="buffer">Image data to import.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the <see cref="FPG"/>.</param>
-        /// <param name="description">Optional graphic description. 32 characters maximum.</param>
-        /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
-        public void AddMap(byte[] buffer, int graphId, string description = "", ControlPoint[] controlPoints = null)
+        /// <param name="graphId"><see cref="MAP"/> graphic identifiers to search.</param>
+        /// <returns>Returns true if a <see cref="MAP"/> graphic identifiers exists.</returns>
+        /// <remarks>Only compare the <see cref="MAP.GraphId"/> value.</remarks>
+        public bool Contains(int graphId)
         {
-            this.AddMap(new ImportDefinition(buffer, graphId, description, controlPoints ?? new ControlPoint[0]));
+            foreach (var map in this)
+                if (map.GraphId == graphId)
+                    return true;
+
+            return false;
         }
 
         /// <summary>
-        /// Adds an image definition to import in the <see cref="FPG"/>.
+        /// Removes a <see cref="MAP"/> from this instance.
         /// </summary>
-        /// <param name="filename">Image filename to import.</param>
-        /// <param name="graphId"><see cref="MAP"/> graphic id. Must be a be a value between 1 and 999 and must be unique in the <see cref="FPG"/>.</param>
-        /// <param name="description">Optional graphic description. 32 characters maximum.</param>
-        /// <param name="controlPoints">Optional <see cref="MAP"/> Control Point list.</param>
-        public void AddMap(string filename, int graphId, string description = "", ControlPoint[] controlPoints = null)
+        /// <param name="map"><see cref="MAP"/> instance to remove.</param>
+        public void Remove(MAP map)
         {
-            this.AddMap(new ImportDefinition(filename, graphId, description, controlPoints ?? new ControlPoint[0]));
+            for (int i = 0; i < this.Count; i++)
+                if (this[i] == map)
+                {
+                    this._registers.RemoveAt(i);
+                    return;
+                }
         }
 
         /// <summary>
-        /// Adds an <see cref="ImportDefinition"/> to import in the <see cref="FPG"/>.
+        /// Removes a <see cref="MAP"/> from this instance.
         /// </summary>
-        /// <param name="definition"><see cref="ImportDefinition"/> data to import.</param>
-        public void AddMap(ImportDefinition definition)
+        /// <param name="graphId"><see cref="MAP.GraphId"/> to search.</param>
+        public void Remove(int graphId)
         {
-            if (!definition.GraphId.IsClamped(FPG.MIN_GRAPHID, FPG.MAX_GRAPHID))
-            {
-                throw new ArgumentOutOfRangeException(nameof(definition.GraphId), $"The GraphID must be a value between {FPG.MIN_GRAPHID} and {FPG.MAX_GRAPHID} (Current GraphId: {definition.GraphId})");
-            }
+            for (int i = 0; i < this.Count; i++)
+                if (this[i].GraphId == graphId)
+                {
+                    this.RemoveAt(i);
+                    return;
+                }
+        }
 
-            int mapIndex;
-            if (!this.TryGetMapIndexByGraphId(definition.GraphId, out mapIndex))
+        /// <summary>
+        /// Removes a <see cref="MAP"/> from this instance.
+        /// </summary>
+        /// <param name="index"><see cref="MAP"/> index in this instance.</param>
+        public void RemoveAt(int index)
+        {
+            this._registers.RemoveAt(index);
+        }
+
+        /// <summary>
+        /// Removes all <see cref="MAP"/> in this instance.
+        /// </summary>
+        public void Clear()
+        {
+            this._registers.Clear();
+        }
+
+        /// <summary>
+        /// Validate if the file is a valid <see cref="FPG"/> file.
+        /// </summary>
+        /// <param name="filename">File to validate.</param>
+        /// <returns>Returns true if the file is a valid <see cref="FPG"/>.</returns>
+        public static bool ValidateFormat(string filename)
+        {
+            return VALIDATOR.Validate(filename);
+        }
+
+        /// <summary>
+        /// Validate if the file is a valid <see cref="FPG"/> file.
+        /// </summary>
+        /// <param name="buffer">Memory buffer that contain a <see cref="FPG"/> file data.</param>
+        /// <returns>Returns true if the file is a valid <see cref="FPG"/>.</returns>
+        public static bool ValidateFormat(byte[] buffer)
+        {
+            return VALIDATOR.Validate(buffer);
+        }
+
+        /// <summary>
+        /// Validate if the file is a valid <see cref="FPG"/> file.
+        /// </summary>
+        /// <param name="filename">File to validate.</param>
+        /// <returns>Returns true if the file is a valid <see cref="FPG"/>.</returns>
+        public bool Validate(string filename)
+        {
+            return this.Validate(File.ReadAllBytes(filename));
+        }
+
+        /// <summary>
+        /// Validate if the file is a valid <see cref="FPG"/> file.
+        /// </summary>
+        /// <param name="buffer">Memory buffer that contain a <see cref="FPG"/> file data.</param>
+        /// <returns>Returns true if the file is a valid <see cref="FPG"/>.</returns>
+        public bool Validate(byte[] buffer)
+        {
+            return FPG_FILE_HEADER.Validate(buffer) && this.TryToReadFile(buffer);
+        }
+
+        bool TryToReadFile(byte[] buffer)
+        {
+            try
             {
-                this._maps.Add(definition);
+                using (var stream = new BinaryReader(new MemoryStream(buffer)))
+                {
+                    stream.ReadBytes(DIVHeader.SIZE); // DIV Header.
+                    stream.ReadBytes(PAL.SIZE); // Palette.
+
+                    // Try to read all registers:
+                    while (stream.BaseStream.Position < stream.BaseStream.Length)
+                        if (!Register.TryToRead(stream))
+                            return false;
+                }
+
+                return true;
             }
-            else
+            catch
             {
-                throw new ArgumentException(nameof(definition.GraphId), $"The GraphID {definition.GraphId} is already in use by other map (Map index: {mapIndex})");
+                return false;
             }
         }
 
         /// <summary>
-        /// Removes a <see cref="ImportDefinition"/> from the <see cref="FPG"/>.
+        /// Serialize the <see cref="FPG"/> instance in a <see cref="byte"/> array.
         /// </summary>
-        /// <param name="index">Index of the <see cref="ImportDefinition"/>.</param>
-        public void RemoveMap(int index)
+        /// <returns>Returns the <see cref="byte"/> array with the <see cref="FPG"/> serialized data.</returns>
+        /// <remarks>This function not include the file header data.</remarks>
+        public byte[] Serialize()
         {
-            this._maps.RemoveAt(index);
-        }
+            using (var stream = new BinaryWriter(new MemoryStream()))
+            {
+                this.Palette.Write(stream);
+                foreach (var register in this._registers)
+                    register.Write(stream);
 
-        /// <summary>
-        /// Removes a <see cref="ImportDefinition"/> from the <see cref="FPG"/> using their graphic id.
-        /// </summary>
-        /// <param name="graphId">Graphic id of the <see cref="ImportDefinition"/>.</param>
-        public void RemoveMapByGraphId(short graphId)
-        {
-            int mapIndex;
-            if (this.TryGetMapIndexByGraphId(graphId, out mapIndex))
-            {
-                this.RemoveMap(mapIndex);
-            }
-            else
-            {
-                throw new ArgumentException(nameof(graphId), $"Map with GraphId {graphId} not found.");
+                return (stream.BaseStream as MemoryStream).GetBuffer();
             }
         }
 
-        /// <summary>
-        /// Removes all <see cref="ImportDefinition"/>s from the <see cref="FPG"/>.
-        /// </summary>
-        public void RemoveAllMaps()
+        public void Write(BinaryWriter stream)
         {
-            this._maps.Clear();
+            stream.Write(this.Serialize());
         }
 
         /// <summary>
-        /// Search a <see cref="ImportDefinition"/> by their graphic id.
+        /// Save the instance in a <see cref="FPG"/> file.
         /// </summary>
-        /// <param name="graphId">Graphic id of the <see cref="ImportDefinition"/>.</param>
-        /// <returns>Returns the <see cref="ImportDefinition"/> data.</returns>
-        public ImportDefinition FindByGraphId(short graphId)
+        /// <param name="filename">Filename to write the data.</param>
+        public void Save(string filename)
         {
-            int mapIndex;
-            if (this.TryGetMapIndexByGraphId(graphId, out mapIndex))
+            using (var stream = new BinaryWriter(File.OpenWrite(filename)))
             {
-                return this._maps[mapIndex];
-            }
-            else
-            {
-                throw new ArgumentException(nameof(graphId), $"Map with GraphId {graphId} not found.");
+                FPG_FILE_HEADER.Write(stream);
+                this.Write(stream);
             }
         }
 
-        /// <summary>
-        /// Imports all <see cref="ImportDefinition"/> and write all data to file.
-        /// </summary>
-        /// <param name="filename"><see cref="FPG"/> filename.</param>
-        internal override void Write(BinaryWriter file)
+        public IEnumerator<MAP> GetEnumerator()
         {
-            if (this._maps.Count == 0)
-            {
-                throw new InvalidOperationException("The FPG not contain any MAP to import.");
-            }
+            return new FPGEnumerator(this._registers);
+        }
 
-            List<Register> mapRegisters = this.ImportImages();
-
-            base.Write(file);
-            this.Palette.WriteEmbebed(file);
-
-            foreach (var register in mapRegisters)
-            {
-                this.WriteMapRegister(file, register);
-            }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
         }
         #endregion
     }
-    #endregion
 }

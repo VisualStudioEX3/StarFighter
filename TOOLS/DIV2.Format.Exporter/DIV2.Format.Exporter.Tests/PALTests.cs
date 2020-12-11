@@ -6,27 +6,31 @@ namespace DIV2.Format.Exporter.Tests
     [TestClass]
     public class PALTests : AbstractTest
     {
+
+
         [TestMethod]
         public void LoadFromFilename()
         {
-            new PAL(SharedConstants.FILENAME_SPACE_PAL);
+            new OldPAL(this.GetAssetPath(SharedConstants.FILENAME_SPACE_PAL));
         }
 
         [TestMethod]
         public void LoadFromBuffer()
         {
-            new PAL(File.ReadAllBytes(SharedConstants.FILENAME_SPACE_PAL));
+            byte[] buffer = File.ReadAllBytes(this.GetAssetPath(SharedConstants.FILENAME_SPACE_PAL));
+            new OldPAL(buffer);
         }
 
-        [TestMethod]
-        public void CreateFromImage()
+        [DataTestMethod]
+        [DataRow(SharedConstants.FILENAME_PLAYER_PCX)]
+        [DataRow(SharedConstants.FILENAME_PLAYER_BMP)]
+        [DataRow(SharedConstants.FILENAME_PLAYER_PNG)]
+        [DataRow(SharedConstants.FILENAME_PLAYER_MAP)]
+        [DataRow(SharedConstants.FILENAME_PLAYER_FPG)]
+        public void CreateFromImage(string file)
         {
-            foreach (string filename in SharedConstants.IMAGE_FILES)
-            {
-                this.Log($"Create palette from \"{filename}\"...");
-                PAL.FromImage(filename);
-                this.Log($"Ok");
-            }
+            var pal = OldPAL.FromImage(this.GetAssetPath(file));
+            pal.Save(this.GetOutputPath(Path.GetFileNameWithoutExtension(file)));
         }
     }
 }

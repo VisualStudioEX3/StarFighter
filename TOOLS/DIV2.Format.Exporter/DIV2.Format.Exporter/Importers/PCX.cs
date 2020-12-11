@@ -31,34 +31,34 @@ namespace DIV2.Format.Importer
         #region Constructor
         internal static bool IsPCX(byte[] buffer)
         {
-            bool signature = buffer[0] == PCX.HEADER_SIGNATURE;
-            bool version = buffer[1].IsClamped(PCX.HEADER_MIN_VERSION, PCX.HEADER_MAX_VERSION);
-            bool compress = buffer[2].IsClamped(PCX.HEADER_UNCOMPRESSED, PCX.HEADER_RLE_ENCODED);
+            bool signature = buffer[0] == HEADER_SIGNATURE;
+            bool version = buffer[1].IsClamped(HEADER_MIN_VERSION, HEADER_MAX_VERSION);
+            bool compress = buffer[2].IsClamped(HEADER_UNCOMPRESSED, HEADER_RLE_ENCODED);
 
             return signature && version && compress;
         }
 
         internal static bool IsPCX256(byte[] buffer)
         {
-            bool header = PCX.IsPCX(buffer);
-            bool isBpp8 = buffer[3] == PCX.HEADER_BPP_8;
-            bool paletteMarker = buffer[buffer.Length - PAL.COLOR_TABLE_LENGTH - 1] == PCX.PALETTE_MARKER;
+            bool header = IsPCX(buffer);
+            bool isBpp8 = buffer[3] == HEADER_BPP_8;
+            bool paletteMarker = buffer[buffer.Length - ColorPalette.SIZE - 1] == PALETTE_MARKER;
 
             return header && isBpp8 && paletteMarker;
         }
 
         internal static void Import(byte[] buffer, out short width, out short height, out byte[] bitmap, out PAL palette)
         {
-            if (PCX.IsPCX256(buffer))
+            if (IsPCX256(buffer))
             {
                 using (var file = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    file.BaseStream.Position = PCX.HEADER_BPP_POSITION;
+                    file.BaseStream.Position = HEADER_BPP_POSITION;
 
-                    file.BaseStream.Position = PCX.HEADER_WIDTH_POSITION;
+                    file.BaseStream.Position = HEADER_WIDTH_POSITION;
                     width = file.ReadInt16();
 
-                    file.BaseStream.Position = PCX.HEADER_HEIGHT_POSITION;
+                    file.BaseStream.Position = HEADER_HEIGHT_POSITION;
                     height = file.ReadInt16();
 
                     // Lambda function to clear bits 6 and 7 in a byte value:
@@ -66,21 +66,21 @@ namespace DIV2.Format.Importer
                     {
                         // .NET bit operations works in Int32 values. A conversion is needed to work with bytes.
                         int i = arg;
-                        return (byte)(i & PCX.RLE_CLEAR_MASK);
+                        return (byte)(i & RLE_CLEAR_MASK);
                     };
 
-                    int imageSize = (int)(file.BaseStream.Length - (PCX.HEADER_LENGTH + (PAL.COLOR_TABLE_LENGTH + 1)));
+                    int imageSize = (int)(file.BaseStream.Length - (HEADER_LENGTH + (ColorPalette.SIZE + 1)));
                     byte value, write;
                     int index = 0;
 
                     // Read and decompress RLE image data:
                     bitmap = new byte[imageSize];
 
-                    file.BaseStream.Position = PCX.HEADER_LENGTH;
+                    file.BaseStream.Position = HEADER_LENGTH;
                     for (int i = 0; i < imageSize; i++)
                     {
                         value = file.ReadByte();
-                        if ((value & PCX.RLE_COUNTER_MASK) == PCX.RLE_COUNTER_MASK) // Checks if is a counter byte:
+                        if ((value & RLE_COUNTER_MASK) == RLE_COUNTER_MASK) // Checks if is a counter byte:
                         {
                             value = clearBits(value); // Clear bits 6 and 7 to get the counter value.
                             write = file.ReadByte(); // Next byte is the pixel value to write.
@@ -98,27 +98,26 @@ namespace DIV2.Format.Importer
                         }
                     }
 
-                    palette = PCX.CreatePalette(file);
-                } 
+                    palette = CreatePalette(file);
+                }
             }
             else
             {
-                throw PCX.NOT_256_COLORS_EXCEPTION;
+                throw NOT_256_COLORS_EXCEPTION;
             }
         }
 
         internal static PAL CreatePalette(BinaryReader file)
         {
-            file.BaseStream.Position = file.BaseStream.Length - PAL.COLOR_TABLE_LENGTH - 1;
+            file.BaseStream.Position = file.BaseStream.Length - ColorPalette.SIZE - 1;
 
-            if (file.ReadByte() == PCX.PALETTE_MARKER)
+            if (file.ReadByte() == PALETTE_MARKER)
             {
-                return PAL.CreatePalette(file.ReadBytes(PAL.COLOR_TABLE_LENGTH), true);
+                var colors = new ColorPalette(file.ReadBytes(ColorPalette.SIZE));
+                return new PAL(colors);
             }
             else
-            {
-                throw PCX.NOT_256_COLORS_EXCEPTION;
-            }
+                throw NOT_256_COLORS_EXCEPTION;
         }
         #endregion
     }

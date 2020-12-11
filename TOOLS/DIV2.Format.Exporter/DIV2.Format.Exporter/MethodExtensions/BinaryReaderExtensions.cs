@@ -23,9 +23,7 @@ namespace DIV2.Format.Exporter.MethodExtensions
                 return BitConverter.ToUInt32(data, 0); 
             }
             else
-            {
                 return stream.ReadUInt32();
-            }
         }
 
         /// <summary>

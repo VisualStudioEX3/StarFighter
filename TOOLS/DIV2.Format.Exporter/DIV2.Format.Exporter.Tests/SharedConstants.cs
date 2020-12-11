@@ -4,25 +4,17 @@ using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
 {
-    class SharedConstants
+    static class SharedConstants
     {
-        static readonly string BASE_PATH = $"Assets{Path.DirectorySeparatorChar}";
+        public const string ASSET_FOLDERNAME = "Assets";
+        public const string OUTPUT_FOLDERNAME = "Output";
 
-        public static readonly string FILENAME_SPACE_PAL = SharedConstants.BASE_PATH + "SPACE.PAL";
+        public const string FILENAME_SPACE_PAL = "SPACE.PAL";
 
-        public static readonly string FILENAME_PLAYER_PCX = SharedConstants.BASE_PATH + "PLAYER.PCX";
-        public static readonly string FILENAME_PLAYER_BMP = SharedConstants.BASE_PATH + "PLAYER.BMP";
-        public static readonly string FILENAME_PLAYER_PNG = SharedConstants.BASE_PATH + "PLAYER.PNG";
-        public static readonly string FILENAME_PLAYER_MAP = SharedConstants.BASE_PATH + "PLAYER.MAP";
-        public static readonly string FILENAME_PLAYER_FPG = SharedConstants.BASE_PATH + "PLAYER.FPG";
-
-        public static string[] IMAGE_FILES = {
-            SharedConstants.FILENAME_PLAYER_PCX,
-            SharedConstants.FILENAME_PLAYER_BMP,
-            SharedConstants.FILENAME_PLAYER_PNG,
-            SharedConstants.FILENAME_PLAYER_MAP,
-            SharedConstants.FILENAME_PLAYER_FPG
-        };
-
+        public const string FILENAME_PLAYER_PCX = "PLAYER.PCX";
+        public const string FILENAME_PLAYER_BMP = "PLAYER.BMP";
+        public const string FILENAME_PLAYER_PNG = "PLAYER.PNG";
+        public const string FILENAME_PLAYER_MAP = "PLAYER.MAP";
+        public const string FILENAME_PLAYER_FPG = "PLAYER.FPG";
     }
 }
