@@ -280,7 +280,7 @@ namespace DIV2.Format.Exporter
         public PAL(Color[] colors, bool convertToDACFormat = false)
             : this()
         {
-            if (colors.Length != 256)
+            if (colors.Length != LENGTH)
                 throw new ArgumentOutOfRangeException($"The color array must be a {LENGTH} length array.");
 
             for (int i = 0; i < LENGTH; i++)
