@@ -4,14 +4,15 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <Authors>José Miguel Sánchez Fernández</Authors>
     <Company>Visual Studio EX3</Company>
-    <Description>A tool to export PNG files as DIV Games Studio MAP format and generate FPG files.</Description>
+    <Description>API tool to import and export DIV Games Studio formats using modern image formats.</Description>
     <Copyright>© Visual Studio EX3, José Miguel Sánchez Fernández - 2020</Copyright>
     <PackageProjectUrl>https://github.com/VisualStudioEX3/StarFighter/tree/develop/TOOLS/DIV2Tools</PackageProjectUrl>
     <RepositoryUrl>https://github.com/VisualStudioEX3/StarFighter/tree/develop/TOOLS/DIV2Tools</RepositoryUrl>
     <RepositoryType>GitHub</RepositoryType>
-    <PackageTags>DIV DIV2 DIVGameStudio DIVGameStudio2 Games Graphics Tool</PackageTags>
+    <PackageTags>DIV DIV2 DIVGamesStudio DIVGamesStudio2 Games Graphics Tool Retro Windows Linux Mac</PackageTags>
     <Platforms>AnyCPU;x64</Platforms>
-    <Version>1.1.0</Version>
+    <Version>2.0.0</Version>
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

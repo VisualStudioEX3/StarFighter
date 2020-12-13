@@ -25,7 +25,7 @@ namespace DIV2.Format.Exporter
         public Register(BinaryReader stream, PAL palette)
         {
             int graphId = stream.ReadInt32();
-            stream.ReadInt32(); // Read register size.
+            stream.BaseStream.Position += sizeof(int); // Skip register size.
             string description = stream.ReadBytes(MAP.DESCRIPTION_LENGTH).ToASCIIString();
             this.filename = stream.ReadBytes(FILENAME_LENGTH).ToASCIIString();
             int width = stream.ReadInt32();
@@ -165,17 +165,17 @@ namespace DIV2.Format.Exporter
 
         #region Properties
         /// <summary>
-        /// Color palette used by this FPG.
+        /// Color palette used by this <see cref="FPG"/>.
         /// </summary>
         public PAL Palette { get; private set; }
         /// <summary>
-        /// Number of <see cref="MAP"/> in this FPG.
+        /// Gets the number of <see cref="MAP"/> instances contained in the <see cref="FPG"/>.
         /// </summary>
         public int Count => this._registers.Count;
         /// <summary>
         /// Get a <see cref="MAP"/> instance.
         /// </summary>
-        /// <param name="index">Index of the <see cref="MAP"/> in the FPG.</param>
+        /// <param name="index">Index of the <see cref="MAP"/> in the <see cref="FPG"/>.</param>
         /// <returns>Returns the <see cref="MAP"/> instance.</returns>
         public MAP this[int index] => this._registers[index].map;
         #endregion
@@ -290,11 +290,10 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Determines whether a <see cref="MAP"/> with a graphic identifiers is in this instance.
+        /// Determines whether a <see cref="MAP"/> with a graphic identifier is in this instance.
         /// </summary>
-        /// <param name="graphId"><see cref="MAP"/> graphic identifiers to search.</param>
-        /// <returns>Returns true if a <see cref="MAP"/> graphic identifiers exists.</returns>
-        /// <remarks>Only compare the <see cref="MAP.GraphId"/> value.</remarks>
+        /// <param name="graphId"><see cref="MAP"/> graphic identifier to search.</param>
+        /// <returns>Returns true if a <see cref="MAP"/> graphic identifier exists.</returns>
         public bool Contains(int graphId)
         {
             foreach (var map in this)

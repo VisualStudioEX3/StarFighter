@@ -12,7 +12,8 @@ namespace DIV2.Format.Exporter
     public sealed class ColorRange : ISerializableAsset, IEnumerable<byte>
     {
         #region Constants
-        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
+        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
+            new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
 
         /// <summary>
         /// Number of color index entries in the range.
@@ -28,10 +29,19 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Available ammount of colors for the range.
         /// </summary>
-        public enum ColorAmmount : byte
+        public enum RangeColors : byte
         {
+            /// <summary>
+            /// 8 colors.
+            /// </summary>
             _8 = 8,
+            /// <summary>
+            /// 16 colors.
+            /// </summary>
             _16 = 16,
+            /// <summary>
+            /// 32 colors.
+            /// </summary>
             _32 = 32
         }
 
@@ -40,11 +50,26 @@ namespace DIV2.Format.Exporter
         /// </summary>
         public enum RangeTypes : byte
         {
-            _0 = 0,
-            _1 = 1,
-            _2 = 2,
-            _4 = 4,
-            _8 = 8
+            /// <summary>
+            /// Direct from palette.
+            /// </summary>
+            Direct = 0,
+            /// <summary>
+            /// Editable each color.
+            /// </summary>
+            Edit1 = 1,
+            /// <summary>
+            /// Editable each 2 colors.
+            /// </summary>
+            Edit2 = 2,
+            /// <summary>
+            /// Editable each 4 colors.
+            /// </summary>
+            Edit4 = 4,
+            /// <summary>
+            /// Editable each 8 colors.
+            /// </summary>
+            Edit8 = 8
         }
         #endregion
 
@@ -54,17 +79,17 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Ammount of colors for the range.
         /// </summary>
-        public ColorAmmount colors;
+        public RangeColors colors;
         /// <summary>
         /// Range type.
         /// </summary>
         public RangeTypes type;
         /// <summary>
-        /// Is a fixed range?
+        /// Defines if the range is editable (false) or not (true). By default is false.
         /// </summary>
         public bool isfixed;
         /// <summary>
-        /// Index of the black color. Defaults is zero.
+        /// Index of the black color. Default is zero.
         /// </summary>
         public byte blackColor;
         #endregion
@@ -108,14 +133,16 @@ namespace DIV2.Format.Exporter
 
         #region Constructor
         /// <summary>
-        /// Creates a new color range with default values.
+        /// Creates a new <see cref="ColorRange"/> instance with default values.
         /// </summary>
         /// <param name="startColorIndex">The start color index to setup the range.</param>
-        /// <remarks>By default, when initialize the 16 ranges in <see cref="PAL"/>, the idea is create a ramp values from 0 to 255 values and repeat until completes all 16 ranges. This process is automatically setup in <see cref="ColorRangeTable"/> default constructor.</remarks>
+        /// <remarks>By default, when initialize the 16 ranges in a <see cref="PAL"/>, 
+        /// the idea is create a ramp values from 0 to 255 values and repeat until completes all 16 ranges. 
+        /// This process is automatically setup in <see cref="ColorRangeTable"/> default constructor.</remarks>
         public ColorRange(ref byte startColorIndex)
         {
-            this.colors = ColorAmmount._8;
-            this.type = RangeTypes._0;
+            this.colors = RangeColors._8;
+            this.type = RangeTypes.Direct;
             this.isfixed = false;
             this.blackColor = 0;
 
@@ -134,7 +161,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Creates a new color range from memory.
         /// </summary>
-        /// <param name="buffer"></param>
+        /// <param name="buffer">A <see cref="byte"/> array that contains the <see cref="ColorRange"/> data.</param>
         public ColorRange(byte[] buffer)
         {
             if (buffer.Length != SIZE)
@@ -142,7 +169,7 @@ namespace DIV2.Format.Exporter
 
             using (var stream = new BinaryReader(new MemoryStream(buffer)))
             {
-                this.colors = (ColorAmmount)stream.ReadByte();
+                this.colors = (RangeColors)stream.ReadByte();
                 this.type = (RangeTypes)stream.ReadByte();
                 this.isfixed = stream.ReadBoolean();
                 this.blackColor = stream.ReadByte();

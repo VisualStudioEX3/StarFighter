@@ -9,10 +9,13 @@ namespace DIV2.Format.Exporter
     /// <summary>
     /// A collection of 16 ranges that composes the <see cref="PAL"/> <see cref="ColorRange"/> table.
     /// </summary>
+    /// <remarks>The color ranges are used only in DIV Games Studio color and drawing tools. Not are used in games. 
+    /// By default is enough to creates a <see cref="ColorRangeTable"/> with default values.</remarks>
     public sealed class ColorRangeTable : ISerializableAsset, IEnumerable<ColorRange>
     {
         #region Constants
-        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
+        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
+            new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
 
         /// <summary>
         /// Number of <see cref="ColorRange"/> in the table.
@@ -82,7 +85,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Creates a new <see cref="ColorRangeTable"/> from memory.
         /// </summary>
-        /// <param name="buffer"></param>
+        /// <param name="buffer">A <see cref="byte"/> array that contains a <see cref="ColorRangeTable"/> data.</param>
         public ColorRangeTable(byte[] buffer)
         {
             if (buffer.Length != SIZE)

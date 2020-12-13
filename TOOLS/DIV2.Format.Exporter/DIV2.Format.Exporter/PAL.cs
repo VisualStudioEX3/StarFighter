@@ -11,7 +11,8 @@ namespace DIV2.Format.Exporter
     {
         #region Constants
         const int DAC_TO_RGB_FACTOR = 4; // Value used to convert RGB values [0..255] to DAC [0..63] and DAC to RGB values.
-        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
+        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
+            new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
 
         /// <summary>
         /// Number of components.
@@ -141,7 +142,9 @@ namespace DIV2.Format.Exporter
         /// Converts DAC values [0..63] to RGB range [0..255].
         /// </summary>
         /// <returns>Returns new <see cref="Color"/> value in RGB range [0..255].</returns>
-        /// <remarks>DIV Games Studio and other software that works in old VESA modes, using the DAC format for colors instead of full RGB format. Use this function to adapt DAC values to RGB in order to work properly with modern implementations.</remarks>
+        /// <remarks>DIV Games Studio and other software that works in old VESA modes, 
+        /// using the DAC format for colors instead of full RGB format. 
+        /// Use this function to adapt DAC values to RGB in order to work properly with modern implementations.</remarks>
         public Color ToRGB()
         {
             return new Color(this.red * DAC_TO_RGB_FACTOR,
@@ -153,7 +156,9 @@ namespace DIV2.Format.Exporter
         /// Converts RGB values [0..255] to DAC range [0..63].
         /// </summary>
         /// <returns>Returns new <see cref="Color"/> value in DAC range [0..63].</returns>
-        /// <remarks>DIV Games Studio and other software that works in old VESA modes, using the DAC format for colors instead of full RGB format. Use this function to adapt RGB values to DAC in order to work properly with DIV Games Studio.</remarks>
+        /// <remarks>DIV Games Studio and other software that works in old VESA modes, 
+        /// using the DAC format for colors instead of full RGB format. 
+        /// Use this function to adapt RGB values to DAC in order to work properly with DIV Games Studio.</remarks>
         public Color ToDAC()
         {
             return new Color(this.red / DAC_TO_RGB_FACTOR,
@@ -184,7 +189,8 @@ namespace DIV2.Format.Exporter
         #region Constants
         readonly static DIVHeader PAL_FILE_HEADER = new DIVHeader('p', 'a', 'l');
         readonly static PAL VALIDATOR = new PAL();
-        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
+        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
+            new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
 
         /// <summary>
         /// Number of colors.
@@ -291,7 +297,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Load a <see cref="PAL"/> file.
+        /// Loads a <see cref="PAL"/> file.
         /// </summary>
         /// <param name="filename"><see cref="PAL"/> filename to load.</param>
         public PAL(string filename)
@@ -300,7 +306,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Load a <see cref="PAL"/> file.
+        /// Loads a <see cref="PAL"/> file.
         /// </summary>
         /// <param name="buffer">A memory buffer that contains <see cref="PAL"/> file.</param>
         public PAL(byte[] buffer)
@@ -327,7 +333,9 @@ namespace DIV2.Format.Exporter
         /// </summary>
         /// <param name="filename">Image file to load.</param>
         /// <returns>Returns a new <see cref="PAL"/> instance.</returns>
-        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files, without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
+        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
+        /// Also supported 256 color PCX images and <see cref="MAP"/> files, 
+        /// without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
         public static PAL FromImage(string filename)
         {
             return FromImage(File.ReadAllBytes(filename));
@@ -337,7 +345,9 @@ namespace DIV2.Format.Exporter
         /// Creates new <see cref="PAL"/> instance from a supporte image file.
         /// </summary>
         /// <param name="buffer">Memory buffer that contains a supported image file.</param>
-        /// <returns>Supported image formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files, without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</returns>
+        /// <returns>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
+        /// Also supported 256 color PCX images and <see cref="MAP"/> files, 
+        /// without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</returns>
         public static PAL FromImage(byte[] buffer)
         {
             return PaletteProcessor.ProcessPalette(buffer);
@@ -468,7 +478,8 @@ namespace DIV2.Format.Exporter
         /// </summary>
         /// <param name="other"><see cref="PAL"/> instnace to compare.</param>
         /// <returns>Returns true if the both instances are equals.</returns>
-        /// <remarks>The == and != operators only compare the colors between <see cref="PAL"/> instances. Use this function if you want to compare color tables and color range tables.</remarks>
+        /// <remarks>The == and != operators only compare the colors between <see cref="PAL"/> instances. 
+        /// Use this function if you want to compare color tables and color range tables.</remarks>
         public bool Compare(PAL other)
         {
             return this.Colors == other.Colors &&

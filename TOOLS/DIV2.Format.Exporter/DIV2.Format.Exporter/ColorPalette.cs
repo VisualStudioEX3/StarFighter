@@ -15,7 +15,8 @@ namespace DIV2.Format.Exporter
         const byte MIN_DAC_VALUE = 0;
         const byte MAX_DAC_VALUE = 63;
 
-        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
+        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
+            new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
         readonly static string[] COLOR_FIELD_NAMES = { "Red", "Green", "Blue" };
         const string DAC_VALUE_OUT_OF_RANGE_EXCEPTION_MESSAGE = "The {0} value must be a DAC range value [{1}..{2}].";
 
@@ -55,7 +56,10 @@ namespace DIV2.Format.Exporter
 
                 for (int i = 0; i < Color.LENGTH; i++)
                     if (!value[i].IsClamped(MIN_DAC_VALUE, MAX_DAC_VALUE))
-                        throw new ArgumentOutOfRangeException(string.Format(DAC_VALUE_OUT_OF_RANGE_EXCEPTION_MESSAGE, COLOR_FIELD_NAMES[i], MIN_DAC_VALUE, MAX_DAC_VALUE));
+                        throw new ArgumentOutOfRangeException(string.Format(DAC_VALUE_OUT_OF_RANGE_EXCEPTION_MESSAGE, 
+                                                                            COLOR_FIELD_NAMES[i], 
+                                                                            MIN_DAC_VALUE, 
+                                                                            MAX_DAC_VALUE));
 
                 this._colors[index] = value;
             }

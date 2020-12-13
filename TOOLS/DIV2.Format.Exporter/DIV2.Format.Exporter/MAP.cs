@@ -146,7 +146,8 @@ namespace DIV2.Format.Exporter
         readonly static DIVHeader MAP_FILE_HEADER = new DIVHeader('m', 'a', 'p');
         readonly static MAP VALIDATOR = new MAP();
         readonly static string PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} min value accepted is " + MIN_PIXEL_COUNT;
-        readonly static ArgumentOutOfRangeException GRAPHID_OUT_OF_RANGE = new ArgumentOutOfRangeException($"GraphId must be a value between {MIN_GRAPH_ID} and {MAX_GRAPH_ID}.");
+        readonly static ArgumentOutOfRangeException GRAPHID_OUT_OF_RANGE = 
+            new ArgumentOutOfRangeException($"GraphId must be a value between {MIN_GRAPH_ID} and {MAX_GRAPH_ID}.");
         const string INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE = "The index value must be a value beteween 0 and {0}.";
         const string COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} coordinate must be a value beteween 0 and {1}.";
 
@@ -354,7 +355,9 @@ namespace DIV2.Format.Exporter
         /// <param name="filename">Image file to load.</param>
         /// <param name="palette"><see cref="PAL"/> instance to convert the loaded image.</param>
         /// <returns>Returns a new <see cref="MAP"/> instance from the loaded image.</returns>
-        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files, without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
+        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
+        /// Also supported 256 color PCX images and <see cref="MAP"/> files, 
+        /// without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
         public static MAP FromImage(string filename, PAL palette)
         {
             return FromImage(File.ReadAllBytes(filename), palette);
@@ -366,7 +369,9 @@ namespace DIV2.Format.Exporter
         /// <param name="buffer"><see cref="byte"/> array that contain a supported image.</param>
         /// <param name="palette"><see cref="PAL"/> instance to convert the loaded image.</param>
         /// <returns>Returns a new <see cref="MAP"/> instance from the loaded image.</returns>
-        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images and <see cref="MAP"/> files, without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
+        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
+        /// Also supported 256 color PCX images and <see cref="MAP"/> files, 
+        /// without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
         public static MAP FromImage(byte[] buffer, PAL palette)
         {
             BMP256Converter.Convert(buffer, out byte[] bitmap, out short width, out short height, palette);
