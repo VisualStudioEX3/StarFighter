@@ -47,9 +47,7 @@ namespace DIV2.Format.Exporter.Processors.Palettes
             using (var image = Image.Load(buffer, out IImageFormat mime))
             {
                 if (image.IsSupportedFormat(ImageSharpExtensions.SupportedMimeTypes.PNG, mime))
-                {
                     return new MemoryStream(buffer);
-                }
                 else
                 {
                     var stream = new MemoryStream();
