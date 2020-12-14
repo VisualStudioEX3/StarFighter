@@ -6,6 +6,7 @@ namespace DIV2.Format.Exporter.Tests
 {
     static class SharedConstants
     {
+        #region Constants
         public const string ASSET_FOLDERNAME = "Assets";
         public const string OUTPUT_FOLDERNAME = "Output";
 
@@ -16,6 +17,7 @@ namespace DIV2.Format.Exporter.Tests
         public const string FILENAME_IMG_PLAYER_BMP = "PLAYER.BMP";
         public const string FILENAME_IMG_PLAYER_PNG = "PLAYER.PNG";
         public const string FILENAME_IMG_PLAYER_MAP = "PLAYER.MAP";
-        public const string FILENAME_IMG_PLAYER_FPG = "PLAYER.FPG";
+        public const string FILENAME_IMG_PLAYER_FPG = "PLAYER.FPG"; 
+        #endregion
     }
 }

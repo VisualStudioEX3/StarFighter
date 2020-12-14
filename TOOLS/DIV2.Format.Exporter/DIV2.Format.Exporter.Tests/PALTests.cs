@@ -6,6 +6,26 @@ namespace DIV2.Format.Exporter.Tests
     [TestClass]
     public class PALTests : AbstractTest
     {
+        #region Intenral vars
+        PAL _palette;
+        #endregion
+
+        #region Helper Functions
+        public PAL GenerateTestPalette()
+        {
+            if (this._palette is null)
+            {
+                this._palette = new PAL();
+
+                for (int i = 0; i < PAL.LENGTH; i++)
+                    this._palette[i] = new Color(i / 4, i / 4, i / 4);
+            }
+
+            return this._palette;
+        }
+        #endregion
+
+        #region Test methods
         [TestMethod]
         public void ValidateFile()
         {
@@ -33,21 +53,16 @@ namespace DIV2.Format.Exporter.Tests
         }
 
         [TestMethod]
-        public PAL CreatePalette()
+        public void CreateNewPalette()
         {
-            var pal = new PAL();
-
-            for (int i = 0; i < PAL.LENGTH; i++)
-                pal[i] = new Color(i, i, i);
-
-            return pal;
+            this.GenerateTestPalette();
         }
 
         [TestMethod]
         public void ReadColorsByIndex()
         {
             Color color;
-            var pal = this.CreatePalette();
+            var pal = this.GenerateTestPalette();
             for (int i = 0; i < PAL.LENGTH; i++)
                 color = pal[i];
         }
@@ -56,7 +71,7 @@ namespace DIV2.Format.Exporter.Tests
         public void ReadColorsByForEach()
         {
             Color color;
-            var pal = this.CreatePalette();
+            var pal = this.GenerateTestPalette();
             foreach (var value in pal)
                 color = value;
         }
@@ -64,7 +79,7 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void SaveFile()
         {
-            var pal = this.CreatePalette();
+            var pal = this.GenerateTestPalette();
             pal.Save(this.GetOutputPath("TEST.PAL"));
         }
 
@@ -129,5 +144,6 @@ namespace DIV2.Format.Exporter.Tests
 
             Assert.IsFalse(a.Compare(b));
         }
+        #endregion
     }
 }

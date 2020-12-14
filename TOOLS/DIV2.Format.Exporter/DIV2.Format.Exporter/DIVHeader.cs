@@ -30,11 +30,11 @@ namespace DIV2.Format.Exporter
 
         public DIVHeader(byte[] buffer)
         {
-            if (buffer.Length == SIZE)
+            if (buffer.Length <= SIZE)
                 throw new ArgumentOutOfRangeException($"Error reading the {nameof(DIVHeader)}. The buffer length must be over {SIZE} bytes.");
 
-            this._id = buffer[0..2];
-            this._magicNumber = BitConverter.ToInt32(buffer[3..6]);
+            this._id = buffer[0..3];
+            this._magicNumber = BitConverter.ToInt32(buffer[3..7]);
             this._version = buffer[7];
         }
         #endregion
@@ -42,7 +42,7 @@ namespace DIV2.Format.Exporter
         #region Methods & Functions
         public bool Validate(byte[] buffer)
         {
-            if (buffer.Length == SIZE)
+            if (buffer.Length > SIZE)
             {
                 var header = new DIVHeader(buffer);
 
