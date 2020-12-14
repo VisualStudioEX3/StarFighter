@@ -29,7 +29,7 @@ namespace DIV2.Format.Exporter.CLI.Commands
 
         public int Run(params string[] args)
         {
-            this.PrintVersionData<DIVFormatCommonBase>();
+            this.PrintVersionData<PAL>();
             this.PrintVersionData<VersionCommand>();
 
             return 0;
