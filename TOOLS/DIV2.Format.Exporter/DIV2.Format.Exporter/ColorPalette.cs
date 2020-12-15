@@ -148,6 +148,19 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Creates a new <see cref="Color"/> palette from memory.
         /// </summary>
+        /// <param name="colors">A 256 length <see cref="Color"/> array.</param>
+        public ColorPalette(Color[] colors)
+            : this()
+        {
+            if (colors.Length != LENGTH)
+                throw new ArgumentOutOfRangeException($"The color array must be contains a {LENGTH} array length, with RGB colors in DAC format [{MIN_DAC_VALUE}..{MAX_DAC_VALUE}].");
+
+            this._colors = colors;
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="Color"/> palette from memory.
+        /// </summary>
         /// <param name="stream">A <see cref="BinaryReader"/> stream that contains the data of the 256 <see cref="Color"/> values.</param>
         public ColorPalette(BinaryReader stream)
             : this()
@@ -165,7 +178,7 @@ namespace DIV2.Format.Exporter
                 foreach (var color in this._colors)
                     buffer.Write(color.Serialize(), 0, Color.SIZE);
 
-                return buffer.GetBuffer();
+                return buffer.ToArray();
             }
         }
 
@@ -177,7 +190,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Get a full RGB range values [0..255].
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Returns new <see cref="Color"/> array of full RGB values [0..255].</returns>
         public Color[] ToRGB()
         {
             var rgb = new Color[LENGTH];
@@ -186,6 +199,20 @@ namespace DIV2.Format.Exporter
                 rgb[i] = this[i].ToRGB();
 
             return rgb;
+        }
+
+        /// <summary>
+        /// Get a DAC range values [0..63].
+        /// </summary>
+        /// <returns>Returns new <see cref="Color"/> array of DAC values [0..63].</returns>
+        public Color[] ToDAC()
+        {
+            var dac = new Color[LENGTH];
+
+            for (int i = 0; i < LENGTH; i++)
+                dac[i] = this[i].ToDAC();
+
+            return dac;
         }
 
         public IEnumerator<Color> GetEnumerator()

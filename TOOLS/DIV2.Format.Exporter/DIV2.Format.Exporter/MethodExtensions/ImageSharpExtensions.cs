@@ -33,11 +33,15 @@ namespace DIV2.Format.Exporter.MethodExtensions
         #region Methods & Functions
         internal static SixLabors.ImageSharp.Color[] ToImageSharpColors(this PAL instance)
         {
-            Color[] rgb = instance.ToRGB();
+            return ToImageSharpColors(instance.ToRGB());
+        }
+
+        internal static SixLabors.ImageSharp.Color[] ToImageSharpColors(this Color[] palette)
+        {
             var colors = new SixLabors.ImageSharp.Color[PAL.LENGTH];
 
             for (int i = 0; i < PAL.LENGTH; i++)
-                colors[i] = SixLabors.ImageSharp.Color.FromRgb(rgb[i].red, rgb[i].green, rgb[i].blue);
+                colors[i] = SixLabors.ImageSharp.Color.FromRgb(palette[i].red, palette[i].green, palette[i].blue);
 
             return colors;
         }

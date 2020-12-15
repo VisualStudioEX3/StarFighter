@@ -17,7 +17,7 @@ namespace DIV2.Format.Exporter.Processors.Palettes
         public static PAL ProcessPalette(byte[] buffer)
         {
             foreach (var processor in PALETTE_PROCESSORS)
-                if (processor.CheckFormat(buffer))
+                if (processor.Validate(buffer))
                     return processor.Process(buffer);
 
             throw new FormatException("Invalid image format.");

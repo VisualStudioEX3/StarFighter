@@ -18,7 +18,7 @@ namespace DIV2.Format.Exporter.Processors.Images
         public static Image ProcessImage(byte[] buffer, out IImageFormat mime)
         {
             foreach (var processor in IMAGE_PROCESSORS)
-                if (processor.CheckFormat(buffer))
+                if (processor.Validate(buffer))
                     return processor.Process(buffer, out mime);
 
             throw new FormatException("Invalid image format.");

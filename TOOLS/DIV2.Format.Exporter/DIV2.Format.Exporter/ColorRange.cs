@@ -232,7 +232,7 @@ namespace DIV2.Format.Exporter
                 stream.Write(this.blackColor);
                 stream.Write(this._rangeColors);
 
-                return (stream.BaseStream as MemoryStream).GetBuffer();
+                return (stream.BaseStream as MemoryStream).ToArray();
             }
         }
 

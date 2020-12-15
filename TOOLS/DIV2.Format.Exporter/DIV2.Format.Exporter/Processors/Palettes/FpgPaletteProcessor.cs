@@ -3,11 +3,11 @@
     class FpgPaletteProcessor : IPaletteProcessor
     {
         #region Properties
-        public static FpgPaletteProcessor Instance { get; } = new FpgPaletteProcessor();
+        public static FpgPaletteProcessor Instance => new FpgPaletteProcessor();
         #endregion
 
         #region Methods & Functions
-        public bool CheckFormat(byte[] buffer)
+        public bool Validate(byte[] buffer)
         {
             return FPG.ValidateFormat(buffer);
         }

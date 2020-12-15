@@ -1,9 +1,8 @@
 ﻿namespace DIV2.Format.Exporter.Processors.Palettes
 {
-    interface IPaletteProcessor
+    interface IPaletteProcessor : IFormatValidable
     {
         #region Methods & Functions
-        bool CheckFormat(byte[] buffer);
         PAL Process(byte[] buffer); 
         #endregion
     }

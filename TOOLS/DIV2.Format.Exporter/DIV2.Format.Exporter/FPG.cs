@@ -70,7 +70,7 @@ namespace DIV2.Format.Exporter
 
                 stream.Write(this.map.GetBitmapArray()); // Bitmap array.
 
-                return (stream.BaseStream as MemoryStream).GetBuffer();
+                return (stream.BaseStream as MemoryStream).ToArray();
             }
         }
 
@@ -434,7 +434,7 @@ namespace DIV2.Format.Exporter
                 foreach (var register in this._registers)
                     register.Write(stream);
 
-                return (stream.BaseStream as MemoryStream).GetBuffer();
+                return (stream.BaseStream as MemoryStream).ToArray();
             }
         }
 

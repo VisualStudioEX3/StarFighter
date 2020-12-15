@@ -10,21 +10,21 @@ namespace DIV2.Format.Exporter.Processors.Images
     class PcxImageProcessor : IImageProcessor
     {
         #region Properties
-        public static PcxImageProcessor Instance { get; } = new PcxImageProcessor();
+        public static PcxImageProcessor Instance => new PcxImageProcessor();
         #endregion
 
         #region Methods & Functions
-        public bool CheckFormat(byte[] buffer)
+        public bool Validate(byte[] buffer)
         {
-            return PCX.IsPCX256(buffer);
+            return PCX.Instance.Validate(buffer);
         }
 
         public Image Process(byte[] buffer, out IImageFormat mime)
         {
-            PCX.Import(buffer, out short width, out short height, out byte[] pixels, out PAL palette);
+            var pcx = new PCX(buffer);
 
-            var image = new Image<Rgb24>(width, height);
-            image.ComposeBitmap(pixels, palette.ToImageSharpColors());
+            var image = new Image<Rgb24>(pcx.Width, pcx.Height);
+            image.ComposeBitmap(pcx.Bitmap, pcx.Colors.ToColorArray().ToImageSharpColors());
 
             mime = new PcxFormat();
 

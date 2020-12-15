@@ -9,11 +9,11 @@ namespace DIV2.Format.Exporter.Processors.Images
     class MapImageProcessor : IImageProcessor
     {
         #region Properties
-        public static MapImageProcessor Instance { get; } = new MapImageProcessor();
+        public static MapImageProcessor Instance => new MapImageProcessor();
         #endregion
 
         #region Methods & Functions
-        public bool CheckFormat(byte[] buffer)
+        public bool Validate(byte[] buffer)
         {
             return MAP.ValidateFormat(buffer);
         }

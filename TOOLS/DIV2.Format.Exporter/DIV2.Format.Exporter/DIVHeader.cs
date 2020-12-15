@@ -64,7 +64,7 @@ namespace DIV2.Format.Exporter
                 stream.Write(MAGIC_NUMBER);
                 stream.Write(VERSION);
 
-                return (stream.BaseStream as MemoryStream).GetBuffer();
+                return (stream.BaseStream as MemoryStream).ToArray();
             }
         }
 

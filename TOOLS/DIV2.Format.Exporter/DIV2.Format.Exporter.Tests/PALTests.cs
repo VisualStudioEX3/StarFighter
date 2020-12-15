@@ -10,7 +10,7 @@ namespace DIV2.Format.Exporter.Tests
         PAL _palette;
         #endregion
 
-        #region Helper Functions
+        #region Helper functions
         public PAL GenerateTestPalette()
         {
             if (this._palette is null)
@@ -80,7 +80,7 @@ namespace DIV2.Format.Exporter.Tests
         public void SaveFile()
         {
             var pal = this.GenerateTestPalette();
-            pal.Save(this.GetOutputPath("TEST.PAL"));
+            pal.Save(this.GetOutputPath("GRAYSCAL.PAL"));
         }
 
         [TestMethod]
@@ -105,7 +105,7 @@ namespace DIV2.Format.Exporter.Tests
         public void CreateFromImage(string file)
         {
             var pal = PAL.FromImage(this.GetAssetPath(file));
-            string saveFilename = $"{file}.PAL";
+            string saveFilename = $"{Path.GetExtension(file)[1..4]}.PAL";
             pal.Save(this.GetOutputPath(saveFilename));
         }
 

@@ -282,18 +282,9 @@ namespace DIV2.Format.Exporter
         /// Creates a new <see cref="PAL"/> instance from a <see cref="Color"/> array.
         /// </summary>
         /// <param name="colors">A 256 length <see cref="Color"/> array.</param>
-        /// <param name="convertToDACFormat">Need to convert colors from full RGB format [0..255] to DAC format [0..63].</param>
-        public PAL(Color[] colors, bool convertToDACFormat = false)
-            : this()
+        public PAL(Color[] colors)
+            : this(new ColorPalette(colors))
         {
-            if (colors.Length != LENGTH)
-                throw new ArgumentOutOfRangeException($"The color array must be a {LENGTH} length array.");
-
-            for (int i = 0; i < LENGTH; i++)
-            {
-                var color = colors[i];
-                this.Colors[i] = convertToDACFormat ? color.ToDAC() : color;
-            }
         }
 
         /// <summary>
@@ -432,7 +423,7 @@ namespace DIV2.Format.Exporter
                 buffer.Write(this.Colors.Serialize());
                 buffer.Write(this.Ranges.Serialize());
 
-                return buffer.GetBuffer();
+                return buffer.ToArray();
             }
         }
 

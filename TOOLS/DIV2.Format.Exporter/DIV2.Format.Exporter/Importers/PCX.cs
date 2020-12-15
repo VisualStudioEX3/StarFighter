@@ -5,7 +5,10 @@ using System.IO;
 
 namespace DIV2.Format.Importer
 {
-    class PCX
+    /// <summary>
+    /// PCX 256 color importer.
+    /// </summary>
+    class PCX : IFormatValidable
     {
         #region Constants
         const int HEADER_LENGTH = 128;
@@ -21,84 +24,72 @@ namespace DIV2.Format.Importer
         const int HEADER_WIDTH_POSITION = 8;
         const int HEADER_HEIGHT_POSITION = 10;
 
-        const int RLE_COUNTER_MASK = 0xC0; // Mask for check if bits 6 and 7 ar set (to check if is a counter byte).
-        const int RLE_CLEAR_MASK = 0x3F; // Mask for clear bits 6 and 7 (to get the counter value).
-        const int PALETTE_MARKER = 0x0C; // Marker of the 256 color palette at the end of image data.
+        const byte RLE_COUNTER_MASK = 0xC0; // Mask for check if bits 6 and 7 ar set (to check if is a counter byte).
+        const byte RLE_CLEAR_MASK = 0x3F; // Mask for clear bits 6 and 7 (to get the counter value).
+        const byte PALETTE_MARKER = 0x0C; // Marker of the 256 color palette at the end of image data.
+        const int PALETTE_LENGTH = 768;
 
         static readonly FormatException NOT_256_COLORS_EXCEPTION = new FormatException("The PCX image is not a 256 color image.");
         #endregion
 
+        #region Properties
+        public short Width { get; private set; }
+        public short Height { get; private set; }
+        public byte[] Bitmap { get; private set; }
+        public byte[] Colors { get; private set; }
+        public static PCX Instance => new PCX();
+        #endregion
+
         #region Constructor
-        internal static bool IsPCX(byte[] buffer)
+        PCX()
         {
-            bool signature = buffer[0] == HEADER_SIGNATURE;
-            bool version = buffer[1].IsClamped(HEADER_MIN_VERSION, HEADER_MAX_VERSION);
-            bool compress = buffer[2].IsClamped(HEADER_UNCOMPRESSED, HEADER_RLE_ENCODED);
-
-            return signature && version && compress;
         }
 
-        internal static bool IsPCX256(byte[] buffer)
+        public PCX(byte[] buffer)
         {
-            bool header = IsPCX(buffer);
-            bool isBpp8 = buffer[3] == HEADER_BPP_8;
-            bool paletteMarker = buffer[buffer.Length - ColorPalette.SIZE - 1] == PALETTE_MARKER;
-
-            return header && isBpp8 && paletteMarker;
-        }
-
-        internal static void Import(byte[] buffer, out short width, out short height, out byte[] bitmap, out PAL palette)
-        {
-            if (IsPCX256(buffer))
+            if (this.Validate(buffer))
             {
-                using (var file = new BinaryReader(new MemoryStream(buffer)))
+                using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    file.BaseStream.Position = HEADER_BPP_POSITION;
+                    stream.BaseStream.Position = HEADER_BPP_POSITION;
 
-                    file.BaseStream.Position = HEADER_WIDTH_POSITION;
-                    width = file.ReadInt16();
+                    stream.BaseStream.Position = HEADER_WIDTH_POSITION;
+                    this.Width = stream.ReadInt16();
 
-                    file.BaseStream.Position = HEADER_HEIGHT_POSITION;
-                    height = file.ReadInt16();
+                    stream.BaseStream.Position = HEADER_HEIGHT_POSITION;
+                    this.Height = stream.ReadInt16();
 
-                    // Lambda function to clear bits 6 and 7 in a byte value:
-                    Func<byte, byte> clearBits = (arg) =>
-                    {
-                        // .NET bit operations works in Int32 values. A conversion is needed to work with bytes.
-                        int i = arg;
-                        return (byte)(i & RLE_CLEAR_MASK);
-                    };
-
-                    int imageSize = (int)(file.BaseStream.Length - (HEADER_LENGTH + (ColorPalette.SIZE + 1)));
+                    int imageSize = (int)(stream.BaseStream.Length - (HEADER_LENGTH + (PALETTE_LENGTH + 1)));
                     byte value, write;
                     int index = 0;
 
                     // Read and decompress RLE image data:
-                    bitmap = new byte[imageSize];
+                    this.Bitmap = new byte[imageSize];
 
-                    file.BaseStream.Position = HEADER_LENGTH;
+                    stream.BaseStream.Position = HEADER_LENGTH;
+
                     for (int i = 0; i < imageSize; i++)
                     {
-                        value = file.ReadByte();
+                        value = stream.ReadByte();
                         if ((value & RLE_COUNTER_MASK) == RLE_COUNTER_MASK) // Checks if is a counter byte:
                         {
-                            value = clearBits(value); // Clear bits 6 and 7 to get the counter value.
-                            write = file.ReadByte(); // Next byte is the pixel value to write.
+                            value = value.ClearBits(RLE_CLEAR_MASK); // Clear bits 6 and 7 to get the counter value.
+                            write = stream.ReadByte(); // Next byte is the pixel value to write.
                             for (byte j = 0; j < value; j++) // Write n times the pixel value:
                             {
-                                bitmap[index] = write;
+                                this.Bitmap[index] = write;
                                 index++;
                             }
                             i++;
                         }
                         else // Single pixel value:
                         {
-                            bitmap[index] = value;
+                            this.Bitmap[index] = value;
                             index++;
                         }
                     }
 
-                    palette = CreatePalette(file);
+                    this.Colors = ExtractPalette(stream);
                 }
             }
             else
@@ -106,16 +97,31 @@ namespace DIV2.Format.Importer
                 throw NOT_256_COLORS_EXCEPTION;
             }
         }
+        #endregion
 
-        internal static PAL CreatePalette(BinaryReader file)
+        #region Methods & Functions
+        public bool Validate(byte[] buffer)
         {
-            file.BaseStream.Position = file.BaseStream.Length - ColorPalette.SIZE - 1;
+            bool signature =        buffer[0] == HEADER_SIGNATURE;
+            bool version =          buffer[1].IsClamped(HEADER_MIN_VERSION, HEADER_MAX_VERSION);
+            bool compress =         buffer[2].IsClamped(HEADER_UNCOMPRESSED, HEADER_RLE_ENCODED);
+            bool isBpp8 =           buffer[3] == HEADER_BPP_8;
+            bool paletteMarker =    buffer[buffer.Length - PALETTE_LENGTH - 1] == PALETTE_MARKER;
 
-            if (file.ReadByte() == PALETTE_MARKER)
-            {
-                var colors = new ColorPalette(file.ReadBytes(ColorPalette.SIZE));
-                return new PAL(colors);
-            }
+            return signature && version && compress && isBpp8 && paletteMarker;
+        }
+
+        public static byte[] ExtractPalette(byte[] buffer)
+        {
+            return ExtractPalette(new BinaryReader(new MemoryStream(buffer)));
+        }
+
+        public static byte[] ExtractPalette(BinaryReader stream)
+        {
+            stream.BaseStream.Position = stream.BaseStream.Length - PALETTE_LENGTH - 1;
+
+            if (stream.ReadByte() == PALETTE_MARKER)
+                return stream.ReadBytes(PALETTE_LENGTH);
             else
                 throw NOT_256_COLORS_EXCEPTION;
         }

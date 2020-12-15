@@ -1,4 +1,5 @@
 ﻿using DIV2.Format.Importer;
+using DIV2.Format.Exporter.MethodExtensions;
 using System.IO;
 
 namespace DIV2.Format.Exporter.Processors.Palettes
@@ -6,18 +7,19 @@ namespace DIV2.Format.Exporter.Processors.Palettes
     class PcxPaletteProcessor : IPaletteProcessor
     {
         #region Properties
-        public static PcxPaletteProcessor Instance { get; } = new PcxPaletteProcessor();
+        public static PcxPaletteProcessor Instance => new PcxPaletteProcessor();
         #endregion
 
         #region Methods & Functions
-        public bool CheckFormat(byte[] buffer)
+        public bool Validate(byte[] buffer)
         {
-            return PCX.IsPCX256(buffer);
+            return PCX.Instance.Validate(buffer);
         }
 
         public PAL Process(byte[] buffer)
         {
-            return PCX.CreatePalette(new BinaryReader(new MemoryStream(buffer)));
+            byte[] components = PCX.ExtractPalette(new BinaryReader(new MemoryStream(buffer)));
+            return new PAL(components.ToColorArray().ToDAC());
         } 
         #endregion
     }

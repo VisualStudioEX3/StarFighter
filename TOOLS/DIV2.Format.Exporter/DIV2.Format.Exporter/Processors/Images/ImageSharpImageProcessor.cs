@@ -7,16 +7,17 @@ namespace DIV2.Format.Exporter.Processors.Images
     class ImageSharpImageProcessor : IImageProcessor
     {
         #region Properties
-        public static ImageSharpImageProcessor Instance { get; } = new ImageSharpImageProcessor();
+        public static ImageSharpImageProcessor Instance => new ImageSharpImageProcessor();
         #endregion
 
         #region Methods & Functions
-        public bool CheckFormat(byte[] buffer)
+        public bool Validate(byte[] buffer)
         {
-            bool isPCX = PCX.IsPCX(buffer);
+            bool isPCX = PCX.Instance.Validate(buffer);
             bool isMAP = MAP.ValidateFormat(buffer);
+            bool isFPG = FPG.ValidateFormat(buffer);
 
-            return !(isPCX || isMAP);
+            return !(isPCX || isMAP || isFPG);
         }
 
         public Image Process(byte[] buffer, out IImageFormat mime)

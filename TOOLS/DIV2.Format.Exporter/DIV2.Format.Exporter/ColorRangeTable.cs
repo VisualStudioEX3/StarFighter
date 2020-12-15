@@ -147,7 +147,7 @@ namespace DIV2.Format.Exporter
                 foreach (var range in this._ranges)
                     buffer.Write(range.Serialize());
 
-                return buffer.GetBuffer();
+                return buffer.ToArray();
             }
         }
 

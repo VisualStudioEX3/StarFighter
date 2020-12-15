@@ -110,7 +110,7 @@ namespace DIV2.Format.Exporter
                 stream.Write(this.x);
                 stream.Write(this.y);
 
-                return (stream.BaseStream as MemoryStream).GetBuffer();
+                return (stream.BaseStream as MemoryStream).ToArray();
             }
         }
 
@@ -505,7 +505,7 @@ namespace DIV2.Format.Exporter
 
                 stream.Write(this._bitmap);
 
-                return (stream.BaseStream as MemoryStream).GetBuffer();
+                return (stream.BaseStream as MemoryStream).ToArray();
             }
         }
 

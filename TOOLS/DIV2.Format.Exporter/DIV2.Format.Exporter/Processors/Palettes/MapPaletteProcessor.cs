@@ -3,11 +3,11 @@
     class MapPaletteProcessor : IPaletteProcessor
     {
         #region Properties
-        public static MapPaletteProcessor Instance { get; } = new MapPaletteProcessor();
+        public static MapPaletteProcessor Instance => new MapPaletteProcessor();
         #endregion
 
         #region Methods & Functions
-        public bool CheckFormat(byte[] buffer)
+        public bool Validate(byte[] buffer)
         {
             return MAP.ValidateFormat(buffer);
         }
