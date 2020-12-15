@@ -6,6 +6,49 @@ using System.IO;
 
 namespace DIV2.Format.Exporter
 {
+    class ColorRangeEnumerator : IEnumerator<byte>
+    {
+        #region Internal vars
+        IList<byte> _items;
+        int _currentIndex;
+        #endregion
+
+        #region Properties
+        public byte Current { get; private set; }
+        object IEnumerator.Current => this.Current;
+        #endregion
+
+        #region Constructor & Destructor
+        public ColorRangeEnumerator(IList<byte> items)
+        {
+            this._items = items;
+            this.Current = default(byte);
+            this.Reset();
+        }
+
+        void IDisposable.Dispose()
+        {
+        }
+        #endregion
+
+        #region Methods & Functions
+        public bool MoveNext()
+        {
+            if (++this._currentIndex >= this._items.Count)
+                return false;
+            else
+                this.Current = this._items[this._currentIndex];
+
+            return true;
+        }
+
+        public void Reset()
+        {
+            this._currentIndex = -1;
+        }
+        #endregion
+    }
+
     /// <summary>
     /// Color range values.
     /// </summary>
@@ -200,7 +243,7 @@ namespace DIV2.Format.Exporter
 
         public IEnumerator<byte> GetEnumerator()
         {
-            return this._rangeColors.GetEnumerator() as IEnumerator<byte>;
+            return new ColorRangeEnumerator(this._rangeColors);
         }
 
         IEnumerator IEnumerable.GetEnumerator()

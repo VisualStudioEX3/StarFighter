@@ -105,7 +105,7 @@ namespace DIV2.Format.Exporter.Tests
         public void CreateFromImage(string file)
         {
             var pal = PAL.FromImage(this.GetAssetPath(file));
-            string saveFilename = $"{Path.GetFileNameWithoutExtension(file)}.PAL";
+            string saveFilename = $"{file}.PAL";
             pal.Save(this.GetOutputPath(saveFilename));
         }
 

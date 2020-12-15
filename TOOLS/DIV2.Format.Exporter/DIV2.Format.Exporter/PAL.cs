@@ -312,18 +312,26 @@ namespace DIV2.Format.Exporter
         public PAL(byte[] buffer)
             : this()
         {
-            if (this.Validate(buffer))
+            try
             {
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    this.Colors = new ColorPalette(stream.ReadBytes(ColorPalette.SIZE));
-                    this.Ranges = new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE));
+                    if (PAL_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
+                    {
+                        this.Colors = new ColorPalette(stream.ReadBytes(ColorPalette.SIZE));
+                        this.Ranges = new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE));
 
-                    this.GetHashCode();
+                        this.GetHashCode();
+                    }
+                    else
+                        throw new DIVFormatHeaderException();
                 }
             }
-            else
-                throw new FormatException($"Error loading {nameof(PAL)} file.");
+            catch (Exception ex)
+            {
+                throw new DIVFileFormatException<PAL>(ex);
+            }
+
         }
         #endregion
 
@@ -390,7 +398,7 @@ namespace DIV2.Format.Exporter
         /// <returns>Returns true if the file is a valid <see cref="PAL"/>.</returns>
         public bool Validate(byte[] buffer)
         {
-            return PAL_FILE_HEADER.Validate(buffer) && this.TryToReadFile(buffer);
+            return PAL_FILE_HEADER.Validate(buffer[0..DIVHeader.SIZE]) && this.TryToReadFile(buffer);
         }
 
         bool TryToReadFile(byte[] buffer)

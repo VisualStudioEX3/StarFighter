@@ -325,25 +325,32 @@ namespace DIV2.Format.Exporter
         public MAP(byte[] buffer)
             : this()
         {
-            using (var stream = new BinaryReader(new MemoryStream(buffer)))
+            try
             {
-                if (MAP_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
+                using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    this.Width = stream.ReadInt16();
-                    this.Height = stream.ReadInt16();
-                    this.GraphId = stream.ReadInt32();
-                    this.Description = stream.ReadBytes(DESCRIPTION_LENGTH).ToASCIIString();
-                    this.Palette = new PAL(new ColorPalette(stream.ReadBytes(ColorPalette.SIZE)),
-                                           new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE)));
+                    if (MAP_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
+                    {
+                        this.Width = stream.ReadInt16();
+                        this.Height = stream.ReadInt16();
+                        this.GraphId = stream.ReadInt32();
+                        this.Description = stream.ReadBytes(DESCRIPTION_LENGTH).ToASCIIString();
+                        this.Palette = new PAL(new ColorPalette(stream.ReadBytes(ColorPalette.SIZE)),
+                                               new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE)));
 
-                    short points = stream.ReadInt16();
-                    for (int i = 0; i < points; i++)
-                        this.ControlPoints.Add(new ControlPoint(stream.ReadInt16(), stream.ReadInt16()));
+                        short points = stream.ReadInt16();
+                        for (int i = 0; i < points; i++)
+                            this.ControlPoints.Add(new ControlPoint(stream.ReadInt16(), stream.ReadInt16()));
 
-                    this._bitmap = stream.ReadBytes(this.Width * this.Height);
+                        this._bitmap = stream.ReadBytes(this.Width * this.Height);
+                    }
+                    else
+                        throw new DIVFormatHeaderException();
                 }
-                else
-                    throw new FormatException($"Error loading {nameof(MAP)} file.");
+            }
+            catch (Exception ex)
+            {
+                throw new DIVFileFormatException<MAP>(ex);
             }
         }
         #endregion
@@ -438,7 +445,7 @@ namespace DIV2.Format.Exporter
         /// <returns>Returns true if the file is a valid <see cref="MAP"/>.</returns>
         public bool Validate(byte[] buffer)
         {
-            return MAP_FILE_HEADER.Validate(buffer) && this.TryToReadFile(buffer);
+            return MAP_FILE_HEADER.Validate(buffer[0..DIVHeader.SIZE]) && this.TryToReadFile(buffer);
         }
 
         bool TryToReadFile(byte[] buffer)
@@ -455,7 +462,10 @@ namespace DIV2.Format.Exporter
 
                     stream.ReadInt32(); // GraphId.
                     stream.ReadBytes(DESCRIPTION_LENGTH); // Description.
-                    stream.ReadBytes(PAL.SIZE); // Palette.
+
+                    // Palette:
+                    stream.ReadBytes(ColorPalette.SIZE);
+                    stream.ReadBytes(ColorRangeTable.SIZE);
 
                     short points = stream.ReadInt16(); // Control points counter.
                     if (points > 0)

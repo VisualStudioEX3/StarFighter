@@ -6,6 +6,49 @@ using System.IO;
 
 namespace DIV2.Format.Exporter
 {
+    class ColorRangeTableEnumerator : IEnumerator<ColorRange>
+    {
+        #region Internal vars
+        IList<ColorRange> _items;
+        int _currentIndex;
+        #endregion
+
+        #region Properties
+        public ColorRange Current { get; private set; }
+        object IEnumerator.Current => this.Current;
+        #endregion
+
+        #region Constructor & Destructor
+        public ColorRangeTableEnumerator(IList<ColorRange> items)
+        {
+            this._items = items;
+            this.Current = default(ColorRange);
+            this.Reset();
+        }
+
+        void IDisposable.Dispose()
+        {
+        }
+        #endregion
+
+        #region Methods & Functions
+        public bool MoveNext()
+        {
+            if (++this._currentIndex >= this._items.Count)
+                return false;
+            else
+                this.Current = this._items[this._currentIndex];
+
+            return true;
+        }
+
+        public void Reset()
+        {
+            this._currentIndex = -1;
+        }
+        #endregion
+    }
+
     /// <summary>
     /// A collection of 16 ranges that composes the <see cref="PAL"/> <see cref="ColorRange"/> table.
     /// </summary>
@@ -28,7 +71,7 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Internal vars
-        ColorRange[] _ranges;
+        ColorRange[] _ranges = new ColorRange[LENGTH];
         #endregion
 
         #region Properties
@@ -75,9 +118,6 @@ namespace DIV2.Format.Exporter
         public ColorRangeTable()
         {
             byte range = 0;
-
-            this._ranges = new ColorRange[LENGTH];
-
             for (int i = 0; i < LENGTH; i++)
                 this._ranges[i] = new ColorRange(ref range);
         }
@@ -118,7 +158,7 @@ namespace DIV2.Format.Exporter
 
         public IEnumerator<ColorRange> GetEnumerator()
         {
-            return this._ranges.GetEnumerator() as IEnumerator<ColorRange>;
+            return new ColorRangeTableEnumerator(this._ranges);
         }
 
         IEnumerator IEnumerable.GetEnumerator()

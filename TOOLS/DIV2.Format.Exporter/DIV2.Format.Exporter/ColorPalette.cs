@@ -6,6 +6,49 @@ using System.IO;
 
 namespace DIV2.Format.Exporter
 {
+    class ColorPaletteEnumerator : IEnumerator<Color>
+    {
+        #region Internal vars
+        IList<Color> _items;
+        int _currentIndex;
+        #endregion
+
+        #region Properties
+        public Color Current { get; private set; }
+        object IEnumerator.Current => this.Current;
+        #endregion
+
+        #region Constructor & Destructor
+        public ColorPaletteEnumerator(IList<Color> items)
+        {
+            this._items = items;
+            this.Current = default(Color);
+            this.Reset();
+        }
+
+        void IDisposable.Dispose()
+        {
+        }
+        #endregion
+
+        #region Methods & Functions
+        public bool MoveNext()
+        {
+            if (++this._currentIndex >= this._items.Count)
+                return false;
+            else
+                this.Current = this._items[this._currentIndex];
+
+            return true;
+        }
+
+        public void Reset()
+        {
+            this._currentIndex = -1;
+        }
+        #endregion
+    }
+
     /// <summary>
     /// A representation of a 256 indexed color palette.
     /// </summary>
@@ -97,7 +140,7 @@ namespace DIV2.Format.Exporter
             if (buffer.Length != SIZE)
                 throw new ArgumentOutOfRangeException($"The buffer must be contains a {SIZE} array length, with RGB colors in DAC format [{MIN_DAC_VALUE}..{MAX_DAC_VALUE}].");
 
-            int index = -1;
+            int index = 0;
             for (int i = 0; i < LENGTH; i++)
                 this._colors[i] = new Color(buffer[index++], buffer[index++], buffer[index++]);
         }
@@ -147,7 +190,7 @@ namespace DIV2.Format.Exporter
 
         public IEnumerator<Color> GetEnumerator()
         {
-            return this._colors.GetEnumerator() as IEnumerator<Color>;
+            return new ColorPaletteEnumerator(this._colors);
         }
 
         IEnumerator IEnumerable.GetEnumerator()

@@ -108,7 +108,7 @@ namespace DIV2.Format.Exporter
     class FPGEnumerator : IEnumerator<MAP>
     {
         #region Internal vars
-        List<Register> _registers;
+        IList<Register> _registers;
         int _currentIndex;
         #endregion
 
@@ -118,7 +118,7 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructor & Destructor
-        public FPGEnumerator(List<Register> registers)
+        public FPGEnumerator(IList<Register> registers)
         {
             this._registers = registers;
             this.Current = default(MAP);
@@ -212,18 +212,25 @@ namespace DIV2.Format.Exporter
         public FPG(byte[] buffer)
             : this()
         {
-            using (var stream = new BinaryReader(new MemoryStream(buffer)))
+            try
             {
-                if (FPG_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
+                using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    this.Palette = new PAL(new ColorPalette(stream.ReadBytes(ColorPalette.SIZE)),
-                                           new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE)));
+                    if (FPG_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
+                    {
+                        this.Palette = new PAL(new ColorPalette(stream.ReadBytes(ColorPalette.SIZE)),
+                                               new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE)));
 
-                    while (stream.BaseStream.Position < stream.BaseStream.Length)
-                        this._registers.Add(new Register(stream, this.Palette));
+                        while (stream.BaseStream.Position < stream.BaseStream.Length)
+                            this._registers.Add(new Register(stream, this.Palette));
+                    }
+                    else
+                        throw new DIVFormatHeaderException();
                 }
-                else
-                    throw new FormatException($"Error loading {nameof(FPG)} file.");
+            }
+            catch (Exception ex)
+            {
+                throw new DIVFileFormatException<FPG>(ex);
             }
         }
         #endregion
@@ -385,7 +392,7 @@ namespace DIV2.Format.Exporter
         /// <returns>Returns true if the file is a valid <see cref="FPG"/>.</returns>
         public bool Validate(byte[] buffer)
         {
-            return FPG_FILE_HEADER.Validate(buffer) && this.TryToReadFile(buffer);
+            return FPG_FILE_HEADER.Validate(buffer[0..DIVHeader.SIZE]) && this.TryToReadFile(buffer);
         }
 
         bool TryToReadFile(byte[] buffer)
@@ -395,7 +402,10 @@ namespace DIV2.Format.Exporter
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
                     stream.ReadBytes(DIVHeader.SIZE); // DIV Header.
-                    stream.ReadBytes(PAL.SIZE); // Palette.
+                    
+                    // Palette:
+                    stream.ReadBytes(ColorPalette.SIZE);
+                    stream.ReadBytes(ColorRangeTable.SIZE);
 
                     // Try to read all registers:
                     while (stream.BaseStream.Position < stream.BaseStream.Length)

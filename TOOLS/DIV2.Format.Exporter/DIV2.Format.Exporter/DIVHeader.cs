@@ -30,7 +30,7 @@ namespace DIV2.Format.Exporter
 
         public DIVHeader(byte[] buffer)
         {
-            if (buffer.Length <= SIZE)
+            if (buffer.Length != SIZE)
                 throw new ArgumentOutOfRangeException($"Error reading the {nameof(DIVHeader)}. The buffer length must be over {SIZE} bytes.");
 
             this._id = buffer[0..3];
@@ -42,7 +42,7 @@ namespace DIV2.Format.Exporter
         #region Methods & Functions
         public bool Validate(byte[] buffer)
         {
-            if (buffer.Length > SIZE)
+            if (buffer.Length == SIZE)
             {
                 var header = new DIVHeader(buffer);
 
@@ -73,6 +73,26 @@ namespace DIV2.Format.Exporter
             stream.BaseStream.Position = 0;
             stream.Write(this.Serialize());
         }
+        #endregion
+    }
+
+    public sealed class DIVFormatHeaderException : Exception
+    {
+        #region Constructor
+        public DIVFormatHeaderException()
+            : base("Invalid file header.")
+        {
+        } 
+        #endregion
+    }
+
+    public sealed class DIVFileFormatException<T> : Exception where T : IAssetFile
+    {
+        #region Constructor
+        public DIVFileFormatException(Exception exception)
+            : base($"Error loading {typeof(T).Name} file.", exception)
+        {
+        } 
         #endregion
     }
 }

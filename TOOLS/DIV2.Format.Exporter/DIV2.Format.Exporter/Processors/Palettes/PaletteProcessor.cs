@@ -8,7 +8,8 @@ namespace DIV2.Format.Exporter.Processors.Palettes
         static readonly IPaletteProcessor[] PALETTE_PROCESSORS = {
             ImageSharpPaletteProcessor.Instance,
             PcxPaletteProcessor.Instance,
-            DIVPaletteProcessor.Instance
+            MapPaletteProcessor.Instance,
+            FpgPaletteProcessor.Instance
         };
         #endregion
 

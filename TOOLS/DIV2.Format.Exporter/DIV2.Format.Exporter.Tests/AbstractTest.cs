@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
 using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
@@ -10,6 +11,20 @@ namespace DIV2.Format.Exporter.Tests
         public TestContext TestContext { get; set; }
         public string Class => this.TestContext.FullyQualifiedTestClassName;
         public string Method => this.TestContext.TestName;
+        #endregion
+
+        #region Constructor
+        static AbstractTest()
+        {
+            if (Directory.Exists(SharedConstants.OUTPUT_FOLDERNAME))
+            {
+                IEnumerable<string> files = Directory.EnumerateFiles(SharedConstants.OUTPUT_FOLDERNAME, "*.*", SearchOption.AllDirectories);
+                foreach (var file in files)
+                    File.Delete(file);
+            }
+            else
+                Directory.CreateDirectory(SharedConstants.OUTPUT_FOLDERNAME);
+        } 
         #endregion
 
         #region Methods & Functions
