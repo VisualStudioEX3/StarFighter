@@ -11,23 +11,24 @@ namespace DIV2.Format.Exporter.Tests
         public TestContext TestContext { get; set; }
         public string Class => this.TestContext.FullyQualifiedTestClassName;
         public string Method => this.TestContext.TestName;
+        public string ResultFolder { get; private set; }
         #endregion
 
-        #region Constructor
-        static AbstractTest()
+        #region Methods & Functions
+        public void InitializeResultFolder(string folderName)
         {
-            if (Directory.Exists(SharedConstants.OUTPUT_FOLDERNAME))
+            this.ResultFolder = Path.Combine(SharedConstants.BASE_RESULT_FOLDERNAME, folderName);
+
+            if (Directory.Exists(this.ResultFolder))
             {
-                IEnumerable<string> files = Directory.EnumerateFiles(SharedConstants.OUTPUT_FOLDERNAME, "*.*", SearchOption.AllDirectories);
+                IEnumerable<string> files = Directory.EnumerateFiles(this.ResultFolder, "*.*", SearchOption.AllDirectories);
                 foreach (var file in files)
                     File.Delete(file);
             }
             else
-                Directory.CreateDirectory(SharedConstants.OUTPUT_FOLDERNAME);
-        } 
-        #endregion
+                Directory.CreateDirectory(this.ResultFolder);
+        }
 
-        #region Methods & Functions
         public void Log(string message)
         {
             this.TestContext.WriteLine(message);
@@ -40,7 +41,7 @@ namespace DIV2.Format.Exporter.Tests
 
         public string GetOutputPath(string filename)
         {
-            return Path.Combine(SharedConstants.OUTPUT_FOLDERNAME, filename);
+            return Path.Combine(SharedConstants.BASE_RESULT_FOLDERNAME, filename);
         }
         #endregion
     }

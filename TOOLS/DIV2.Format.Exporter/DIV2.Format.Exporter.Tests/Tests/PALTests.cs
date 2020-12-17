@@ -6,24 +6,22 @@ namespace DIV2.Format.Exporter.Tests
     [TestClass]
     public class PALTests : AbstractTest
     {
+        #region Constants
+        const string RESULT_FOLDER_NAME = "PAL";
+        #endregion
+
         #region Intenral vars
         PAL _palette;
         #endregion
 
-        #region Helper functions
-        public PAL GenerateTestPalette()
+        [TestInitialize]
+        public void Initialize()
         {
-            if (this._palette is null)
-            {
-                this._palette = new PAL();
-
-                for (int i = 0; i < PAL.LENGTH; i++)
-                    this._palette[i] = new Color(i / 4, i / 4, i / 4);
-            }
-
-            return this._palette;
+            this.InitializeResultFolder(RESULT_FOLDER_NAME);
+            this.CreateNewPalette();
+            for (int i = 0; i < PAL.LENGTH; i++)
+                this._palette[i] = new Color(i, i, i).ToDAC();
         }
-        #endregion
 
         #region Test methods
         [TestMethod]
@@ -55,32 +53,44 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void CreateNewPalette()
         {
-            this.GenerateTestPalette();
+            this._palette = new PAL();
         }
 
         [TestMethod]
         public void ReadColorsByIndex()
         {
             Color color;
-            var pal = this.GenerateTestPalette();
             for (int i = 0; i < PAL.LENGTH; i++)
-                color = pal[i];
+                color = this._palette[i];
         }
 
         [TestMethod]
         public void ReadColorsByForEach()
         {
             Color color;
-            var pal = this.GenerateTestPalette();
-            foreach (var value in pal)
+            foreach (var value in this._palette)
                 color = value;
+        }
+
+        [TestMethod]
+        public void Serialize()
+        {
+            Assert.AreEqual(this._palette.Serialize().Length, ColorPalette.SIZE + ColorRangeTable.SIZE);
+        }
+
+        [TestMethod]
+        public void Write()
+        {
+            using (var stream = new BinaryWriter(new MemoryStream()))
+            {
+                this._palette.Write(stream);
+            }
         }
 
         [TestMethod]
         public void SaveFile()
         {
-            var pal = this.GenerateTestPalette();
-            pal.Save(this.GetOutputPath("GRAYSCAL.PAL"));
+            this._palette.Save(this.GetOutputPath("GRAYSCAL.PAL"));
         }
 
         [TestMethod]

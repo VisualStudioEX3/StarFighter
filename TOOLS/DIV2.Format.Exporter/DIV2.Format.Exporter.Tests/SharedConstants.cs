@@ -8,7 +8,7 @@ namespace DIV2.Format.Exporter.Tests
     {
         #region Constants
         public const string ASSET_FOLDERNAME = "Assets";
-        public const string OUTPUT_FOLDERNAME = "Output";
+        public const string BASE_RESULT_FOLDERNAME = "Output";
 
         public const string FILENAME_PAL_DIV = "DIV.PAL";
         public const string FILENAME_PAL_SPACE = "SPACE.PAL";

@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
 {
@@ -6,22 +7,16 @@ namespace DIV2.Format.Exporter.Tests
     public class ColorPaletteTests : AbstractTest
     {
         #region Intenral vars
-        ColorPalette _palette;
+        ColorPalette _palette = new ColorPalette();
         #endregion
 
-        #region Helper Functions
-        public ColorPalette GenerateTestPalette()
+        #region Initializer
+        [TestInitialize]
+        public void Initialize()
         {
-            if (this._palette is null)
-            {
-                this._palette = new ColorPalette();
-
-                for (int i = 0; i < ColorPalette.LENGTH; i++)
-                    this._palette[i] = new Color(i / 4, i / 4, i / 4);
-            }
-
-            return this._palette;
-        }
+            for (int i = 0; i < ColorPalette.LENGTH; i++)
+                this._palette[i] = new Color(i, i, i).ToDAC();
+        } 
         #endregion
 
         #region Tests methods
@@ -29,19 +24,32 @@ namespace DIV2.Format.Exporter.Tests
         public void ReadColorsByIndex()
         {
             Color color;
-            var pal = this.GenerateTestPalette();
             for (int i = 0; i < PAL.LENGTH; i++)
-                color = pal[i];
+                color = this._palette[i];
         }
 
         [TestMethod]
         public void ReadColorsByForEach()
         {
             Color color;
-            var pal = this.GenerateTestPalette();
-            foreach (var value in pal)
+            foreach (var value in this._palette)
                 color = value;
-        } 
+        }
+
+        [TestMethod]
+        public void Serialize()
+        {
+            Assert.AreEqual(this._palette.Serialize().Length, ColorPalette.SIZE);
+        }
+
+        [TestMethod]
+        public void Write()
+        {
+            using (var stream = new BinaryWriter(new MemoryStream()))
+            {
+                this._palette.Write(stream);
+            }
+        }
         #endregion
     }
 }
