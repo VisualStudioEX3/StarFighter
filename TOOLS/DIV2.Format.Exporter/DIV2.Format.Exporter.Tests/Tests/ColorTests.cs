@@ -12,16 +12,10 @@ namespace DIV2.Format.Exporter.Tests
         const byte GREEN = 128;
         const byte BLUE = 255;
 
-        const int INT_RED = RED;
-        const int INT_GREEN = GREEN;
-        const int INT_BLUE = BLUE;
-
         readonly byte[] COLOR_VALUES = { RED, GREEN, BLUE };
 
         readonly Color RGB_COLOR = new Color(255, 255, 255);
         readonly Color DAC_COLOR = new Color(63, 63, 63);
-
-        readonly Random RANDOM = new Random();
         #endregion
 
         #region Test methods

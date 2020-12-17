@@ -23,9 +23,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void ReadColorsByIndex()
         {
-            Color color;
             for (int i = 0; i < PAL.LENGTH; i++)
-                color = this._palette[i];
+                _ = this._palette[i];
         }
 
         [TestMethod]

@@ -140,7 +140,6 @@ namespace DIV2.Format.Exporter
     public sealed class MAP : IAssetFile, IEnumerable<byte>
     {
         #region Constants
-        const int HEADER_LENGTH = DIVHeader.SIZE + (sizeof(short) * 2) + sizeof(int) + DESCRIPTION_LENGTH;
         const int MIN_PIXEL_COUNT = 1;
 
         readonly static DIVHeader MAP_FILE_HEADER = new DIVHeader('m', 'a', 'p');
