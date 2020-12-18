@@ -1,7 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 
-namespace DIV2.Format.Exporter.Tests.Tests
+namespace DIV2.Format.Exporter.Tests
 {
     [TestClass]
     public class ColorRangeTests
