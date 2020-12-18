@@ -199,6 +199,8 @@ namespace DIV2.Format.Exporter
                 if (++range > byte.MaxValue)
                     range = 0;
             }
+
+            startColorIndex = range;
         }
 
         /// <summary>

@@ -46,9 +46,8 @@ namespace DIV2.Format.Exporter
                     case 0: return this.red;
                     case 1: return this.green;
                     case 2: return this.blue;
+                    default: throw INDEX_OUT_OF_RANGE_EXCEPTION;
                 }
-
-                throw INDEX_OUT_OF_RANGE_EXCEPTION;
             }
 
             set

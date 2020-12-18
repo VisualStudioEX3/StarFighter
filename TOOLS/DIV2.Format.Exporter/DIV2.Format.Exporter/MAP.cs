@@ -49,9 +49,8 @@ namespace DIV2.Format.Exporter
                 {
                     case 0: return this.x;
                     case 1: return this.y;
+                    default: throw new IndexOutOfRangeException();
                 }
-
-                throw new IndexOutOfRangeException();
             }
             set
             {
@@ -59,9 +58,8 @@ namespace DIV2.Format.Exporter
                 {
                     case 0: this.x = value; break;
                     case 1: this.y = value; break;
+                    default: throw new IndexOutOfRangeException();
                 }
-
-                throw new IndexOutOfRangeException();
             }
         }
         #endregion
