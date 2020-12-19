@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
@@ -21,6 +22,15 @@ namespace DIV2.Format.Exporter.Tests
 
         #region Tests methods
         [TestMethod]
+        public void CreateFromMemory()
+        {
+            var a = this._palette;
+            var b = new ColorPalette(a.Serialize());
+
+            Assert.AreEqual(a, b);
+        }
+
+        [TestMethod]
         public void ReadColorsByIndex()
         {
             for (int i = 0; i < PAL.LENGTH; i++)
@@ -36,6 +46,20 @@ namespace DIV2.Format.Exporter.Tests
         }
 
         [TestMethod]
+        public void TryToSetFullRGBColor()
+        {
+            var colors = new ColorPalette();
+            try
+            {
+                colors[0] = new Color(255, 255, 255);
+                Assert.Fail();
+            }
+            catch
+            {
+            }
+        }
+
+        [TestMethod]
         public void Serialize()
         {
             Assert.AreEqual(this._palette.Serialize().Length, ColorPalette.SIZE);
@@ -48,6 +72,24 @@ namespace DIV2.Format.Exporter.Tests
             {
                 this._palette.Write(stream);
             }
+        }
+
+        [TestMethod]
+        public void AreEqual()
+        {
+            Assert.AreEqual(this._palette, this._palette);
+        }
+
+        [TestMethod]
+        public void AreNotEqual()
+        {
+            var a = this._palette;
+
+            var colors = new byte[ColorPalette.SIZE];
+            new Random().NextBytes(colors);
+            var b = new ColorPalette(colors);
+
+            Assert.AreNotEqual(a, b);
         }
         #endregion
     }

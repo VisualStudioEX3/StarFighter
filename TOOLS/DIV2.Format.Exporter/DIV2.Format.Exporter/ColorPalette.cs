@@ -225,7 +225,7 @@ namespace DIV2.Format.Exporter
     }
 
     /// <summary>
-    /// A representation of a 256 indexed color palette.
+    /// A representation of a 256 indexed color palette in DAC format [0..63].
     /// </summary>
     public sealed class ColorPalette : ISerializableAsset, IEnumerable<Color>
     {
