@@ -126,7 +126,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return this.x ^ this.y;
+            return base.GetHashCode();
         }
         #endregion
     }
@@ -143,7 +143,7 @@ namespace DIV2.Format.Exporter
         readonly static DIVHeader MAP_FILE_HEADER = new DIVHeader('m', 'a', 'p');
         readonly static MAP VALIDATOR = new MAP();
         readonly static string PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} min value accepted is " + MIN_PIXEL_COUNT;
-        readonly static ArgumentOutOfRangeException GRAPHID_OUT_OF_RANGE = 
+        readonly static ArgumentOutOfRangeException GRAPHID_OUT_OF_RANGE =
             new ArgumentOutOfRangeException($"GraphId must be a value between {MIN_GRAPH_ID} and {MAX_GRAPH_ID}.");
         const string INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE = "The index value must be a value beteween 0 and {0}.";
         const string COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} coordinate must be a value beteween 0 and {1}.";
@@ -264,7 +264,27 @@ namespace DIV2.Format.Exporter
         #region Operators
         public static bool operator ==(MAP a, MAP b)
         {
-            return a.GetHashCode() == b.GetHashCode();
+            if (a.Width == b.Width &&
+                a.Height == b.Height &&
+                a.GraphId == b.GraphId &&
+                a.Description == b.Description &&
+                a.Palette == b.Palette)
+            {
+                if (a.ControlPoints.Count != b.ControlPoints.Count)
+                    return false;
+
+                for (int i = 0; i < a.ControlPoints.Count; i++)
+                    if (a.ControlPoints[i] != b.ControlPoints[i])
+                        return false;
+
+                for (int i = 0; i < a._bitmap.Length; i++)
+                    if (a[i] != b[i])
+                        return false;
+
+                return true;
+            }
+            else
+                return false;
         }
 
         public static bool operator !=(MAP a, MAP b)
@@ -543,19 +563,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            if (this._hash == 0)
-            {
-                this._hash = this.Width ^ this.Height;
-                foreach (var color in this._bitmap)
-                    this._hash ^= color;
-            }
-
-            int hash = this._hash ^
-                       this.GraphId ^
-                       this.Description.GetHashCode() ^
-                       this.Palette.GetHashCode();
-
-            return hash;
+            return base.GetHashCode();
         }
         #endregion
     }

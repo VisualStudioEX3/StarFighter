@@ -286,7 +286,11 @@ namespace DIV2.Format.Exporter
         #region Operators
         public static bool operator ==(ColorPalette a, ColorPalette b)
         {
-            return a.GetHashCode() == b.GetHashCode();
+            for (int i = 0; i < LENGTH; i++)
+                if (a[i] != b[i])
+                    return false;
+
+            return true;
         }
 
         public static bool operator !=(ColorPalette a, ColorPalette b)
@@ -408,12 +412,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            int hash = 0;
-
-            foreach (var color in this._colors)
-                hash ^= color.GetHashCode();
-
-            return hash;
+            return base.GetHashCode();
         }
         #endregion
     }

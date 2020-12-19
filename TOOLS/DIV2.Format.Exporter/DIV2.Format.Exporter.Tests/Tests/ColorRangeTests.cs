@@ -13,9 +13,38 @@ namespace DIV2.Format.Exporter.Tests
             return new ColorRange(ref index);
         }
 
+        ColorRange CreateCustomRange(out byte index)
+        {
+            index = 32;
+
+            var range = new ColorRange(ref index);
+
+            range.colors = ColorRange.RangeColors._32;
+            range.type = ColorRange.RangeTypes.Edit4;
+            range.isfixed = true;
+            range.blackColor = 31;
+
+            return range;
+        }
+
         byte[] SerializeDefaultRange()
         {
             return this.CreateDefaultRange(out _).Serialize();
+        }
+
+        void AssertAreEqualDefaults(ColorRange range)
+        {
+            this.AssertAreEqual(range, this.CreateDefaultRange(out _));
+        }
+
+        void AssertAreEqual(ColorRange a, ColorRange b)
+        {
+            Assert.AreEqual(a.colors, b.colors);
+            Assert.AreEqual(a.type, b.type);
+            Assert.AreEqual(a.isfixed, b.isfixed);
+            Assert.AreEqual(a.blackColor, b.blackColor);
+            for (int i = 0; i < ColorRange.LENGTH; i++)
+                Assert.AreEqual(a[i], b[i]);
         }
         #endregion
 
@@ -24,15 +53,8 @@ namespace DIV2.Format.Exporter.Tests
         public void CreateNewDefaultRange()
         {
             var range = this.CreateDefaultRange(out byte index);
-
             Assert.AreEqual(index, 32);
-
-            Assert.AreEqual(range.colors, ColorRange.RangeColors._8);
-            Assert.AreEqual(range.type, ColorRange.RangeTypes.Direct);
-            Assert.AreEqual(range.isfixed, false);
-            Assert.AreEqual(range.blackColor, 0);
-            for (int i = 0; i < ColorRange.LENGTH; i++)
-                Assert.AreEqual(range[i], i);
+            this.AssertAreEqualDefaults(range);
         }
 
         [TestMethod]
@@ -55,13 +77,7 @@ namespace DIV2.Format.Exporter.Tests
         public void CreateNewRangeFromMemory()
         {
             var range = new ColorRange(this.SerializeDefaultRange());
-
-            Assert.AreEqual(range.colors, ColorRange.RangeColors._8);
-            Assert.AreEqual(range.type, ColorRange.RangeTypes.Direct);
-            Assert.AreEqual(range.isfixed, false);
-            Assert.AreEqual(range.blackColor, 0);
-            for (int i = 0; i < ColorRange.LENGTH; i++)
-                Assert.AreEqual(range[i], i);
+            this.AssertAreEqualDefaults(range);
         } 
 
         [TestMethod]
@@ -87,23 +103,28 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void TestCustomValuesFromSerialization()
         {
-            byte startIndex = 32;
-
-            var a = new ColorRange(ref startIndex);
-
-            a.colors = ColorRange.RangeColors._32;
-            a.type = ColorRange.RangeTypes.Edit4;
-            a.isfixed = true;
-            a.blackColor = 31;
-
+            var a = this.CreateCustomRange(out _);
             var b = new ColorRange(a.Serialize());
 
-            Assert.AreEqual(a.colors, b.colors);
-            Assert.AreEqual(a.type, b.type);
-            Assert.AreEqual(a.isfixed, b.isfixed);
-            Assert.AreEqual(a.blackColor, b.blackColor);
-            for (int i = 0; i < ColorRange.LENGTH; i++)
-                Assert.AreEqual(a[i], b[i]);
+            this.AssertAreEqual(a, b);
+        }
+
+        [TestMethod]
+        public void AreEquals()
+        {
+            var a = this.CreateDefaultRange(out _);
+            var b = this.CreateDefaultRange(out _);
+
+            Assert.AreEqual(a, b);
+        }
+
+        [TestMethod]
+        public void AreNotEquals()
+        {
+            var a = this.CreateDefaultRange(out _);
+            var b = this.CreateCustomRange(out _);
+
+            Assert.AreNotEqual(a, b);
         }
         #endregion
     }

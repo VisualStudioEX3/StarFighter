@@ -135,24 +135,6 @@ namespace DIV2.Format.Exporter.Tests
 
             Assert.AreNotEqual(a, b);
         }
-
-        [TestMethod]
-        public void AreEqualByCompare()
-        {
-            var a = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
-            var b = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
-
-            Assert.IsTrue(a.Compare(b));
-        }
-
-        [TestMethod]
-        public void AreNotEqualByCompare()
-        {
-            var a = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
-            var b = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_SPACE));
-
-            Assert.IsFalse(a.Compare(b));
-        }
         #endregion
     }
 }

@@ -55,9 +55,13 @@ namespace DIV2.Format.Exporter
     public sealed class ColorRange : ISerializableAsset, IEnumerable<byte>
     {
         #region Constants
-        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
+        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION =
             new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
 
+        public const byte DEFAULT_RANGE_COLORS = (byte)RangeColors._8;
+        public const byte DEFAULT_TYPE = (byte)RangeTypes.Direct;
+        public const bool DEFAULT_FIXED_STATE = false;
+        public const int DEFAULT_BLACK_COLOR = 0;
         /// <summary>
         /// Number of color index entries in the range.
         /// </summary>
@@ -165,7 +169,19 @@ namespace DIV2.Format.Exporter
         #region Operators
         public static bool operator ==(ColorRange a, ColorRange b)
         {
-            return a.GetHashCode() == b.GetHashCode();
+            if (a.colors == b.colors &&
+                a.type == b.type &&
+                a.isfixed == b.isfixed &&
+                a.blackColor == b.blackColor)
+            {
+                for (int i = 0; i < LENGTH; i++)
+                    if (a[i] != b[i])
+                        return false;
+
+                return true;
+            }
+            else
+                return false;
         }
 
         public static bool operator !=(ColorRange a, ColorRange b)
@@ -184,10 +200,10 @@ namespace DIV2.Format.Exporter
         /// This process is automatically setup in <see cref="ColorRangeTable"/> default constructor.</remarks>
         public ColorRange(ref byte startColorIndex)
         {
-            this.colors = RangeColors._8;
-            this.type = RangeTypes.Direct;
-            this.isfixed = false;
-            this.blackColor = 0;
+            this.colors = (RangeColors)DEFAULT_RANGE_COLORS;
+            this.type = (RangeTypes)DEFAULT_TYPE;
+            this.isfixed = DEFAULT_FIXED_STATE;
+            this.blackColor = DEFAULT_BLACK_COLOR;
 
             this._rangeColors = new byte[LENGTH];
 
@@ -262,12 +278,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            int hash = 0;
-
-            foreach (var color in this._rangeColors)
-                hash ^= color;
-
-            return hash;
+            return base.GetHashCode();
         }
         #endregion
     }

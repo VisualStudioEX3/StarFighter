@@ -65,7 +65,8 @@ namespace DIV2.Format.Exporter
         #region Operators
         public static bool operator ==(PAL a, PAL b)
         {
-            return a.GetHashCode() == b.GetHashCode();
+            return a.Colors == b.Colors &&
+                   a.Ranges == b.Ranges;
         }
 
         public static bool operator !=(PAL a, PAL b)
@@ -291,25 +292,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            int hash = 0;
-
-            foreach (var color in this.Colors)
-                hash ^= color.GetHashCode();
-
-            return hash;
-        }
-
-        /// <summary>
-        /// Compare this instance with other <see cref="PAL"/> instance.
-        /// </summary>
-        /// <param name="other"><see cref="PAL"/> instnace to compare.</param>
-        /// <returns>Returns true if the both instances are equals.</returns>
-        /// <remarks>The == and != operators only compare the colors between <see cref="PAL"/> instances. 
-        /// Use this function if you want to compare color tables and color range tables.</remarks>
-        public bool Compare(PAL other)
-        {
-            return this.Colors == other.Colors &&
-                   this.Ranges == other.Ranges;
+            return base.GetHashCode();
         }
 
         /// <summary>

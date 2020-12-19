@@ -21,6 +21,19 @@ namespace DIV2.Format.Exporter
         public int GraphId => this.map.GraphId;
         #endregion
 
+        #region Operators
+        public static bool operator ==(Register a, Register b)
+        {
+            return a.map == b.map && 
+                   a.filename == b.filename;
+        }
+
+        public static bool operator !=(Register a, Register b)
+        {
+            return !(a == b);
+        }
+        #endregion
+
         #region Constructor
         public Register(BinaryReader stream, PAL palette)
         {
@@ -102,6 +115,18 @@ namespace DIV2.Format.Exporter
                 return false;
             }
         }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Register)) return false;
+
+            return this == (Register)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
         #endregion
     }
 
@@ -178,6 +203,30 @@ namespace DIV2.Format.Exporter
         /// <param name="index">Index of the <see cref="MAP"/> in the <see cref="FPG"/>.</param>
         /// <returns>Returns the <see cref="MAP"/> instance.</returns>
         public MAP this[int index] => this._registers[index].map;
+        #endregion
+
+        #region Operators
+        public static bool operator ==(FPG a, FPG b)
+        {
+            if (a.Palette == b.Palette)
+            {
+                if (a.Count != b.Count)
+                    return false;
+
+                for (int i = 0; i < a.Count; i++)
+                    if (a._registers[i] != b._registers[i])
+                        return false;
+
+                return true;
+            }
+            else
+                return false;
+        }
+
+        public static bool operator !=(FPG a, FPG b)
+        {
+            return !(a == b);
+        }
         #endregion
 
         #region Constructors
@@ -464,6 +513,18 @@ namespace DIV2.Format.Exporter
         IEnumerator IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is FPG)) return false;
+
+            return this == (FPG)obj;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
         #endregion
     }
