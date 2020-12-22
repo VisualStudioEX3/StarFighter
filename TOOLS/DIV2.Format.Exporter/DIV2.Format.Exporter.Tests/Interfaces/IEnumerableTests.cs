@@ -2,6 +2,8 @@
 {
     interface IEnumerableTests
     {
+        #region Tests methods
         void ReadByForEach();
+        #endregion
     }
 }

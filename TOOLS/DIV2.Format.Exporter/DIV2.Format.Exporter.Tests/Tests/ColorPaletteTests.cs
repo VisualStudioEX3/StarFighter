@@ -5,44 +5,136 @@ using System.IO;
 namespace DIV2.Format.Exporter.Tests
 {
     [TestClass]
-    public class ColorPaletteTests : AbstractTest
+    public class ColorPaletteTests :
+        AbstractTest,
+        IDefaultConstructorsTests,
+        IEqualityTests,
+        ISerializableAssetTests,
+        IIterableReadTests,
+        IIterableWriteTests,
+        IEnumerableTests
     {
-        #region Intenral vars
-        ColorPalette _palette = new ColorPalette();
+        #region Constants
+        readonly static Color BLACK_COLOR = new Color();
         #endregion
 
-        #region Initializer
-        [TestInitialize]
-        public void Initialize()
+        #region Helper functions
+        ColorPalette CreateTestsPalette()
         {
+            var palette = new ColorPalette();
             for (int i = 0; i < ColorPalette.LENGTH; i++)
-                this._palette[i] = new Color(i, i, i).ToDAC();
-        } 
+                palette[i] = new Color(i, i, i).ToDAC();
+
+            return palette;
+        }
         #endregion
 
         #region Tests methods
         [TestMethod]
-        public void CreateFromMemory()
+        public void CreateDefaultInstance()
         {
-            var a = this._palette;
-            var b = new ColorPalette(a.Serialize());
+            var palette = new ColorPalette();
+            for (int i = 0; i < ColorPalette.LENGTH; i++)
+                Assert.AreEqual(BLACK_COLOR, palette[i]);
+        }
+
+        [TestMethod]
+        public void CreateInstanceFromBuffer()
+        {
+            var buffer = new byte[ColorPalette.SIZE];
+
+            var random = new Random();
+            for (int i = 0; i < buffer.Length; i++)
+                buffer[i] = (byte)random.Next(0, Color.MAX_DAC_VALUE + 1);
+
+            var palette = new ColorPalette(buffer);
+
+            for (int i = 0, j = 0; i < ColorPalette.LENGTH; i++)
+            {
+                Color color = palette[i];
+                Assert.AreEqual(buffer[j++], color.red);
+                Assert.AreEqual(buffer[j++], color.green);
+                Assert.AreEqual(buffer[j++], color.blue);
+            }
+        }
+
+        [TestMethod]
+        public void FailCreateInstanceFromBuffer()
+        {
+            try
+            {
+                var buffer = new byte[ColorPalette.SIZE];
+
+                for (int i = 0; i < buffer.Length; i++)
+                    buffer[i] = 255;
+
+                new ColorPalette(buffer);
+                Assert.Fail();
+            }
+            catch
+            {
+            }
+        }
+
+        [TestMethod]
+        public void AreEqual()
+        {
+            var a = new ColorPalette();
+            var b = new ColorPalette();
 
             Assert.AreEqual(a, b);
         }
 
         [TestMethod]
-        public void ReadColorsByIndex()
+        public void AreNotEqual()
         {
-            for (int i = 0; i < PAL.LENGTH; i++)
-                _ = this._palette[i];
+            var a = new ColorPalette();
+            ColorPalette b = this.CreateTestsPalette();
+
+            Assert.AreNotEqual(a, b);
         }
 
         [TestMethod]
-        public void ReadColorsByForEach()
+        public void ReadByIndex()
         {
-            Color color;
-            foreach (var value in this._palette)
-                color = value;
+            ColorPalette palette = this.CreateTestsPalette();
+            Color[] colors = palette.ToArray();
+            for (int i = 0; i < ColorPalette.LENGTH; i++)
+                Assert.AreEqual(colors[i], palette[i]);
+        }
+
+        [TestMethod]
+        public void FailReadByIndex()
+        {
+            try
+            {
+                _ = new ColorPalette()[-1];
+                Assert.Fail();
+            }
+            catch
+            {
+                try
+                {
+                    _ = new ColorPalette()[ColorPalette.LENGTH + 1];
+                    Assert.Fail();
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        [TestMethod]
+        public void WriteByIndex()
+        {
+            ColorPalette a = this.CreateTestsPalette();
+            var b = new ColorPalette();
+
+            for (int i = 0; i < ColorPalette.LENGTH; i++)
+                b[i] = a[i];
+
+            for (int i = 0; i < ColorPalette.LENGTH; i++)
+                Assert.AreEqual(a[i], b[i]);
         }
 
         [TestMethod]
@@ -60,9 +152,39 @@ namespace DIV2.Format.Exporter.Tests
         }
 
         [TestMethod]
+        public void FailWriteByIndex()
+        {
+            try
+            {
+                new ColorPalette()[-1] = new Color();
+                Assert.Fail();
+            }
+            catch
+            {
+                try
+                {
+                    new ColorPalette()[ColorPalette.LENGTH + 1] = new Color();
+                    Assert.Fail();
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        [TestMethod]
+        public void ReadByForEach()
+        {
+            int i = 0;
+            ColorPalette palette = this.CreateTestsPalette();
+            foreach (var value in palette)
+                Assert.AreEqual(palette[i++], value);
+        }
+
+        [TestMethod]
         public void Serialize()
         {
-            Assert.AreEqual(this._palette.Serialize().Length, ColorPalette.SIZE);
+            Assert.AreEqual(ColorPalette.SIZE, new ColorPalette().Serialize().Length);
         }
 
         [TestMethod]
@@ -70,26 +192,28 @@ namespace DIV2.Format.Exporter.Tests
         {
             using (var stream = new BinaryWriter(new MemoryStream()))
             {
-                this._palette.Write(stream);
+                new ColorPalette().Write(stream);
             }
         }
 
         [TestMethod]
-        public void AreEqual()
+        public void ToArray()
         {
-            Assert.AreEqual(this._palette, this._palette);
+            ColorPalette palette = this.CreateTestsPalette();
+            Color[] colors = palette.ToArray();
+
+            for (int i = 0; i < ColorPalette.LENGTH; i++)
+                Assert.AreEqual(palette[i], colors[i]);
         }
 
         [TestMethod]
-        public void AreNotEqual()
+        public void ToRGB()
         {
-            var a = this._palette;
+            ColorPalette palette = this.CreateTestsPalette();
+            Color[] colors = palette.ToRGB();
 
-            var colors = new byte[ColorPalette.SIZE];
-            new Random().NextBytes(colors);
-            var b = new ColorPalette(colors);
-
-            Assert.AreNotEqual(a, b);
+            for (int i = 0; i < ColorPalette.LENGTH; i++)
+                Assert.AreEqual(palette[i].ToRGB(), colors[i]);
         }
         #endregion
     }

@@ -2,7 +2,9 @@
 {
     interface IFormatValidableTests
     {
+        #region Tests methods
         void Validate();
         void FailValidate();
+        #endregion
     }
 }

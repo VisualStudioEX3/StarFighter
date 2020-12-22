@@ -2,7 +2,9 @@
 {
     interface ISerializableAssetTests
     {
+        #region Tests methods
         void Serialize();
         void Write();
+        #endregion
     }
 }

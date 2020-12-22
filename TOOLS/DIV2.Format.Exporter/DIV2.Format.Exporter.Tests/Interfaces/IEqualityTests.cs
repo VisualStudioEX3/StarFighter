@@ -1,10 +1,10 @@
 ﻿namespace DIV2.Format.Exporter.Tests
 {
-    interface IIterableReadTests
+    interface IEqualityTests
     {
         #region Tests methods
-        void ReadByIndex();
-        void FailReadByIndex();
+        void AreEqual();
+        void AreNotEqual();
         #endregion
     }
 }
