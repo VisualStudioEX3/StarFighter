@@ -66,7 +66,7 @@ namespace DIV2.Format.Exporter.Tests
                 var buffer = new byte[ColorPalette.SIZE];
 
                 for (int i = 0; i < buffer.Length; i++)
-                    buffer[i] = 255;
+                    buffer[i] = byte.MaxValue;
 
                 new ColorPalette(buffer);
                 Assert.Fail();
@@ -140,10 +140,9 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void TryToSetFullRGBColor()
         {
-            var colors = new ColorPalette();
             try
             {
-                colors[0] = new Color(255, 255, 255);
+                new ColorPalette()[0] = new Color(byte.MaxValue, byte.MaxValue, byte.MaxValue);
                 Assert.Fail();
             }
             catch

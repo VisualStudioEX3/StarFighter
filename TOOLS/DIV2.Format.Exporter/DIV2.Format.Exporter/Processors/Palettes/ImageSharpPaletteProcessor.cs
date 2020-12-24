@@ -38,7 +38,7 @@ namespace DIV2.Format.Exporter.Processors.Palettes
         public PAL Process(byte[] buffer)
         {
             MemoryStream stream = this.ConvertToIndexedPNG(buffer);
-            var colors = new ColorPalette(this.ExtractPalette(stream));
+            var colors = new ColorPalette(this.ExtractPalette(stream).ToColorArray().ToDAC());
             return new PAL(colors);
         }
 
