@@ -16,6 +16,10 @@ namespace DIV2.Format.Exporter
             new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
 
         /// <summary>
+        /// Max suported value in DAC format [0..63].
+        /// </summary>
+        public const byte MAX_DAC_VALUE = 63;
+        /// <summary>
         /// Number of components.
         /// </summary>
         public const int LENGTH = 3;
@@ -142,7 +146,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Converts DAC values [0..63] to RGB range [0..255].
         /// </summary>
-        /// <returns>Returns new <see cref="Color"/> value in RGB range [0..255].</returns>
+        /// <returns>Returns new <see cref="Color"/> value in RGB range [0..255]. In most of the cases, this value is an aproximation to the real RGB value.</returns>
         /// <remarks>DIV Games Studio and other software that works in old VESA modes, 
         /// using the DAC format for colors instead of full RGB format. 
         /// Use this function to adapt DAC values to RGB in order to work properly with modern implementations.</remarks>
@@ -156,7 +160,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Converts RGB values [0..255] to DAC range [0..63].
         /// </summary>
-        /// <returns>Returns new <see cref="Color"/> value in DAC range [0..63].</returns>
+        /// <returns>Returns new <see cref="Color"/> value in DAC range [0..63]. In most of the cases, this value is an aproximation to the real DAC value.</returns>
         /// <remarks>DIV Games Studio and other software that works in old VESA modes, 
         /// using the DAC format for colors instead of full RGB format. 
         /// Use this function to adapt RGB values to DAC in order to work properly with DIV Games Studio.</remarks>
@@ -232,11 +236,11 @@ namespace DIV2.Format.Exporter
         #region Constants
         readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
             new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
+        readonly static ArgumentOutOfRangeException OUT_OF_RANGE_DAC_EXCEPTION = 
+            new ArgumentOutOfRangeException($"The color array must be contains a {LENGTH} array length, with RGB colors in DAC format [0..{Color.MAX_DAC_VALUE}].");
         readonly static string[] COLOR_FIELD_NAMES = { "Red", "Green", "Blue" };
         const string DAC_VALUE_OUT_OF_RANGE_EXCEPTION_MESSAGE = "The {0} value must be a DAC range value [{1}..{2}].";
 
-        public const byte MIN_DAC_VALUE = 0;
-        public const byte MAX_DAC_VALUE = 63;
         /// <summary>
         /// Number of colors.
         /// </summary>
@@ -253,10 +257,10 @@ namespace DIV2.Format.Exporter
 
         #region Properties
         /// <summary>
-        /// Get or set a <see cref="Color"/> value.
+        /// Get or set a <see cref="Color"/> value in DAC format [0..63].
         /// </summary>
         /// <param name="index">Index in palette.</param>
-        /// <returns>Returns the <see cref="color"/> value.</returns>
+        /// <returns>Returns the <see cref="Color"/> value.</returns>
         public Color this[int index]
         {
             get
@@ -272,11 +276,11 @@ namespace DIV2.Format.Exporter
                     throw INDEX_OUT_OF_RANGE_EXCEPTION;
 
                 for (int i = 0; i < Color.LENGTH; i++)
-                    if (!value[i].IsClamped(MIN_DAC_VALUE, MAX_DAC_VALUE))
+                    if (!value[i].IsClamped(0, Color.MAX_DAC_VALUE))
                         throw new ArgumentOutOfRangeException(string.Format(DAC_VALUE_OUT_OF_RANGE_EXCEPTION_MESSAGE, 
                                                                             COLOR_FIELD_NAMES[i], 
-                                                                            MIN_DAC_VALUE, 
-                                                                            MAX_DAC_VALUE));
+                                                                            0, 
+                                                                            Color.MAX_DAC_VALUE));
 
                 this._colors[index] = value;
             }
@@ -316,11 +320,17 @@ namespace DIV2.Format.Exporter
             : this()
         {
             if (buffer.Length != SIZE)
-                throw new ArgumentOutOfRangeException($"The buffer must be contains a {SIZE} array length, with RGB colors in DAC format [{MIN_DAC_VALUE}..{MAX_DAC_VALUE}].");
+                throw new ArgumentOutOfRangeException($"The buffer must be contains a {SIZE} array length, with RGB colors in DAC format [0..{Color.MAX_DAC_VALUE}].");
 
             int index = 0;
             for (int i = 0; i < LENGTH; i++)
+            {
                 this._colors[i] = new Color(buffer[index++], buffer[index++], buffer[index++]);
+                if (!this._colors[i].red.IsClamped(0, Color.MAX_DAC_VALUE) ||
+                    !this._colors[i].green.IsClamped(0, Color.MAX_DAC_VALUE) ||
+                    !this._colors[i].blue.IsClamped(0, Color.MAX_DAC_VALUE))
+                    throw OUT_OF_RANGE_DAC_EXCEPTION;
+            }
         }
 
         /// <summary>
@@ -331,7 +341,7 @@ namespace DIV2.Format.Exporter
             : this()
         {
             if (colors.Length != LENGTH)
-                throw new ArgumentOutOfRangeException($"The color array must be contains a {LENGTH} array length, with RGB colors in DAC format [{MIN_DAC_VALUE}..{MAX_DAC_VALUE}].");
+                throw OUT_OF_RANGE_DAC_EXCEPTION;
 
             this._colors = colors;
         }
@@ -368,7 +378,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Get a full RGB range values [0..255].
         /// </summary>
-        /// <returns>Returns new <see cref="Color"/> array of full RGB values [0..255].</returns>
+        /// <returns>Returns new <see cref="Color"/> array of full RGB values [0..255]. In most of the cases, this value is an aproximation to the real RGB value.</returns>
         public Color[] ToRGB()
         {
             var rgb = new Color[LENGTH];
@@ -380,17 +390,13 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Get a DAC range values [0..63].
+        /// Get the <see cref="Color"/> array from this instance.
         /// </summary>
         /// <returns>Returns new <see cref="Color"/> array of DAC values [0..63].</returns>
-        public Color[] ToDAC()
+        /// <remarks>Use the <see cref="ToRGB"/> function get a full RGB range [0..255] <see cref="Color"/> array.</remarks>
+        public Color[] ToArray()
         {
-            var dac = new Color[LENGTH];
-
-            for (int i = 0; i < LENGTH; i++)
-                dac[i] = this[i].ToDAC();
-
-            return dac;
+            return this._colors;
         }
 
         public IEnumerator<Color> GetEnumerator()

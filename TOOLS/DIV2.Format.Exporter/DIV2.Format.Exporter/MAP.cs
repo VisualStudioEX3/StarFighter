@@ -28,11 +28,11 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Horizontal coordinate.
         /// </summary>
-        public short x;
+        public ushort x;
         /// <summary>
         /// Vertical coordinate.
         /// </summary>
-        public short y;
+        public ushort y;
         #endregion
 
         #region Properties
@@ -41,7 +41,7 @@ namespace DIV2.Format.Exporter
         /// </summary>
         /// <param name="index">Index of the coordinate in the structure.</param>
         /// <returns>Returns the coordinate value.</returns>
-        public short this[int index]
+        public ushort this[int index]
         {
             get
             {
@@ -78,24 +78,43 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructors
-        public ControlPoint(short x, short y)
+        public ControlPoint(ushort x, ushort y)
         {
             this.x = x;
             this.y = y;
         }
 
+        public ControlPoint(short x, short y)
+            : this((ushort)x, (ushort)y)
+        {
+        }
+
         public ControlPoint(int x, int y)
-            : this((short)x, (short)y)
+            : this((ushort)x, (ushort)y)
         {
         }
 
         public ControlPoint(float x, float y)
-            : this((short)x, (short)y)
+            : this((ushort)x, (ushort)y)
         {
         }
 
         public ControlPoint(double x, double y)
-            : this((short)x, (short)y)
+            : this((ushort)x, (ushort)y)
+        {
+        }
+
+        public ControlPoint(byte[] buffer)
+        {
+            if (buffer.Length != SIZE)
+                throw new ArgumentOutOfRangeException($"The array must be {SIZE} bytes length.");
+
+            this.x = BitConverter.ToUInt16(buffer, 0);
+            this.y = BitConverter.ToUInt16(buffer, 2);
+        }
+
+        public ControlPoint(BinaryReader stream)
+            : this(stream.ReadInt16(), stream.ReadInt16())
         {
         }
         #endregion
@@ -138,16 +157,18 @@ namespace DIV2.Format.Exporter
     public sealed class MAP : IAssetFile, IEnumerable<byte>
     {
         #region Constants
-        const int MIN_PIXEL_COUNT = 1;
-
         readonly static DIVHeader MAP_FILE_HEADER = new DIVHeader('m', 'a', 'p');
         readonly static MAP VALIDATOR = new MAP();
-        readonly static string PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} min value accepted is " + MIN_PIXEL_COUNT;
+        readonly static string PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} min value accepted is " + MIN_PIXEL_SIZE;
         readonly static ArgumentOutOfRangeException GRAPHID_OUT_OF_RANGE =
             new ArgumentOutOfRangeException($"GraphId must be a value between {MIN_GRAPH_ID} and {MAX_GRAPH_ID}.");
         const string INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE = "The index value must be a value beteween 0 and {0}.";
         const string COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} coordinate must be a value beteween 0 and {1}.";
 
+        /// <summary>
+        /// Min supported size value for width or height properties.
+        /// </summary>
+        public const int MIN_PIXEL_SIZE = 1;
         /// <summary>
         /// Max description character length.
         /// </summary>
@@ -167,7 +188,6 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Internal vars
-        int _hash = 0;
         int _graphId;
         byte[] _bitmap;
         #endregion
@@ -176,11 +196,11 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Width of the graphic map.
         /// </summary>
-        public short Width { get; private set; }
+        public short Width { get; }
         /// <summary>
         /// Height of the graphic map.
         /// </summary>
-        public short Height { get; private set; }
+        public short Height { get; }
         /// <summary>
         /// Graphic identifiers used in <see cref="FPG"/> files.
         /// </summary>
@@ -209,6 +229,10 @@ namespace DIV2.Format.Exporter
         /// </summary>
         public List<ControlPoint> ControlPoints { get; private set; }
         /// <summary>
+        /// Number of pixels in the bitmap.
+        /// </summary>
+        public int Count => this._bitmap.Length;
+        /// <summary>
         /// Get or set the color index in the bitmap.
         /// </summary>
         /// <param name="index">Pixel index in the bitmap array.</param>
@@ -222,7 +246,7 @@ namespace DIV2.Format.Exporter
 
                 return this._bitmap[index];
             }
-            private set
+            set
             {
                 if (!index.IsClamped(0, this._bitmap.Length))
                     throw new IndexOutOfRangeException(string.Format(INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE, this._bitmap.Length));
@@ -248,7 +272,7 @@ namespace DIV2.Format.Exporter
 
                 return this._bitmap[this.GetIndex(x, y)];
             }
-            private set
+            set
             {
                 if (!x.IsClamped(0, this.Width))
                     throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "X", this.Width));
@@ -307,21 +331,21 @@ namespace DIV2.Format.Exporter
         /// <param name="height">Bitmap height.</param>
         /// <param name="graphId"><see cref="MAP"/> graphic identifiers. By default is 1.</param>
         /// <param name="description">Optional <see cref="MAP"/> description.</param>
-        public MAP(PAL palette, int width, int height, int graphId = MIN_GRAPH_ID, string description = "")
+        public MAP(PAL palette, short width, short height, int graphId = MIN_GRAPH_ID, string description = "")
             : this()
         {
-            if (width < MIN_PIXEL_COUNT)
-                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Width"));
-            if (height < MIN_PIXEL_COUNT)
-                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Height"));
+            if (width < MIN_PIXEL_SIZE)
+                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, nameof(this.Width)));
+            if (height < MIN_PIXEL_SIZE)
+                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, nameof(this.Height)));
             if (!graphId.IsClamped(MIN_GRAPH_ID, MAX_GRAPH_ID))
                 throw GRAPHID_OUT_OF_RANGE;
 
             this._bitmap = new byte[width * height];
 
             this.Palette = palette;
-            this.Width = (short)width;
-            this.Height = (short)height;
+            this.Width = width;
+            this.Height = height;
             this.GraphId = graphId;
             this.Description = description;
         }
@@ -357,7 +381,7 @@ namespace DIV2.Format.Exporter
 
                         short points = stream.ReadInt16();
                         for (int i = 0; i < points; i++)
-                            this.ControlPoints.Add(new ControlPoint(stream.ReadInt16(), stream.ReadInt16()));
+                            this.ControlPoints.Add(new ControlPoint(stream));
 
                         this._bitmap = stream.ReadBytes(this.Width * this.Height);
                     }
@@ -564,6 +588,21 @@ namespace DIV2.Format.Exporter
         public override int GetHashCode()
         {
             return base.GetHashCode();
+        }
+
+        /// <summary>
+        /// Converts all pixel indexes to the <see cref="Color"/> value from this associated <see cref="PAL"/> instance.
+        /// </summary>
+        /// <returns>Returns a new <see cref="Color"/> array with all pixel data from this bitmap. All colors are RGB format [0..255].</returns>
+        /// <remarks>Use this function when need to render this <see cref="MAP"/> in any modern system that works in full 32 bits color space.</remarks>
+        public Color[] GetRGBTexture()
+        {
+            var pixels = new Color[this.Count];
+
+            for (int i = 0; i < pixels.Length; i++)
+                pixels[i] = this.Palette[this[i]].ToRGB();
+
+            return pixels;
         }
         #endregion
     }

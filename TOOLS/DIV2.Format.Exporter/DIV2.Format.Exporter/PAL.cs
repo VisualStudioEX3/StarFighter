@@ -298,7 +298,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Creates a copy of the <see cref="Color"/> array converted to full RGB format [0..255].
         /// </summary>
-        /// <returns>Returns a new <see cref="Color"/> array in full RGB format [0..255].</returns>
+        /// <returns>Returns a new <see cref="Color"/> array in full RGB format [0..255]. In most of the cases, these values are an aproximation to the real RGB value.</returns>
         public Color[] ToRGB() => this.Colors.ToRGB();
         #endregion
     }

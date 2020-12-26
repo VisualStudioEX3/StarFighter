@@ -48,7 +48,7 @@ namespace DIV2.Format.Exporter
 
             int count = stream.ReadInt32(); // Control Points counter.
             for (int i = 0; i < count; i++)
-                this.map.ControlPoints.Add(new ControlPoint(stream.ReadInt16(), stream.ReadInt16()));
+                this.map.ControlPoints.Add(new ControlPoint(stream));
 
             this.map.SetBitmapArray(stream.ReadBytes(width * height));
         }

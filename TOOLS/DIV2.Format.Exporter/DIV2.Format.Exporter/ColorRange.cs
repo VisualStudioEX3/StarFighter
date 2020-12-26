@@ -58,8 +58,8 @@ namespace DIV2.Format.Exporter
         readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION =
             new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
 
-        public const byte DEFAULT_RANGE_COLORS = (byte)RangeColors._8;
-        public const byte DEFAULT_TYPE = (byte)RangeTypes.Direct;
+        public const RangeColors DEFAULT_RANGE_COLORS = RangeColors._8;
+        public const RangeTypes DEFAULT_TYPE = RangeTypes.Direct;
         public const bool DEFAULT_FIXED_STATE = false;
         public const int DEFAULT_BLACK_COLOR = 0;
         /// <summary>
@@ -200,8 +200,8 @@ namespace DIV2.Format.Exporter
         /// This process is automatically setup in <see cref="ColorRangeTable"/> default constructor.</remarks>
         public ColorRange(ref byte startColorIndex)
         {
-            this.colors = (RangeColors)DEFAULT_RANGE_COLORS;
-            this.type = (RangeTypes)DEFAULT_TYPE;
+            this.colors = DEFAULT_RANGE_COLORS;
+            this.type = DEFAULT_TYPE;
             this.isfixed = DEFAULT_FIXED_STATE;
             this.blackColor = DEFAULT_BLACK_COLOR;
 

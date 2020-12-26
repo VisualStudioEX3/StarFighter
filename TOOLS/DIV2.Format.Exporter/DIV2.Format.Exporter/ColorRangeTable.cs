@@ -61,7 +61,7 @@ namespace DIV2.Format.Exporter
             new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
 
         /// <summary>
-        /// Number of <see cref="ColorRange"/> in the table.
+        /// Number of <see cref="ColorRange"/>s in the table.
         /// </summary>
         public const int LENGTH = 16;
         /// <summary>
