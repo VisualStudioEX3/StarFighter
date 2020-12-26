@@ -69,7 +69,7 @@ namespace DIV2.Format.Exporter.Tests
         }
 
         [TestMethod]
-        public void CreateInstanceFromFilename()
+        public void CreateInstanceFromFile()
         {
             new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
         }

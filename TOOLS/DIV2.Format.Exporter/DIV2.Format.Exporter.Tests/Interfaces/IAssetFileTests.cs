@@ -2,6 +2,9 @@
 {
     interface IAssetFileTests
     {
+        #region Tests methods
+        void CreateInstanceFromFile();
         void Save();
+        #endregion
     }
 }

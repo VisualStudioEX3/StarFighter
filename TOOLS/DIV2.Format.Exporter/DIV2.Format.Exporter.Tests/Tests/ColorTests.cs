@@ -40,6 +40,11 @@ namespace DIV2.Format.Exporter.Tests
             Assert.AreEqual(COLOR_VALUES[0], color.red);
             Assert.AreEqual(COLOR_VALUES[1], color.green);
             Assert.AreEqual(COLOR_VALUES[2], color.blue);
+
+            color = new Color(new BinaryReader(new MemoryStream(COLOR_VALUES)));
+            Assert.AreEqual(COLOR_VALUES[0], color.red);
+            Assert.AreEqual(COLOR_VALUES[1], color.green);
+            Assert.AreEqual(COLOR_VALUES[2], color.blue);
         }
 
         [TestMethod]
