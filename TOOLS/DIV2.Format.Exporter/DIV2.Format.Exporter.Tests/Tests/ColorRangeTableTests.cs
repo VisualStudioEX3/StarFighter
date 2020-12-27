@@ -18,7 +18,7 @@ namespace DIV2.Format.Exporter.Tests
         {
             Assert.AreEqual(ColorRange.DEFAULT_RANGE_COLORS, range.colors);
             Assert.AreEqual(ColorRange.DEFAULT_TYPE, range.type);
-            Assert.AreEqual(ColorRange.DEFAULT_FIXED_STATE, range.isfixed);
+            Assert.AreEqual(ColorRange.DEFAULT_FIXED_STATE, range.isFixed);
             Assert.AreEqual(ColorRange.DEFAULT_BLACK_COLOR, range.blackColor);
             for (byte i = 0; i < ColorRange.LENGTH; i++, startIndex++)
                 Assert.AreEqual(startIndex, range[i]);

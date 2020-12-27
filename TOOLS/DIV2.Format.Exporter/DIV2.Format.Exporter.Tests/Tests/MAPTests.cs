@@ -1,12 +1,11 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
-using DIV2.Format.Exporter.MethodExtensions;
 using System;
 
 namespace DIV2.Format.Exporter.Tests
 {
     [TestClass]
-    public class MAPTests 
+    public class MAPTests
         : AbstractTest,
         IDefaultConstructorsTests,
         IEqualityTests,
@@ -19,33 +18,39 @@ namespace DIV2.Format.Exporter.Tests
     {
         #region Constants
         const string RESULT_FOLDER_NAME = "MAP";
-        const int TEST_SIZE = 3;
-        const int DEFAULT_WIDTH = 320;
-        const int DEFAULT_HEIGHT = 200;
-        const string DEFAULT_DESCRIPTION = "Test description...";
+        const short TEST_WIDTH = 8;
+        const short TEST_HEIGHT = 16;
+        const int TEST_GRAPH_ID = 256;
+        const string TEST_DESCRIPTION = "Test description...";
         #endregion
 
         #region Intenral vars
-        PAL _defaultPalette;
-        MAP _defaultMap;
-        MAP _defaultLoadedMap;
+        PAL _palette;
+        Random _random;
         #endregion
 
         #region HelperFunctions
-        MAP CreateDefaultMap()
+        MAP CreateTestMap(out byte[] bitmap)
         {
-            if (this._defaultMap is null)
-                this._defaultMap = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
 
-            return this._defaultMap;
+            bitmap = new byte[map.Count];
+            this._random.NextBytes(bitmap);
+            map.SetBitmapArray(bitmap);
+
+            return map;
         }
 
-        MAP LoadDefaultMap()
+        int CalculateSize(MAP map)
         {
-            if (this._defaultLoadedMap is null)
-                this._defaultLoadedMap = new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
-
-            return this._defaultLoadedMap;
+            return (sizeof(short) * 2) + // Width + Height sizes
+                    sizeof(int) + // GraphId size
+                    MAP.DESCRIPTION_LENGTH + // Description size
+                    ColorPalette.SIZE + // ColorPalette size
+                    ColorRangeTable.SIZE + // ColorRangeTable size
+                    sizeof(short) + // ControlPoints counter size
+                    (ControlPoint.SIZE * map.ControlPoints.Count) + // ControlPoints total size
+                    (map.Width * map.Height); // Bitmap size
         }
         #endregion
 
@@ -53,7 +58,9 @@ namespace DIV2.Format.Exporter.Tests
         [TestInitialize]
         public void Initialize()
         {
-            this._defaultPalette = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
+            this.InitializeResultFolder(RESULT_FOLDER_NAME);
+            this._palette = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
+            this._random = new Random();
         }
         #endregion
 
@@ -61,10 +68,10 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void CreateDefaultInstance()
         {
-            var map = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-            
-            Assert.AreEqual(DEFAULT_WIDTH, map.Width);
-            Assert.AreEqual(DEFAULT_HEIGHT, map.Height);
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
+
+            Assert.AreEqual(TEST_WIDTH, map.Width);
+            Assert.AreEqual(TEST_HEIGHT, map.Height);
             Assert.AreEqual(MAP.MIN_GRAPH_ID, map.GraphId);
             Assert.IsTrue(string.IsNullOrEmpty(map.Description));
             Assert.IsTrue(map.ControlPoints.Count == 0);
@@ -73,16 +80,15 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void CreateMapWithGraphId()
         {
-            const int TEST_GRAPH_ID = 256;
-            var map = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT, TEST_GRAPH_ID);
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT, TEST_GRAPH_ID);
             Assert.AreEqual(TEST_GRAPH_ID, map.GraphId);
         }
 
         [TestMethod]
         public void CreateMapWithDescription()
         {
-            var map = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT, MAP.MIN_GRAPH_ID, DEFAULT_DESCRIPTION);
-            Assert.AreEqual(DEFAULT_DESCRIPTION, map.Description);
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT, MAP.MIN_GRAPH_ID, TEST_DESCRIPTION);
+            Assert.AreEqual(TEST_DESCRIPTION, map.Description);
         }
 
         [TestMethod]
@@ -90,7 +96,7 @@ namespace DIV2.Format.Exporter.Tests
         {
             try
             {
-                new MAP(this._defaultPalette, MAP.MIN_SIZE - 1, MAP.MIN_SIZE - 1);
+                new MAP(this._palette, MAP.MIN_PIXEL_SIZE - 1, MAP.MIN_PIXEL_SIZE - 1);
                 Assert.Fail();
             }
             catch
@@ -103,14 +109,14 @@ namespace DIV2.Format.Exporter.Tests
         {
             try
             {
-                new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT, MAP.MIN_GRAPH_ID - 1);
+                new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT, MAP.MIN_GRAPH_ID - 1);
                 Assert.Fail();
             }
             catch
             {
                 try
                 {
-                    new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT, MAP.MAX_GRAPH_ID + 1);
+                    new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT, MAP.MAX_GRAPH_ID + 1);
                     Assert.Fail();
                 }
                 catch
@@ -132,29 +138,37 @@ namespace DIV2.Format.Exporter.Tests
             new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
         }
 
+        [DataTestMethod]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_PCX)]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_BMP)]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_PNG)]
+        public void CreateFromImage(string file)
+        {
+            var map = MAP.FromImage(this.GetAssetPath(file), this._palette);
+            string saveFilename = $"{Path.GetExtension(file)[1..4]}.MAP";
+            map.Save(this.GetOutputPath(saveFilename));
+        }
+
         [TestMethod]
         public void AreEqual()
         {
-            var a = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-            var b = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+            var a = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
+            var b = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
             Assert.AreEqual(a, b);
         }
 
         [TestMethod]
         public void AreNotEqual()
         {
-            var a = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-            var b = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT, MAP.MIN_GRAPH_ID, DEFAULT_DESCRIPTION);
+            var a = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
+            var b = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT, MAP.MIN_GRAPH_ID, TEST_DESCRIPTION);
             Assert.AreNotEqual(a, b);
         }
 
         [TestMethod]
         public void ReadByIndex()
         {
-            var map = new MAP(this._defaultPalette, 3, 3);
-            var bitmap = new byte[map.Count];
-            new Random().NextBytes(bitmap);
-            map.SetBitmapArray(bitmap);
+            var map = this.CreateTestMap(out byte[] bitmap);
 
             for (int i = 0; i < map.Count; i++)
                 Assert.AreEqual(bitmap[i], map[i]);
@@ -163,7 +177,7 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailReadByIndex()
         {
-            var map = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
 
             try
             {
@@ -186,9 +200,7 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void WriteByIndex()
         {
-            var map = new MAP(this._defaultPalette, 3, 3);
-            var bitmap = new byte[map.Count];
-            new Random().NextBytes(bitmap);
+            var map = this.CreateTestMap(out byte[] bitmap);
 
             for (int i = 0; i < map.Count; i++)
                 map[i] = bitmap[i];
@@ -200,7 +212,7 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailWriteByIndex()
         {
-            var map = new MAP(this._defaultPalette, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
 
             try
             {
@@ -223,20 +235,61 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void ReadByForEach()
         {
-            throw new System.NotImplementedException();
+            var map = this.CreateTestMap(out byte[] bitmap);
+
+            int index = 0;
+            foreach (var pixel in map)
+                Assert.AreEqual(bitmap[index++], pixel);
+        }
+
+        [TestMethod]
+        public void GetBitmapArray()
+        {
+            var map = this.CreateTestMap(out byte[] a);
+            byte[] b = map.GetBitmapArray();
+
+            Assert.AreEqual(a.Length, b.Length);
+
+            for (int i = 0; i < map.Count; i++)
+                Assert.AreEqual(a[i], b[i]);
+        }
+
+        [TestMethod]
+        public void SetBitmapArray()
+        {
+            var b = this.CreateTestMap(out byte[] a);
+            for (int i = 0; i < b.Count; i++)
+                Assert.AreEqual(a[i], b[i]);
+        }
+
+        [TestMethod]
+        public void FailSetBitmapArray()
+        {
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
+
+            try
+            {
+                var buffer = new byte[map.Count - 1];
+                map.SetBitmapArray(buffer);
+                Assert.Fail();
+            }
+            catch
+            {
+            }
         }
 
         [TestMethod]
         public void Serialize()
         {
-            var map = this.LoadDefaultMap();
+            var map = this.CreateTestMap(out _);
+            map.GraphId = TEST_GRAPH_ID;
+            map.Description = TEST_DESCRIPTION;
+            for (int i = 0; i < 32; i++)
+                map.ControlPoints.Add(new ControlPoint(this._random.Next(0, ushort.MaxValue),
+                                                       this._random.Next(0, ushort.MaxValue)));
+
             byte[] serialized = map.Serialize();
-            int expectedSize = (sizeof(short) * 2) +
-                                sizeof(int) +
-                                MAP.DESCRIPTION_LENGTH +
-                                sizeof(short) +
-                                (ControlPoint.SIZE * map.ControlPoints.Count) +
-                                (map.Width * map.Height);
+            int expectedSize = this.CalculateSize(map);
 
             Assert.AreEqual(expectedSize, serialized.Length);
         }
@@ -244,35 +297,65 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void Write()
         {
-            var map = this.LoadDefaultMap();
+            var map = new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
             using (var stream = new BinaryWriter(new MemoryStream()))
             {
                 map.Write(stream);
+
+                int expectedSize = this.CalculateSize(map);
+                int streamSize = (stream.BaseStream as MemoryStream).ToArray().Length;
+
+                Assert.AreEqual(expectedSize, streamSize);
             }
         }
 
         [TestMethod]
         public void Validate()
         {
-            Assert.IsTrue(MAP.ValidateFormat(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP)));
+            string assetPath = this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP);
 
-            byte[] buffer = File.ReadAllBytes(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
+            Assert.IsTrue(MAP.ValidateFormat(assetPath));
+
+            byte[] buffer = File.ReadAllBytes(assetPath);
             Assert.IsTrue(MAP.ValidateFormat(buffer));
         }
 
         [TestMethod]
         public void FailValidate()
         {
-            Assert.IsFalse(MAP.ValidateFormat(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_BMP)));
+            string assetPath = this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_BMP);
 
-            byte[] buffer = File.ReadAllBytes(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_BMP));
+            Assert.IsFalse(MAP.ValidateFormat(assetPath));
+
+            byte[] buffer = File.ReadAllBytes(assetPath);
             Assert.IsFalse(MAP.ValidateFormat(buffer));
         }
 
         [TestMethod]
         public void Save()
         {
+            string assetPath = this.GetOutputPath("TEST.MAP");
+            this.CreateTestMap(out _).Save(assetPath);
+            Assert.IsTrue(MAP.ValidateFormat(assetPath));
+        }
 
+        [TestMethod]
+        public void GetTexture()
+        {
+            var bitmap = new byte[TEST_WIDTH * TEST_HEIGHT];
+            var a = new Color[bitmap.Length];
+
+            this._random.NextBytes(bitmap);
+
+            for (int i = 0; i < a.Length; i++)
+                a[i] = this._palette[bitmap[i]].ToRGB();
+
+            var b = this.CreateTestMap(out _).GetRGBTexture();
+
+            Assert.AreEqual(a.Length, b.Length);
+
+            for (int i = 0; i < a.Length; i++)
+                Assert.AreEqual(a[i], b[i]);
         }
         #endregion
     }

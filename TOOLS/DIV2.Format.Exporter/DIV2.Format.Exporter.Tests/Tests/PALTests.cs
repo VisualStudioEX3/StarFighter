@@ -215,6 +215,7 @@ namespace DIV2.Format.Exporter.Tests
             using (var stream = new BinaryWriter(new MemoryStream()))
             {
                 new PAL().Write(stream);
+                Assert.AreEqual(ColorPalette.SIZE + ColorRangeTable.SIZE, (stream.BaseStream as MemoryStream).ToArray().Length);
             }
         }
 
@@ -239,7 +240,9 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void Save()
         {
-            new PAL(this._colors.ToDAC()).Save(this.GetOutputPath("GRAYSCAL.PAL"));
+            string assetPath = this.GetOutputPath("GRAYSCAL.PAL");
+            new PAL(this._colors.ToDAC()).Save(assetPath);
+            Assert.IsTrue(PAL.ValidateFormat(assetPath));
         }
 
         [TestMethod]

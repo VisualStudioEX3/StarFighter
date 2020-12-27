@@ -28,7 +28,7 @@ namespace DIV2.Format.Exporter.Tests
 
             range.colors = ColorRange.RangeColors._32;
             range.type = ColorRange.RangeTypes.Edit4;
-            range.isfixed = true;
+            range.isFixed = true;
             range.blackColor = 31;
 
             return range;
@@ -48,7 +48,7 @@ namespace DIV2.Format.Exporter.Tests
         {
             Assert.AreEqual(a.colors, b.colors);
             Assert.AreEqual(a.type, b.type);
-            Assert.AreEqual(a.isfixed, b.isfixed);
+            Assert.AreEqual(a.isFixed, b.isFixed);
             Assert.AreEqual(a.blackColor, b.blackColor);
             for (int i = 0; i < ColorRange.LENGTH; i++)
                 Assert.AreEqual(a[i], b[i]);
