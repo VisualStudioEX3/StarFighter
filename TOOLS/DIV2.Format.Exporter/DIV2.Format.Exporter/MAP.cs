@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace DIV2.Format.Exporter
 {
@@ -145,7 +146,55 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return this.x ^ this.y;
+        }
+
+        public override string ToString()
+        {
+            return $"{{ x: {this.x}, y: {this.y} }}";
+        }
+        #endregion
+    }
+
+    class MAPEnumerator : IEnumerator<byte>
+    {
+        #region Internal vars
+        IList<byte> _bitmap;
+        int _currentIndex;
+        #endregion
+
+        #region Properties
+        public byte Current { get; private set; }
+        object IEnumerator.Current => this.Current;
+        #endregion
+
+        #region Constructor & Destructor
+        public MAPEnumerator(IList<byte> bitmap)
+        {
+            this._bitmap = bitmap;
+            this.Current = default(byte);
+            this.Reset();
+        }
+
+        void IDisposable.Dispose()
+        {
+        }
+        #endregion
+
+        #region Methods & Functions
+        public bool MoveNext()
+        {
+            if (++this._currentIndex >= this._bitmap.Count)
+                return false;
+            else
+                this.Current = this._bitmap[this._currentIndex];
+
+            return true;
+        }
+
+        public void Reset()
+        {
+            this._currentIndex = -1;
         }
         #endregion
     }
@@ -570,7 +619,7 @@ namespace DIV2.Format.Exporter
 
         public IEnumerator<byte> GetEnumerator()
         {
-            return this._bitmap.GetEnumerator() as IEnumerator<byte>;
+            return new MAPEnumerator(this._bitmap);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -587,7 +636,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return this.Serialize().CalculateMD5Checksum().GetHashCode();
         }
 
         /// <summary>
@@ -603,6 +652,30 @@ namespace DIV2.Format.Exporter
                 pixels[i] = this.Palette[this[i]].ToRGB();
 
             return pixels;
+        }
+
+        public override string ToString()
+        {
+            int controlPointsHash = 0;
+            foreach (var point in this.ControlPoints)
+                controlPointsHash ^= point.GetHashCode();
+
+            var sb = new StringBuilder();
+
+            sb.Append($"{{ Hash: {this.GetHashCode()}, ");
+            sb.Append($"Width: {this.Width}, ");
+            sb.Append($"Height: {this.Height}, ");
+            sb.Append($"Graph Id: {this.GraphId}, ");
+            sb.Append($"Description: \"{this.Description}\", ");
+            sb.Append($"Palette Hash: {this.Palette.GetHashCode()}, ");
+            sb.Append($"Control Points: {{ ");
+            sb.Append($"Count: {this.ControlPoints.Count}, ");
+            sb.Append($"Hash: {controlPointsHash} }}, ");
+            sb.Append($"Bitmap: {{ ");
+            sb.Append($"Length: {this.Count}, ");
+            sb.Append($"Hash: {this._bitmap.CalculateMD5Checksum().GetHashCode()} }} }}");
+
+            return sb.ToString();
         }
         #endregion
     }

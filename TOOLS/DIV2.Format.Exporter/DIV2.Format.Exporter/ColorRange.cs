@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace DIV2.Format.Exporter
 {
@@ -134,7 +135,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Defines if the range is editable (false) or not (true). By default is false.
         /// </summary>
-        public bool isfixed;
+        public bool isFixed;
         /// <summary>
         /// Index of the black color. Default is zero.
         /// </summary>
@@ -171,7 +172,7 @@ namespace DIV2.Format.Exporter
         {
             if (a.colors == b.colors &&
                 a.type == b.type &&
-                a.isfixed == b.isfixed &&
+                a.isFixed == b.isFixed &&
                 a.blackColor == b.blackColor)
             {
                 for (int i = 0; i < LENGTH; i++)
@@ -202,7 +203,7 @@ namespace DIV2.Format.Exporter
         {
             this.colors = DEFAULT_RANGE_COLORS;
             this.type = DEFAULT_TYPE;
-            this.isfixed = DEFAULT_FIXED_STATE;
+            this.isFixed = DEFAULT_FIXED_STATE;
             this.blackColor = DEFAULT_BLACK_COLOR;
 
             this._rangeColors = new byte[LENGTH];
@@ -232,7 +233,7 @@ namespace DIV2.Format.Exporter
             {
                 this.colors = (RangeColors)stream.ReadByte();
                 this.type = (RangeTypes)stream.ReadByte();
-                this.isfixed = stream.ReadBoolean();
+                this.isFixed = stream.ReadBoolean();
                 this.blackColor = stream.ReadByte();
                 this._rangeColors = stream.ReadBytes(LENGTH);
             }
@@ -246,7 +247,7 @@ namespace DIV2.Format.Exporter
             {
                 stream.Write((byte)this.colors);
                 stream.Write((byte)this.type);
-                stream.Write(this.isfixed);
+                stream.Write(this.isFixed);
                 stream.Write(this.blackColor);
                 stream.Write(this._rangeColors);
 
@@ -278,7 +279,28 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            foreach (var index in this._rangeColors)
+                sb.Append($"{index}, ");
+
+            string rangeValues = sb.ToString();
+            rangeValues = sb.ToString().Substring(0, rangeValues.Length - 2);
+
+            sb = new StringBuilder();
+
+            sb.Append($"{{ Hash: {this.GetHashCode()}, ");
+            sb.Append($"Colors: {(int)this.colors}, ");
+            sb.Append($"Type: {(int)this.type}, ");
+            sb.Append($"Is fixed: {this.isFixed}, ");
+            sb.Append($"Black color index: {this.blackColor}, ");
+            sb.Append($"Range: [ {rangeValues} ] }}");
+
+            return sb.ToString();
         }
         #endregion
     }

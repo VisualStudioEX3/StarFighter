@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace DIV2.Format.Exporter
 {
@@ -44,7 +45,7 @@ namespace DIV2.Format.Exporter
             int width = stream.ReadInt32();
             int height = stream.ReadInt32();
 
-            this.map = new MAP(palette, width, height, graphId, description);
+            this.map = new MAP(palette, (short)width, (short)height, graphId, description);
 
             int count = stream.ReadInt32(); // Control Points counter.
             for (int i = 0; i < count; i++)
@@ -125,7 +126,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return this.Serialize().CalculateMD5Checksum().GetHashCode();
         }
         #endregion
     }
@@ -524,7 +525,22 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            int registersHash = 0;
+            foreach (var register in this._registers)
+                registersHash ^= register.GetHashCode();
+
+            var sb = new StringBuilder();
+
+            sb.Append($"{{ Hash: {this.GetHashCode()}, ");
+            sb.Append($"Palette Hash: {this.Palette.GetHashCode()}, ");
+            sb.Append($"MAP Registers Hashs: {registersHash} }}");
+
+            return sb.ToString();
         }
         #endregion
     }

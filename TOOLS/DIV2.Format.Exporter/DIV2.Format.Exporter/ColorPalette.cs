@@ -182,6 +182,11 @@ namespace DIV2.Format.Exporter
         {
             return this.red ^ this.green ^ this.blue;
         }
+
+        public override string ToString()
+        {
+            return $"{{ Red: {this.red}, Green: {this.green}, Blue: {this.blue}}}";
+        }
         #endregion
     }
 
@@ -418,7 +423,12 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return $"{{ Hash: {this.GetHashCode()} }}";
         }
         #endregion
     }

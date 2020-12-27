@@ -179,7 +179,12 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return $"{{ Hash: {this.GetHashCode()} }}";
         }
         #endregion
     }
