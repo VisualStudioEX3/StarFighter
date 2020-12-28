@@ -284,9 +284,9 @@ namespace DIV2.Format.Exporter.Tests
             var map = this.CreateTestMap(out _);
             map.GraphId = TEST_GRAPH_ID;
             map.Description = TEST_DESCRIPTION;
-            for (int i = 0; i < 32; i++)
-                map.ControlPoints.Add(new ControlPoint(this._random.Next(0, ushort.MaxValue),
-                                                       this._random.Next(0, ushort.MaxValue)));
+            for (int i = 0; i < MAP.MAX_CONTROL_POINTS; i++)
+                map.ControlPoints.Add(new ControlPoint(this._random.Next(0, short.MaxValue),
+                                                       this._random.Next(0, short.MaxValue)));
 
             byte[] serialized = map.Serialize();
             int expectedSize = this.CalculateSize(map);

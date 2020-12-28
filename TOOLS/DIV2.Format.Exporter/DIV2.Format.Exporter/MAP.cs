@@ -29,11 +29,11 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Horizontal coordinate.
         /// </summary>
-        public ushort x;
+        public short x;
         /// <summary>
         /// Vertical coordinate.
         /// </summary>
-        public ushort y;
+        public short y;
         #endregion
 
         #region Properties
@@ -42,7 +42,7 @@ namespace DIV2.Format.Exporter
         /// </summary>
         /// <param name="index">Index of the coordinate in the structure.</param>
         /// <returns>Returns the coordinate value.</returns>
-        public ushort this[int index]
+        public short this[int index]
         {
             get
             {
@@ -79,29 +79,24 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructors
-        public ControlPoint(ushort x, ushort y)
+        public ControlPoint(short x, short y)
         {
             this.x = x;
             this.y = y;
         }
 
-        public ControlPoint(short x, short y)
-            : this((ushort)x, (ushort)y)
-        {
-        }
-
         public ControlPoint(int x, int y)
-            : this((ushort)x, (ushort)y)
+            : this((short)x, (short)y)
         {
         }
 
         public ControlPoint(float x, float y)
-            : this((ushort)x, (ushort)y)
+            : this((short)x, (short)y)
         {
         }
 
         public ControlPoint(double x, double y)
-            : this((ushort)x, (ushort)y)
+            : this((short)x, (short)y)
         {
         }
 
@@ -110,12 +105,12 @@ namespace DIV2.Format.Exporter
             if (buffer.Length != SIZE)
                 throw new ArgumentOutOfRangeException($"The array must be {SIZE} bytes length.");
 
-            this.x = BitConverter.ToUInt16(buffer, 0);
-            this.y = BitConverter.ToUInt16(buffer, 2);
+            this.x = BitConverter.ToInt16(buffer, 0);
+            this.y = BitConverter.ToInt16(buffer, 2);
         }
 
         public ControlPoint(BinaryReader stream)
-            : this(stream.ReadUInt16(), stream.ReadUInt16())
+            : this(stream.ReadInt16(), stream.ReadInt16())
         {
         }
         #endregion
@@ -231,9 +226,9 @@ namespace DIV2.Format.Exporter
         /// </summary>
         public const int MAX_GRAPH_ID = 999;
         /// <summary>
-        /// Max supported control points value.
+        /// Max supported control points count.
         /// </summary>
-        public const int MAX_CONTROL_POINTS = 999;
+        public const int MAX_CONTROL_POINTS = 1000;
         #endregion
 
         #region Internal vars
@@ -428,7 +423,7 @@ namespace DIV2.Format.Exporter
                         this.Palette = new PAL(new ColorPalette(stream.ReadBytes(ColorPalette.SIZE)),
                                                new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE)));
 
-                        short points = stream.ReadInt16();
+                        short points = Math.Min(stream.ReadInt16(), (short)(MAX_CONTROL_POINTS - 1));
                         for (int i = 0; i < points; i++)
                             this.ControlPoints.Add(new ControlPoint(stream));
 
@@ -588,7 +583,7 @@ namespace DIV2.Format.Exporter
 
                 this.Palette.Write(stream);
 
-                var count = (short)Math.Min(this.ControlPoints.Count, MAX_CONTROL_POINTS);
+                var count = (short)Math.Min(this.ControlPoints.Count, MAX_CONTROL_POINTS + 1);
                 stream.Write(count);
                 for (int i = 0; i < count; i++)
                     this.ControlPoints[i].Write(stream);

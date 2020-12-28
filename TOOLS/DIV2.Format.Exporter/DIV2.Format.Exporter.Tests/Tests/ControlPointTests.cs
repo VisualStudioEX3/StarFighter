@@ -14,8 +14,8 @@ namespace DIV2.Format.Exporter.Tests
         IIterableWriteTests
     {
         #region Constants
-        const ushort TEST_X = 128;
-        const ushort TEST_Y = 64;
+        const short TEST_X = 128;
+        const short TEST_Y = 64;
         #endregion
 
         #region Test methods
@@ -64,8 +64,8 @@ namespace DIV2.Format.Exporter.Tests
         public void ReadByIndex()
         {
             var point = new ControlPoint(TEST_X, TEST_Y);
-            ushort x = point[0];
-            ushort y = point[1];
+            short x = point[0];
+            short y = point[1];
 
             Assert.AreEqual(TEST_X, x);
             Assert.AreEqual(TEST_Y, y);
@@ -133,8 +133,8 @@ namespace DIV2.Format.Exporter.Tests
         public void Serialize()
         {
             byte[] buffer = new ControlPoint(TEST_X, TEST_Y).Serialize();
-            ushort x = BitConverter.ToUInt16(buffer, 0);
-            ushort y = BitConverter.ToUInt16(buffer, 2);
+            short x = BitConverter.ToInt16(buffer, 0);
+            short y = BitConverter.ToInt16(buffer, 2);
             
             Assert.AreEqual(TEST_X, x);
             Assert.AreEqual(TEST_Y, y);
