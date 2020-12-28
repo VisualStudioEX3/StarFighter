@@ -115,7 +115,7 @@ namespace DIV2.Format.Exporter
         }
 
         public ControlPoint(BinaryReader stream)
-            : this(stream.ReadInt16(), stream.ReadInt16())
+            : this(stream.ReadUInt16(), stream.ReadUInt16())
         {
         }
         #endregion

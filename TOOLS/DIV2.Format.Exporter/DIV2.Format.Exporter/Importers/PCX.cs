@@ -20,7 +20,6 @@ namespace DIV2.Format.Importer
         const byte HEADER_RLE_ENCODED = 1;
         const byte HEADER_BPP_8 = 8;
 
-        const int HEADER_BPP_POSITION = 3;
         const int HEADER_WIDTH_POSITION = 8;
         const int HEADER_HEIGHT_POSITION = 10;
 
@@ -33,10 +32,10 @@ namespace DIV2.Format.Importer
         #endregion
 
         #region Properties
-        public short Width { get; private set; }
-        public short Height { get; private set; }
-        public byte[] Bitmap { get; private set; }
-        public byte[] Colors { get; private set; }
+        public short Width { get; }
+        public short Height { get; }
+        public byte[] Bitmap { get; }
+        public byte[] Colors { get; }
         public static PCX Instance => new PCX();
         #endregion
 
@@ -51,20 +50,18 @@ namespace DIV2.Format.Importer
             {
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    stream.BaseStream.Position = HEADER_BPP_POSITION;
-
                     stream.BaseStream.Position = HEADER_WIDTH_POSITION;
-                    this.Width = stream.ReadInt16();
+                    this.Width = (short)(stream.ReadInt16() + 1);
 
                     stream.BaseStream.Position = HEADER_HEIGHT_POSITION;
-                    this.Height = stream.ReadInt16();
+                    this.Height = (short)(stream.ReadInt16() + 1);
 
                     int imageSize = (int)(stream.BaseStream.Length - (HEADER_LENGTH + (PALETTE_LENGTH + 1)));
                     byte value, write;
                     int index = 0;
 
                     // Read and decompress RLE image data:
-                    this.Bitmap = new byte[imageSize];
+                    this.Bitmap = new byte[this.Width * this.Height];
 
                     stream.BaseStream.Position = HEADER_LENGTH;
 

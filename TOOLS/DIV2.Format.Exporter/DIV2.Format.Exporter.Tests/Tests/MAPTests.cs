@@ -350,7 +350,9 @@ namespace DIV2.Format.Exporter.Tests
             for (int i = 0; i < a.Length; i++)
                 a[i] = this._palette[bitmap[i]].ToRGB();
 
-            var b = this.CreateTestMap(out _).GetRGBTexture();
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
+            map.SetBitmapArray(bitmap);
+            Color[] b = map.GetRGBTexture();
 
             Assert.AreEqual(a.Length, b.Length);
 

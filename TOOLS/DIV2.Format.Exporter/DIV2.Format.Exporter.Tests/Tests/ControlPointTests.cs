@@ -32,6 +32,7 @@ namespace DIV2.Format.Exporter.Tests
             {
                 stream.Write(TEST_X);
                 stream.Write(TEST_Y);
+                stream.BaseStream.Position = 0;
 
                 var point = new ControlPoint((stream.BaseStream as MemoryStream).ToArray());
                 Assert.AreEqual(TEST_X, point.x);
@@ -132,14 +133,22 @@ namespace DIV2.Format.Exporter.Tests
         public void Serialize()
         {
             byte[] buffer = new ControlPoint(TEST_X, TEST_Y).Serialize();
-            Assert.AreEqual(TEST_X, BitConverter.ToInt16(buffer, 0));
-            Assert.AreEqual(TEST_Y, BitConverter.ToInt16(buffer, 1));
+            ushort x = BitConverter.ToUInt16(buffer, 0);
+            ushort y = BitConverter.ToUInt16(buffer, 2);
+            
+            Assert.AreEqual(TEST_X, x);
+            Assert.AreEqual(TEST_Y, y);
         }
 
         [TestMethod]
         public void Write()
         {
-            throw new System.NotImplementedException();
+            using (var stream = new BinaryWriter(new MemoryStream()))
+            {
+                new ControlPoint().Write(stream);
+                int streamSize = (stream.BaseStream as MemoryStream).ToArray().Length;
+                Assert.AreEqual(ControlPoint.SIZE, streamSize);
+            }
         }
         #endregion
     }
