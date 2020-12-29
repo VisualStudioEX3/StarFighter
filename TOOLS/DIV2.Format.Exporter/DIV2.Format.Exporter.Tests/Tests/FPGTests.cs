@@ -29,8 +29,7 @@ namespace DIV2.Format.Exporter.Tests
             public short height;
             public string description;
             public string filename;
-            public int points;
-            public ControlPoint[] pointList;
+            public ControlPoint[] controlPoints;
         }
         #endregion
 
@@ -42,10 +41,12 @@ namespace DIV2.Format.Exporter.Tests
         #region Helper functions
         void AssertAreEqualDefault(FPG fpg)
         {
-            Assert.AreEqual(this._palette, fpg.Palette);
-            Assert.AreEqual(5, fpg.Count);
+            const int REGISTERS_COUNT = 5;
 
-            for (int i = 0; i < 5; i++)
+            Assert.AreEqual(this._palette, fpg.Palette);
+            Assert.AreEqual(REGISTERS_COUNT, fpg.Count);
+
+            for (int i = 0; i < REGISTERS_COUNT; i++)
             {
                 Register reg = this._testFPGRegisters[i];
                 MAP map = fpg[i];
@@ -55,9 +56,9 @@ namespace DIV2.Format.Exporter.Tests
                 Assert.AreEqual(reg.height, map.Height);
                 Assert.AreEqual(reg.description, map.Description);
                 Assert.AreEqual(reg.filename, fpg.GetFilename(i));
-                Assert.AreEqual(reg.points, map.ControlPoints.Count);
-                for (int j = 0; j < reg.points; j++)
-                    Assert.AreEqual(reg.pointList[i], map.ControlPoints[i]);
+                Assert.AreEqual(reg.controlPoints.Length, map.ControlPoints.Count);
+                for (int j = 0; j < reg.controlPoints.Length; j++)
+                    Assert.AreEqual(reg.controlPoints[i], map.ControlPoints[i]);
             }
         } 
         #endregion
@@ -77,8 +78,7 @@ namespace DIV2.Format.Exporter.Tests
                     height = 128,
                     description = "ASTEROID #24",
                     filename = "ASTER24.BMP",
-                    points = 1,
-                    pointList = new ControlPoint[1] 
+                    controlPoints = new ControlPoint[1] 
                         { 
                             new ControlPoint(64, 64) 
                         }
@@ -90,8 +90,7 @@ namespace DIV2.Format.Exporter.Tests
                     height = 256,
                     description = "TEST PLAYER",
                     filename = "PLAYER.BMP",
-                    points = 7,
-                    pointList = new ControlPoint[7]
+                    controlPoints = new ControlPoint[7]
                         {
                             new ControlPoint(128, 128),
                             new ControlPoint(127, 159),
@@ -109,8 +108,7 @@ namespace DIV2.Format.Exporter.Tests
                     height = 256,
                     description = "Enemy sprite 13",
                     filename = "Enemy.bmp",
-                    points = 4,
-                    pointList = new ControlPoint[4]
+                    controlPoints = new ControlPoint[4]
                         {
                             new ControlPoint(157, 138),
                             new ControlPoint(94, 116),
@@ -125,8 +123,7 @@ namespace DIV2.Format.Exporter.Tests
                     height = 480,
                     description = "ASTEROID FIELD",
                     filename = "ASTEROID.PCX",
-                    points = 1,
-                    pointList = new ControlPoint[1]
+                    controlPoints = new ControlPoint[1]
                         {
                             new ControlPoint(400, 240)
                         }
@@ -138,8 +135,7 @@ namespace DIV2.Format.Exporter.Tests
                     height = 480,
                     description = "SPACE BACKGROUND",
                     filename = "SPACE.PCX",
-                    points = 1,
-                    pointList = new ControlPoint[1]
+                    controlPoints = new ControlPoint[1]
                         {
                             new ControlPoint(400, 240)
                         }
