@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-
-namespace DIV2.Format.Exporter.Tests
+﻿namespace DIV2.Format.Exporter.Tests
 {
     static class SharedConstants
     {
@@ -13,11 +9,13 @@ namespace DIV2.Format.Exporter.Tests
         public const string FILENAME_PAL_DIV = "DIV.PAL";
         public const string FILENAME_PAL_SPACE = "SPACE.PAL";
 
+        public const string FILENAME_FPG_TEST = "TEST.FPG";
+
         public const string FILENAME_IMG_PLAYER_PCX = "PLAYER.PCX";
         public const string FILENAME_IMG_PLAYER_BMP = "PLAYER.BMP";
         public const string FILENAME_IMG_PLAYER_PNG = "PLAYER.PNG";
         public const string FILENAME_IMG_PLAYER_MAP = "PLAYER.MAP";
-        public const string FILENAME_IMG_PLAYER_FPG = "PLAYER.FPG"; 
+        public const string FILENAME_IMG_PLAYER_FPG = "PLAYER.FPG";
         #endregion
     }
 }

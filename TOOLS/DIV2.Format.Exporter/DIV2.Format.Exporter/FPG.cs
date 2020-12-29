@@ -72,8 +72,8 @@ namespace DIV2.Format.Exporter
             {
                 stream.Write(this.map.GraphId); // GraphId.
                 stream.Write(this.GetSize()); // Register length.
-                stream.Write(this.map.Description); // description.
-                stream.Write(this.filename); // Filename.
+                stream.Write(this.map.Description.GetASCIIZString(MAP.DESCRIPTION_LENGTH)); // Description.
+                stream.Write(this.filename.GetASCIIZString(FILENAME_LENGTH)); // Filename.
                 stream.Write((int)this.map.Width); // Width.
                 stream.Write((int)this.map.Height); // Height.
 
@@ -403,6 +403,30 @@ namespace DIV2.Format.Exporter
         public void Clear()
         {
             this._registers.Clear();
+        }
+
+        /// <summary>
+        /// Gets the associate filename value for this <see cref="MAP"/> in the <see cref="FPG"/>.
+        /// </summary>
+        /// <param name="map"><see cref="MAP"/> instance to find.</param>
+        /// <returns>Returns the <see cref="MAP"/> filename value.</returns>
+        public string GetFilename(MAP map)
+        {
+            for (int i = 0; i < this._registers.Count; i++)
+                if (this._registers[i].map == map)
+                    return this.GetFilename(i);
+
+            throw new ArgumentException(nameof(map), $"The {nameof(MAP)} instance not exists in this {nameof(FPG)}");
+        }
+
+        /// <summary>
+        /// Gets the associate filename value for this <see cref="MAP"/> in the <see cref="FPG"/>.
+        /// </summary>
+        /// <param name="index">The index of the <see cref="MAP"/> instance to find. Not confuse with the <see cref="MAP.GraphId"/> value.</param>
+        /// <returns>Returns the <see cref="MAP"/> filename value.</returns>
+        public string GetFilename(int index)
+        {
+            return this._registers[index].filename;
         }
 
         /// <summary>

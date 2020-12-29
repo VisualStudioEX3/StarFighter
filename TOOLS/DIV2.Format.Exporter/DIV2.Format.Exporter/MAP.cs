@@ -423,7 +423,7 @@ namespace DIV2.Format.Exporter
                         this.Palette = new PAL(new ColorPalette(stream.ReadBytes(ColorPalette.SIZE)),
                                                new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE)));
 
-                        short points = Math.Min(stream.ReadInt16(), (short)(MAX_CONTROL_POINTS - 1));
+                        short points = Math.Min(stream.ReadInt16(), (short)MAX_CONTROL_POINTS);
                         for (int i = 0; i < points; i++)
                             this.ControlPoints.Add(new ControlPoint(stream));
 
@@ -583,7 +583,7 @@ namespace DIV2.Format.Exporter
 
                 this.Palette.Write(stream);
 
-                var count = (short)Math.Min(this.ControlPoints.Count, MAX_CONTROL_POINTS + 1);
+                var count = (short)Math.Min(this.ControlPoints.Count, MAX_CONTROL_POINTS);
                 stream.Write(count);
                 for (int i = 0; i < count; i++)
                     this.ControlPoints[i].Write(stream);
