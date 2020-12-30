@@ -3,13 +3,25 @@
 namespace DIV2.Format.Exporter.MethodExtensions
 {
     /// <summary>
-    /// Method extensions for ASCII/ASCIIZ strings.
+    /// Method extensions for ASCIIZ (ASCII null terminated string or C string) <see cref="string"/> instances.
     /// </summary>
     public static class ASCIIStringExtensions
     {
+        #region Methods & Functions
+        /// <summary>
+        /// Get <see cref="string"/> representation, without null chars and other possible garbage data.
+        /// </summary>
+        /// <param name="buffer"><see cref="byte"/> array with the ASCIIZ string data (ASCII null terminated string or C string).</param>
+        /// <returns></returns>
         public static string ToASCIIString(this byte[] buffer)
         {
-            return Encoding.ASCII.GetString(buffer);
+            int i;
+
+            for (i = 0; i < buffer.Length; i++)
+                if (buffer[i] == 0)
+                    break;
+
+            return Encoding.ASCII.GetString(buffer, 0, i);
         }
 
         /// <summary>
@@ -45,6 +57,7 @@ namespace DIV2.Format.Exporter.MethodExtensions
             char[] buffer = (text.Length > length ? text.Substring(0, length) : text.PadRight(length)).ToCharArray();
             buffer[length - 1] = '\0';
             return buffer.ToByteArray();
-        }
+        } 
+        #endregion
     }
 }

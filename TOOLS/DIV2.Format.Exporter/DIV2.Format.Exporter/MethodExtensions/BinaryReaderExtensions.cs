@@ -3,8 +3,12 @@ using System.IO;
 
 namespace DIV2.Format.Exporter.MethodExtensions
 {
+    /// <summary>
+    /// Method extensions for <see cref="BinaryReader"/> instances.
+    /// </summary>
     public static class BinaryReaderExtensions
     {
+        #region Methods & Functions
         /// <summary>
         /// Reads a 4-byte unsigned integer from the current stream and advances the position of the stream by four bytes.
         /// </summary>
@@ -20,7 +24,7 @@ namespace DIV2.Format.Exporter.MethodExtensions
             {
                 byte[] data = stream.ReadBytes(sizeof(UInt32));
                 Array.Reverse(data);
-                return BitConverter.ToUInt32(data, 0); 
+                return BitConverter.ToUInt32(data, 0);
             }
             else
                 return stream.ReadUInt32();
@@ -38,6 +42,7 @@ namespace DIV2.Format.Exporter.MethodExtensions
             int model = BitConverter.ToInt32(signature, 0);
 
             return input == model;
-        }
+        } 
+        #endregion
     }
 }

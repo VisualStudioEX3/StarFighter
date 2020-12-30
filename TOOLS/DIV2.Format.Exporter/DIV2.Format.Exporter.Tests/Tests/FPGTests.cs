@@ -59,6 +59,7 @@ namespace DIV2.Format.Exporter.Tests
                 Assert.AreEqual(reg.controlPoints.Length, map.ControlPoints.Count);
                 for (int j = 0; j < reg.controlPoints.Length; j++)
                     Assert.AreEqual(reg.controlPoints[i], map.ControlPoints[i]);
+                Assert.AreEqual(reg.width * reg.height, map.Count);
             }
         } 
         #endregion
@@ -69,19 +70,16 @@ namespace DIV2.Format.Exporter.Tests
         {
             this.InitializeResultFolder(RESULT_FOLDER_NAME);
             this._palette = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
-            this._testFPGRegisters = new List<Register>()
+            this._testFPGRegisters = new List<Register>() // This is the content of the TEST.FPG asset.
             {
                 new Register()
                 {
                     graphId = 24,
                     width = 128,
                     height = 128,
-                    description = "ASTEROID #24",
+                    description = "Asteroid #24",
                     filename = "ASTER24.BMP",
-                    controlPoints = new ControlPoint[1] 
-                        { 
-                            new ControlPoint(64, 64) 
-                        }
+                    controlPoints = new ControlPoint[0]
                 },
                 new Register()
                 {
@@ -123,10 +121,7 @@ namespace DIV2.Format.Exporter.Tests
                     height = 480,
                     description = "ASTEROID FIELD",
                     filename = "ASTEROID.PCX",
-                    controlPoints = new ControlPoint[1]
-                        {
-                            new ControlPoint(400, 240)
-                        }
+                    controlPoints = new ControlPoint[0]
                 },
                 new Register()
                 {
@@ -135,10 +130,7 @@ namespace DIV2.Format.Exporter.Tests
                     height = 480,
                     description = "SPACE BACKGROUND",
                     filename = "SPACE.PCX",
-                    controlPoints = new ControlPoint[1]
-                        {
-                            new ControlPoint(400, 240)
-                        }
+                    controlPoints = new ControlPoint[0]
                 }
             };
         }
@@ -156,7 +148,7 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void CreateInstanceFromBuffer()
         {
-            byte[] buffer = File.ReadAllBytes(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_FPG));
+            byte[] buffer = File.ReadAllBytes(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
             var fpg = new FPG(buffer);
             this.AssertAreEqualDefault(fpg);
         }
@@ -164,7 +156,7 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void CreateInstanceFromFile()
         {
-            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_FPG));
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
             this.AssertAreEqualDefault(fpg);
         }
 

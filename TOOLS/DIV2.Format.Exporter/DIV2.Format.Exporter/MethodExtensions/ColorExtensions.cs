@@ -2,13 +2,22 @@
 
 namespace DIV2.Format.Exporter.MethodExtensions
 {
+    /// <summary>
+    /// Method extensions for <see cref="Color"/> values.
+    /// </summary>
     public static class ColorExtensions
     {
+        #region Methods & Functions
         static ArgumentOutOfRangeException CreateException(int length)
         {
             return new ArgumentOutOfRangeException($"The array value must be a {length} length array.");
         }
 
+        /// <summary>
+        /// Creates a new <see cref="Color"/> array in DAC format [0..63].
+        /// </summary>
+        /// <param name="colors"><see cref="Color"/> array in RGB format [0.255].</param>
+        /// <returns>Returns a new <see cref="Color"/> array in DAC format [0..63].</returns>
         public static Color[] ToDAC(this Color[] colors)
         {
             if (colors.Length != ColorPalette.LENGTH)
@@ -22,6 +31,11 @@ namespace DIV2.Format.Exporter.MethodExtensions
             return dac;
         }
 
+        /// <summary>
+        /// Creates a new <see cref="Color"/> array in RGB format [0.255].
+        /// </summary>
+        /// <param name="colors"><see cref="Color"/> array in DAC format [0..63].</param>
+        /// <returns>Returns a new <see cref="Color"/> array in RGB format [0.255].</returns>
         public static Color[] ToRGB(this Color[] colors)
         {
             if (colors.Length != ColorPalette.LENGTH)
@@ -35,6 +49,11 @@ namespace DIV2.Format.Exporter.MethodExtensions
             return rgb;
         }
 
+        /// <summary>
+        /// Converts a <see cref="byte"/> array to <see cref="Color"/> array.
+        /// </summary>
+        /// <param name="buffer">A 768 <see cref="byte"/> array length.</param>
+        /// <returns>Returns a <see cref="Color"/> array.</returns>
         public static Color[] ToColorArray(this byte[] buffer)
         {
             if (buffer.Length != ColorPalette.SIZE)
@@ -47,6 +66,7 @@ namespace DIV2.Format.Exporter.MethodExtensions
                 colors[i] = new Color(buffer[index++], buffer[index++], buffer[index++]);
 
             return colors;
-        }
+        } 
+        #endregion
     }
 }
