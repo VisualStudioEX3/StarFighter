@@ -146,7 +146,7 @@ namespace DIV2.Format.Exporter
 
         public override string ToString()
         {
-            return $"{{ x: {this.x}, y: {this.y} }}";
+            return $"{{ {nameof(ControlPoint)}: {{ x: {this.x}, y: {this.y} }} }}";
         }
         #endregion
     }
@@ -445,11 +445,41 @@ namespace DIV2.Format.Exporter
         /// Creates a new <see cref="MAP"/> instance from a supported image format.
         /// </summary>
         /// <param name="filename">Image file to load.</param>
+        /// <returns>Returns a new <see cref="MAP"/> instance from the loaded image.</returns>
+        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images.</remarks>
+        public static MAP FromImage(string filename)
+        {
+            if (ValidateFormat(filename))
+                throw new ArgumentException($"The filename is a {nameof(MAP)} file. Use the constructor to load a {nameof(MAP)} file or indicate a {nameof(PAL)} file to apply color conversion.");
+
+            return FromImage(File.ReadAllBytes(filename));
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="MAP"/> instance from a supported image format.
+        /// </summary>
+        /// <param name="buffer"><see cref="byte"/> array that contain a supported image.</param>
+        /// <returns>Returns a new <see cref="MAP"/> instance from the loaded image.</returns>
+        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. Also supported 256 color PCX images.</remarks>
+        public static MAP FromImage(byte[] buffer)
+        {
+            if (ValidateFormat(buffer))
+                throw new ArgumentException($"The buffer contains a {nameof(MAP)} file. Use the constructor to load a {nameof(MAP)} file or indicate a {nameof(PAL)} file to apply color conversion.");
+
+            BMP256Converter.Convert(buffer, out byte[] palette, out short width, out short height, out byte[] bitmap);
+
+            var pal = new PAL(palette.ToColorArray());
+            return new MAP(pal, width, height) { _bitmap = bitmap };
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="MAP"/> instance from a supported image format.
+        /// </summary>
+        /// <param name="filename">Image file to load.</param>
         /// <param name="palette"><see cref="PAL"/> instance to convert the loaded image.</param>
         /// <returns>Returns a new <see cref="MAP"/> instance from the loaded image.</returns>
         /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
-        /// Also supported 256 color PCX images and <see cref="MAP"/> files, 
-        /// without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
+        /// Also supported 256 color PCX images and <see cref="MAP"/> files, that will be converted to the new setup <see cref="PAL"/>.</remarks>
         public static MAP FromImage(string filename, PAL palette)
         {
             return FromImage(File.ReadAllBytes(filename), palette);
@@ -462,12 +492,23 @@ namespace DIV2.Format.Exporter
         /// <param name="palette"><see cref="PAL"/> instance to convert the loaded image.</param>
         /// <returns>Returns a new <see cref="MAP"/> instance from the loaded image.</returns>
         /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
-        /// Also supported 256 color PCX images and <see cref="MAP"/> files, 
-        /// without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
+        /// Also supported 256 color PCX images and <see cref="MAP"/> files, that will be converted to the new setup <see cref="PAL"/>.</remarks>
         public static MAP FromImage(byte[] buffer, PAL palette)
         {
-            BMP256Converter.Convert(buffer, out byte[] bitmap, out short width, out short height, palette);
-            return new MAP(palette, width, height) { _bitmap = bitmap };
+            BMP256Converter.ConvertTo(buffer, palette.Colors.Serialize(), out short width, out short height, out byte[] bitmap);
+
+            var map = new MAP(palette, width, height) { _bitmap = bitmap };
+
+            if (ValidateFormat(buffer))
+            {
+                var old = new MAP(buffer);
+
+                map.GraphId = old.GraphId;
+                map.Description = old.Description;
+                map.ControlPoints = old.ControlPoints;
+            }
+
+            return map;
         }
 
         int GetIndex(int x, int y)
@@ -612,6 +653,17 @@ namespace DIV2.Format.Exporter
             }
         }
 
+        internal byte[] SerializeFile()
+        {
+            using (var stream = new BinaryWriter(new MemoryStream()))
+            {
+                MAP_FILE_HEADER.Write(stream);
+                this.Write(stream);
+
+                return (stream.BaseStream as MemoryStream).ToArray();
+            }
+        }
+
         public IEnumerator<byte> GetEnumerator()
         {
             return new MAPEnumerator(this._bitmap);
@@ -631,7 +683,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+            return this.Serialize().CalculateChecksum().GetSecureHashCode();
         }
 
         /// <summary>
@@ -657,6 +709,7 @@ namespace DIV2.Format.Exporter
 
             var sb = new StringBuilder();
 
+            sb.Append($"{{ {nameof(MAP)}: ");
             sb.Append($"{{ Hash: {this.GetHashCode()}, ");
             sb.Append($"Width: {this.Width}, ");
             sb.Append($"Height: {this.Height}, ");
@@ -668,7 +721,8 @@ namespace DIV2.Format.Exporter
             sb.Append($"Hash: {controlPointsHash} }}, ");
             sb.Append($"Bitmap: {{ ");
             sb.Append($"Length: {this.Count}, ");
-            sb.Append($"Hash: {this._bitmap.CalculateMD5Checksum().GetHashCode()} }} }}");
+            sb.Append($"Hash: {this._bitmap.CalculateChecksum().GetSecureHashCode()} }} }}");
+            sb.Append(" }");
 
             return sb.ToString();
         }

@@ -214,6 +214,13 @@ namespace DIV2.Format.Exporter.Tests
             for (int i = 0; i < ColorPalette.LENGTH; i++)
                 Assert.AreEqual(palette[i].ToRGB(), colors[i]);
         }
+
+        [TestMethod]
+        public void Sort()
+        {
+            ColorPalette palette = this.CreateTestsPalette();
+            palette.Sort();
+        }
         #endregion
     }
 }

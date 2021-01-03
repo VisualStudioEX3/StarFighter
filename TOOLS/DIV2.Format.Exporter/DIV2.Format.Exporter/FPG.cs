@@ -126,7 +126,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+            return this.Serialize().CalculateChecksum().GetHashCode();
         }
         #endregion
     }
@@ -273,6 +273,8 @@ namespace DIV2.Format.Exporter
 
                         while (stream.BaseStream.Position < stream.BaseStream.Length)
                             this._registers.Add(new Register(stream, this.Palette));
+
+                        this._registers.Sort(this.OrderByAsc);
                     }
                     else
                         throw new DIVFormatHeaderException();
@@ -286,6 +288,17 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Methods & Functions
+        // Sort MAP list by graphic identifiers in ascending order:
+        int OrderByAsc(Register x, Register y)
+        {
+            if (x.GraphId > y.GraphId)
+                return 1;
+            else if (x.GraphId == y.GraphId)
+                return 0;
+            else
+                return -1;
+        }
+
         /// <summary>
         /// Adds a <see cref="MAP"/> file.
         /// </summary>
@@ -318,18 +331,13 @@ namespace DIV2.Format.Exporter
             if (this.Contains(map.GraphId))
                 throw new ArgumentException($"This {nameof(MAP.GraphId)} already is in use for some {nameof(MAP)} instance.");
 
-            this._registers.Add(new Register() { map = map, filename = filename });
+            MAP image = map;
 
-            // Sort MAP list by graphic identifiers in ascending order:
-            this._registers.Sort((x, y) =>
-            {
-                if (x.GraphId > y.GraphId)
-                    return 1;
-                else if (x.GraphId == y.GraphId)
-                    return 0;
-                else
-                    return -1;
-            });
+            if (this.Palette != map.Palette)
+                image = MAP.FromImage(map.SerializeFile(), this.Palette); // Converts source MAP colors to FPG colors.
+
+            this._registers.Add(new Register() { map = image, filename = filename });
+            this._registers.Sort(this.OrderByAsc);
         }
 
         /// <summary>
@@ -549,7 +557,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+            return this.Serialize().CalculateChecksum().GetSecureHashCode();
         }
 
         public override string ToString()
@@ -560,9 +568,11 @@ namespace DIV2.Format.Exporter
 
             var sb = new StringBuilder();
 
+            sb.Append($"{{ {nameof(FPG)}: ");
             sb.Append($"{{ Hash: {this.GetHashCode()}, ");
             sb.Append($"Palette Hash: {this.Palette.GetHashCode()}, ");
             sb.Append($"MAP Registers Hashs: {registersHash} }}");
+            sb.Append(" }");
 
             return sb.ToString();
         }

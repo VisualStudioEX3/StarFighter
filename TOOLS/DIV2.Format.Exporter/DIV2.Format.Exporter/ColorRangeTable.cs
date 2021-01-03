@@ -179,12 +179,12 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+            return this.Serialize().CalculateChecksum().GetSecureHashCode();
         }
 
         public override string ToString()
         {
-            return $"{{ Hash: {this.GetHashCode()} }}";
+            return $"{{ {nameof(ColorRangeTable)}: {{ Hash: {this.GetHashCode()} }} }}";
         }
         #endregion
     }

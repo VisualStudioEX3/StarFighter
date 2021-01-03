@@ -12,13 +12,13 @@ namespace DIV2.Format.Exporter.Tests
         IEqualityTests,
         ISerializableAssetTests,
         IIterableReadTests,
-        IIterableWriteTests,
         IEnumerableTests,
         IFormatValidableTests,
         IAssetFileTests
     {
         #region Constants
         const string RESULT_FOLDER_NAME = "FPG";
+        const int TEST_FPG_REGISTERS_COUNT = 5;
         #endregion
 
         #region Structs
@@ -39,29 +39,32 @@ namespace DIV2.Format.Exporter.Tests
         #endregion
 
         #region Helper functions
-        void AssertAreEqualDefault(FPG fpg)
+        void AssertAreEqualDefaultFPG(FPG fpg)
         {
-            const int REGISTERS_COUNT = 5;
-
             Assert.AreEqual(this._palette, fpg.Palette);
-            Assert.AreEqual(REGISTERS_COUNT, fpg.Count);
+            Assert.AreEqual(TEST_FPG_REGISTERS_COUNT, fpg.Count);
 
-            for (int i = 0; i < REGISTERS_COUNT; i++)
-            {
-                Register reg = this._testFPGRegisters[i];
-                MAP map = fpg[i];
+            for (int i = 0; i < TEST_FPG_REGISTERS_COUNT; i++)
+                AssertAreEqualDefaultRegisters(fpg, i);
+        }
 
-                Assert.AreEqual(reg.graphId, map.GraphId);
-                Assert.AreEqual(reg.width, map.Width);
-                Assert.AreEqual(reg.height, map.Height);
-                Assert.AreEqual(reg.description, map.Description);
-                Assert.AreEqual(reg.filename, fpg.GetFilename(i));
-                Assert.AreEqual(reg.controlPoints.Length, map.ControlPoints.Count);
-                for (int j = 0; j < reg.controlPoints.Length; j++)
-                    Assert.AreEqual(reg.controlPoints[i], map.ControlPoints[i]);
-                Assert.AreEqual(reg.width * reg.height, map.Count);
-            }
-        } 
+        void AssertAreEqualDefaultRegisters(Register reg, MAP map, string filename)
+        {
+            Assert.AreEqual(reg.graphId, map.GraphId);
+            Assert.AreEqual(reg.width, map.Width);
+            Assert.AreEqual(reg.height, map.Height);
+            Assert.AreEqual(reg.description, map.Description);
+            Assert.AreEqual(reg.filename, filename);
+            Assert.AreEqual(reg.controlPoints.Length, map.ControlPoints.Count);
+            for (int i = 0; i < reg.controlPoints.Length; i++)
+                Assert.AreEqual(reg.controlPoints[i], map.ControlPoints[i]);
+            Assert.AreEqual(reg.width * reg.height, map.Count);
+        }
+
+        void AssertAreEqualDefaultRegisters(FPG fpg, int index)
+        {
+            this.AssertAreEqualDefaultRegisters(this._testFPGRegisters[index], fpg[index], fpg.GetFilename(index));
+        }
         #endregion
 
         #region Initializer
@@ -150,56 +153,89 @@ namespace DIV2.Format.Exporter.Tests
         {
             byte[] buffer = File.ReadAllBytes(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
             var fpg = new FPG(buffer);
-            this.AssertAreEqualDefault(fpg);
+            this.AssertAreEqualDefaultFPG(fpg);
         }
 
         [TestMethod]
         public void CreateInstanceFromFile()
         {
             var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
-            this.AssertAreEqualDefault(fpg);
+            this.AssertAreEqualDefaultFPG(fpg);
         }
 
         [TestMethod]
         public void AreEqual()
         {
-            throw new System.NotImplementedException();
+            string assetPath = this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST);
+            var a = new FPG(assetPath);
+            var b = new FPG(assetPath);
+
+            Assert.AreEqual(a, b);
         }
 
         [TestMethod]
         public void AreNotEqual()
         {
-            throw new System.NotImplementedException();
+            var a = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            var b = new FPG(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_FPG));
+
+            Assert.AreNotEqual(a, b);
         }
 
         [TestMethod]
         public void ReadByIndex()
         {
-            throw new System.NotImplementedException();
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            for (int i = 0; i < this._testFPGRegisters.Count; i++)
+                AssertAreEqualDefaultRegisters(fpg, i);
         }
 
         [TestMethod]
         public void FailReadByIndex()
         {
-            throw new System.NotImplementedException();
-        }
-
-        [TestMethod]
-        public void WriteByIndex()
-        {
-            throw new System.NotImplementedException();
-        }
-
-        [TestMethod]
-        public void FailWriteByIndex()
-        {
-            throw new System.NotImplementedException();
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            try
+            {
+                _ = fpg[-1];
+                Assert.Fail();
+            }
+            catch
+            {
+                try
+                {
+                    _ = fpg[fpg.Count];
+                    Assert.Fail();
+                }
+                catch
+                {
+                }
+            }
         }
 
         [TestMethod]
         public void ReadByForEach()
         {
-            throw new System.NotImplementedException();
+            int i = 0;
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            foreach (var map in fpg)
+                AssertAreEqualDefaultRegisters(this._testFPGRegisters[i++], map, fpg.GetFilename(i++));
+        }
+
+        [TestMethod]
+        public void AddMap()
+        {
+            const string PLAYER_MAP_FILENAME = "PLAYER.MAP";
+
+            var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_SPACE));
+            var map = new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
+            var fpg = new FPG(pal);
+
+            fpg.Add(map, PLAYER_MAP_FILENAME);
+
+            Assert.AreEqual(pal, fpg.Palette);
+            Assert.AreEqual(1, fpg.Count);
+            Assert.AreEqual(map, fpg[0]);
+            Assert.AreEqual(PLAYER_MAP_FILENAME, fpg.GetFilename(0));
         }
 
         [TestMethod]

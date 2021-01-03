@@ -46,6 +46,16 @@ namespace DIV2.Format.Exporter.MethodExtensions
             return colors;
         }
 
+        internal static SixLabors.ImageSharp.Color[] ToImageSharpColors(this byte[] palette)
+        {
+            var colors = new SixLabors.ImageSharp.Color[PAL.LENGTH];
+
+            for (int i = 0, j = 0; i < ColorPalette.LENGTH; i++)
+                colors[i] = SixLabors.ImageSharp.Color.FromRgb(palette[j++], palette[j++], palette[j++]);
+
+            return colors;
+        }
+
         internal static void ComposeBitmap(this Image<Rgb24> instance, byte[] pixels, SixLabors.ImageSharp.Color[] palette)
         {
             for (int i = 0; i < pixels.Length; i++)

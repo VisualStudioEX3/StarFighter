@@ -279,7 +279,7 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+            return this.Serialize().CalculateChecksum().GetSecureHashCode();
         }
 
         public override string ToString()
@@ -293,12 +293,14 @@ namespace DIV2.Format.Exporter
 
             sb = new StringBuilder();
 
+            sb.Append($"{{ {nameof(ColorRange)}: ");
             sb.Append($"{{ Hash: {this.GetHashCode()}, ");
             sb.Append($"Colors: {(int)this.colors}, ");
             sb.Append($"Type: {(int)this.type}, ");
             sb.Append($"Is fixed: {this.isFixed}, ");
             sb.Append($"Black color index: {this.blackColor}, ");
             sb.Append($"Range: [ {rangeValues} ] }}");
+            sb.Append(" }");
 
             return sb.ToString();
         }

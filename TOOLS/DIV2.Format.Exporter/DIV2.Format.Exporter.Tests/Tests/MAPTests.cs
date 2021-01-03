@@ -144,8 +144,33 @@ namespace DIV2.Format.Exporter.Tests
         [DataRow(SharedConstants.FILENAME_IMG_PLAYER_PNG)]
         public void CreateFromImage(string file)
         {
-            var map = MAP.FromImage(this.GetAssetPath(file), this._palette);
+            var map = MAP.FromImage(this.GetAssetPath(file));
             string saveFilename = $"{Path.GetExtension(file)[1..4]}.MAP";
+            map.Save(this.GetOutputPath(saveFilename));
+        }
+
+        [TestMethod]
+        public void FailCreateFromImageFromMAPWithoutPalette()
+        {
+            try
+            {
+                MAP.FromImage(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
+                Assert.Fail();
+            }
+            catch
+            {
+            }
+        }
+
+        [DataTestMethod]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_PCX)]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_BMP)]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_PNG)]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_MAP)]
+        public void CreateFromImageForcingPalette(string file)
+        {
+            var map = MAP.FromImage(this.GetAssetPath(file), this._palette);
+            string saveFilename = $"{Path.GetExtension(file)[1..4]}_PAL.MAP";
             map.Save(this.GetOutputPath(saveFilename));
         }
 

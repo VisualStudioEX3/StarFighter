@@ -251,6 +251,13 @@ namespace DIV2.Format.Exporter.Tests
             var palette = new PAL(this._colors.ToDAC());
             palette.ToRGB();
         }
+
+        [TestMethod]
+        public void Sort()
+        {
+            var palette = new PAL(this._colors.ToDAC());
+            palette.Sort();
+        }
         #endregion
     }
 }

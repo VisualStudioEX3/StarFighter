@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace DIV2.Format.Exporter
 {
@@ -78,6 +79,37 @@ namespace DIV2.Format.Exporter
         public static bool operator !=(Color a, Color b)
         {
             return !(a == b);
+        }
+
+        public static bool operator <(Color a, Color b)
+        {
+            return a.GetHashCode() < b.GetHashCode();
+        }
+
+        public static bool operator >(Color a, Color b)
+        {
+            return a.GetHashCode() > b.GetHashCode();
+        }
+
+        public static bool operator <=(Color a, Color b)
+        {
+            return a.GetHashCode() <= b.GetHashCode();
+        }
+
+        public static bool operator >=(Color a, Color b)
+        {
+            return a.GetHashCode() >= b.GetHashCode();
+        }
+
+        public static implicit operator Color(int value)
+        {
+            byte[] buffer = BitConverter.GetBytes(value);
+            return new Color(buffer);
+        }
+
+        public static explicit operator int(Color value)
+        {
+            return value.GetHashCode();
         }
         #endregion
 
@@ -180,12 +212,12 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return this.red ^ this.green ^ this.blue;
+            return BitConverter.ToInt32(new byte[] { this.red, this.green, this.blue, 0 }, 0);
         }
 
         public override string ToString()
         {
-            return $"{{ Red: {this.red}, Green: {this.green}, Blue: {this.blue}}}";
+            return $"{{ {nameof(Color)}: {{ Red: {this.red}, Green: {this.green}, Blue: {this.blue}}} }}";
         }
         #endregion
     }
@@ -239,9 +271,9 @@ namespace DIV2.Format.Exporter
     public sealed class ColorPalette : ISerializableAsset, IEnumerable<Color>
     {
         #region Constants
-        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
+        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION =
             new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
-        readonly static ArgumentOutOfRangeException OUT_OF_RANGE_DAC_EXCEPTION = 
+        readonly static ArgumentOutOfRangeException OUT_OF_RANGE_DAC_EXCEPTION =
             new ArgumentOutOfRangeException($"The color array must be contains a {LENGTH} array length, with RGB colors in DAC format [0..{Color.MAX_DAC_VALUE}].");
         readonly static string[] COLOR_FIELD_NAMES = { "Red", "Green", "Blue" };
         const string DAC_VALUE_OUT_OF_RANGE_EXCEPTION_MESSAGE = "The {0} value must be a DAC range value [{1}..{2}].";
@@ -282,9 +314,9 @@ namespace DIV2.Format.Exporter
 
                 for (int i = 0; i < Color.LENGTH; i++)
                     if (!value[i].IsClamped(0, Color.MAX_DAC_VALUE))
-                        throw new ArgumentOutOfRangeException(string.Format(DAC_VALUE_OUT_OF_RANGE_EXCEPTION_MESSAGE, 
-                                                                            COLOR_FIELD_NAMES[i], 
-                                                                            0, 
+                        throw new ArgumentOutOfRangeException(string.Format(DAC_VALUE_OUT_OF_RANGE_EXCEPTION_MESSAGE,
+                                                                            COLOR_FIELD_NAMES[i],
+                                                                            0,
                                                                             Color.MAX_DAC_VALUE));
 
                 this._colors[index] = value;
@@ -381,7 +413,7 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Get a full RGB range values [0..255].
+        /// Gets a full RGB range values [0..255].
         /// </summary>
         /// <returns>Returns new <see cref="Color"/> array of full RGB values [0..255]. In most of the cases, this value is an aproximation to the real RGB value.</returns>
         public Color[] ToRGB()
@@ -395,13 +427,21 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Get the <see cref="Color"/> array from this instance.
+        /// Gets the <see cref="Color"/> array from this instance.
         /// </summary>
         /// <returns>Returns new <see cref="Color"/> array of DAC values [0..63].</returns>
         /// <remarks>Use the <see cref="ToRGB"/> function get a full RGB range [0..255] <see cref="Color"/> array.</remarks>
         public Color[] ToArray()
         {
             return this._colors;
+        }
+
+        /// <summary>
+        /// Sorts the <see cref="Color"/> values.
+        /// </summary>
+        public void Sort()
+        {
+            this._colors.OrderBy(e => e.GetHashCode()).ToArray();
         }
 
         public IEnumerator<Color> GetEnumerator()
@@ -423,12 +463,12 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+            return this.Serialize().CalculateChecksum().GetSecureHashCode();
         }
 
         public override string ToString()
         {
-            return $"{{ Hash: {this.GetHashCode()} }}";
+            return $"{{ {nameof(ColorPalette)}: {{ Hash: {this.GetHashCode()} }} }}";
         }
         #endregion
     }

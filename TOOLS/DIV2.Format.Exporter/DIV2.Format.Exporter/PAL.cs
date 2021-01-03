@@ -156,28 +156,29 @@ namespace DIV2.Format.Exporter
 
         #region Methods & Functions
         /// <summary>
-        /// Creates new <see cref="PAL"/> instance from a supporte image file.
+        /// Creates new <see cref="PAL"/> instance from a supported image file.
         /// </summary>
         /// <param name="filename">Image file to load.</param>
         /// <returns>Returns a new <see cref="PAL"/> instance.</returns>
         /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
-        /// Also supported 256 color PCX images and <see cref="MAP"/> files, 
-        /// without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</remarks>
+        /// Also supported 256 color PCX images, <see cref="MAP"/> and <see cref="FPG"/> files.</remarks>
         public static PAL FromImage(string filename)
         {
             return FromImage(File.ReadAllBytes(filename));
         }
 
         /// <summary>
-        /// Creates new <see cref="PAL"/> instance from a supporte image file.
+        /// Creates new <see cref="PAL"/> instance from a supported image file.
         /// </summary>
         /// <param name="buffer">Memory buffer that contains a supported image file.</param>
-        /// <returns>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
-        /// Also supported 256 color PCX images and <see cref="MAP"/> files, 
-        /// without the metadata info, that will be converted to the new setup <see cref="PAL"/>.</returns>
+        /// <returns>Returns a new <see cref="PAL"/> instance.</returns>
+        /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
+        /// Also supported 256 color PCX images, <see cref="MAP"/> and <see cref="FPG"/> files.</remarks>
         public static PAL FromImage(byte[] buffer)
         {
-            return PaletteProcessor.ProcessPalette(buffer);
+            var pal = PaletteProcessor.ProcessPalette(buffer);
+            pal.Sort();
+            return pal;
         }
 
         /// <summary>
@@ -292,12 +293,12 @@ namespace DIV2.Format.Exporter
 
         public override int GetHashCode()
         {
-            return this.Serialize().CalculateMD5Checksum().GetHashCode();
+            return this.Serialize().CalculateChecksum().GetSecureHashCode();
         }
 
         public override string ToString()
         {
-            return $"{{ Hash: {this.GetHashCode()} }}";
+            return $"{{ {nameof(PAL)}: {{ Hash: {this.GetHashCode()} }} }}";
         }
 
         /// <summary>
@@ -305,6 +306,14 @@ namespace DIV2.Format.Exporter
         /// </summary>
         /// <returns>Returns a new <see cref="Color"/> array in full RGB format [0..255]. In most of the cases, these values are an aproximation to the real RGB value.</returns>
         public Color[] ToRGB() => this.Colors.ToRGB();
+
+        /// <summary>
+        /// Sorts the <see cref="Color"/> values.
+        /// </summary>
+        public void Sort()
+        {
+            this.Colors.Sort();
+        }
         #endregion
     }
 }
