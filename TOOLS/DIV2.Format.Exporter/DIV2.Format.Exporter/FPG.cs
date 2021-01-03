@@ -181,7 +181,7 @@ namespace DIV2.Format.Exporter
     public sealed class FPG : IAssetFile, IEnumerable<MAP>
     {
         #region Constants
-        readonly static DIVHeader FPG_FILE_HEADER = new DIVHeader('f', 'p', 'g');
+        readonly static DIVFileHeader FPG_FILE_HEADER = new DIVFileHeader('f', 'p', 'g');
         readonly static FPG VALIDATOR = new FPG();
         #endregion
 
@@ -266,7 +266,7 @@ namespace DIV2.Format.Exporter
             {
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    if (FPG_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
+                    if (FPG_FILE_HEADER.Validate(stream.ReadBytes(DIVFileHeader.SIZE)))
                     {
                         this.Palette = new PAL(new ColorPalette(stream.ReadBytes(ColorPalette.SIZE)),
                                                new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE)));
@@ -474,7 +474,7 @@ namespace DIV2.Format.Exporter
         /// <returns>Returns true if the file is a valid <see cref="FPG"/>.</returns>
         public bool Validate(byte[] buffer)
         {
-            return FPG_FILE_HEADER.Validate(buffer[0..DIVHeader.SIZE]) && this.TryToReadFile(buffer);
+            return FPG_FILE_HEADER.Validate(buffer[0..DIVFileHeader.SIZE]) && this.TryToReadFile(buffer);
         }
 
         bool TryToReadFile(byte[] buffer)
@@ -483,7 +483,7 @@ namespace DIV2.Format.Exporter
             {
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    stream.ReadBytes(DIVHeader.SIZE); // DIV Header.
+                    stream.ReadBytes(DIVFileHeader.SIZE); // DIV Header.
                     
                     // Palette:
                     stream.ReadBytes(ColorPalette.SIZE);

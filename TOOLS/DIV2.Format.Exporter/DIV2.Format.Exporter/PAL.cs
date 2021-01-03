@@ -14,7 +14,7 @@ namespace DIV2.Format.Exporter
     public sealed class PAL : IAssetFile, IEnumerable<Color>
     {
         #region Constants
-        readonly static DIVHeader PAL_FILE_HEADER = new DIVHeader('p', 'a', 'l');
+        readonly static DIVFileHeader PAL_FILE_HEADER = new DIVFileHeader('p', 'a', 'l');
         readonly static PAL VALIDATOR = new PAL();
         readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
             new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
@@ -26,7 +26,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Memory size.
         /// </summary>
-        public const int SIZE = DIVHeader.SIZE + ColorPalette.SIZE + ColorRangeTable.SIZE;
+        public const int SIZE = DIVFileHeader.SIZE + ColorPalette.SIZE + ColorRangeTable.SIZE;
         #endregion
 
         #region Properties
@@ -135,7 +135,7 @@ namespace DIV2.Format.Exporter
             {
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    if (PAL_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
+                    if (PAL_FILE_HEADER.Validate(stream.ReadBytes(DIVFileHeader.SIZE)))
                     {
                         this.Colors = new ColorPalette(stream.ReadBytes(ColorPalette.SIZE));
                         this.Ranges = new ColorRangeTable(stream.ReadBytes(ColorRangeTable.SIZE));
@@ -218,7 +218,7 @@ namespace DIV2.Format.Exporter
         /// <returns>Returns true if the file is a valid <see cref="PAL"/>.</returns>
         public bool Validate(byte[] buffer)
         {
-            return PAL_FILE_HEADER.Validate(buffer[0..DIVHeader.SIZE]) && this.TryToReadFile(buffer);
+            return PAL_FILE_HEADER.Validate(buffer[0..DIVFileHeader.SIZE]) && this.TryToReadFile(buffer);
         }
 
         bool TryToReadFile(byte[] buffer)
@@ -227,7 +227,7 @@ namespace DIV2.Format.Exporter
             {
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    stream.ReadBytes(DIVHeader.SIZE); // DIV Header.
+                    stream.ReadBytes(DIVFileHeader.SIZE); // DIV Header.
                     stream.ReadBytes(ColorPalette.SIZE); // Color palette.
                     stream.ReadBytes(ColorRangeTable.SIZE); // Color Range table.
                 }

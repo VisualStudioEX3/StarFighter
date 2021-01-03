@@ -1,11 +1,10 @@
 ﻿using DIV2.Format.Exporter.MethodExtensions;
 using System;
 using System.IO;
-using System.Text;
 
 namespace DIV2.Format.Exporter
 {
-    sealed class DIVHeader : ISerializableAsset, IFormatValidable
+    sealed class DIVFileHeader : ISerializableAsset, IFormatValidable
     {
         #region Constants
         const int MAGIC_NUMBER = 658714; // 0x1A, 0x0D, 0x0A, 0x00
@@ -21,17 +20,17 @@ namespace DIV2.Format.Exporter
         #endregion
 
         #region Constructors
-        public DIVHeader(char x, char y, char z)
+        public DIVFileHeader(char x, char y, char z)
         {
             this._id = new char[] { x, y, z }.ToByteArray();
             this._magicNumber = MAGIC_NUMBER;
             this._version = VERSION;
         }
 
-        public DIVHeader(byte[] buffer)
+        public DIVFileHeader(byte[] buffer)
         {
             if (buffer.Length != SIZE)
-                throw new ArgumentOutOfRangeException($"Error reading the {nameof(DIVHeader)}. The buffer length must be over {SIZE} bytes.");
+                throw new ArgumentOutOfRangeException($"Error reading the {nameof(DIVFileHeader)}. The buffer length must be over {SIZE} bytes.");
 
             this._id = buffer[0..3];
             this._magicNumber = BitConverter.ToInt32(buffer[3..7]);
@@ -44,7 +43,7 @@ namespace DIV2.Format.Exporter
         {
             if (buffer.Length == SIZE)
             {
-                var header = new DIVHeader(buffer);
+                var header = new DIVFileHeader(buffer);
 
                 bool id = header._id.ToASCIIString().Equals(this._id.ToASCIIString());
                 bool magicNumber = (header._magicNumber == MAGIC_NUMBER);

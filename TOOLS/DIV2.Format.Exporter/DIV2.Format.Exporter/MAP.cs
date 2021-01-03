@@ -201,7 +201,7 @@ namespace DIV2.Format.Exporter
     public sealed class MAP : IAssetFile, IEnumerable<byte>
     {
         #region Constants
-        readonly static DIVHeader MAP_FILE_HEADER = new DIVHeader('m', 'a', 'p');
+        readonly static DIVFileHeader MAP_FILE_HEADER = new DIVFileHeader('m', 'a', 'p');
         readonly static MAP VALIDATOR = new MAP();
         readonly static string PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} min value accepted is " + MIN_PIXEL_SIZE;
         readonly static ArgumentOutOfRangeException GRAPHID_OUT_OF_RANGE =
@@ -414,7 +414,7 @@ namespace DIV2.Format.Exporter
             {
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    if (MAP_FILE_HEADER.Validate(stream.ReadBytes(DIVHeader.SIZE)))
+                    if (MAP_FILE_HEADER.Validate(stream.ReadBytes(DIVFileHeader.SIZE)))
                     {
                         this.Width = stream.ReadInt16();
                         this.Height = stream.ReadInt16();
@@ -571,7 +571,7 @@ namespace DIV2.Format.Exporter
         /// <returns>Returns true if the file is a valid <see cref="MAP"/>.</returns>
         public bool Validate(byte[] buffer)
         {
-            return MAP_FILE_HEADER.Validate(buffer[0..DIVHeader.SIZE]) && this.TryToReadFile(buffer);
+            return MAP_FILE_HEADER.Validate(buffer[0..DIVFileHeader.SIZE]) && this.TryToReadFile(buffer);
         }
 
         bool TryToReadFile(byte[] buffer)
@@ -580,7 +580,7 @@ namespace DIV2.Format.Exporter
             {
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
-                    stream.ReadBytes(DIVHeader.SIZE); // DIV Header.
+                    stream.ReadBytes(DIVFileHeader.SIZE); // DIV Header.
 
                     short width = stream.ReadInt16();
                     short height = stream.ReadInt16();
