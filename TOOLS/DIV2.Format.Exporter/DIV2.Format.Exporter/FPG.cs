@@ -49,7 +49,17 @@ namespace DIV2.Format.Exporter
 
             int count = stream.ReadInt32(); // Control Points counter.
             for (int i = 0; i < count; i++)
-                this.map.ControlPoints.Add(new ControlPoint(stream));
+            {
+                var point = new ControlPoint(stream);
+                if (point.x < 0 || point.y < 0)
+                {
+                    // If the control point has values under zero (x:-1, y:-1) means that this point has not defined values in DIV Games Studio MAP editor.
+                    // DIV Games Studio read this values but when used for drawing a MAP this values are the MAP center coordintates.
+                    point.x = (short)(width / 2);
+                    point.y = (short)(height / 2);
+                }
+                this.map.ControlPoints.Add(point);
+            }
 
             this.map.SetBitmapArray(stream.ReadBytes(width * height));
         }
