@@ -23,7 +23,7 @@ namespace DIV2.Format.Exporter.Processors.Palettes
         public PAL Process(byte[] buffer)
         {
             BMP256Converter.Convert(buffer, out byte[] palette, out _, out _, out _);
-            return new PAL(palette.ToColorArray());
+            return new PAL(palette.ToColorArray().ToDAC());
         }
         #endregion
     }

@@ -478,7 +478,7 @@ namespace DIV2.Format.Exporter
 
             BMP256Converter.Convert(buffer, out byte[] palette, out short width, out short height, out byte[] bitmap);
 
-            var pal = new PAL(palette.ToColorArray());
+            var pal = new PAL(palette.ToColorArray().ToDAC());
             return new MAP(pal, width, height) { _bitmap = bitmap };
         }
 
@@ -505,7 +505,7 @@ namespace DIV2.Format.Exporter
         /// Also supported 256 color PCX images and <see cref="MAP"/> files, that will be converted to the new setup <see cref="PAL"/>.</remarks>
         public static MAP FromImage(byte[] buffer, PAL palette)
         {
-            BMP256Converter.ConvertTo(buffer, palette.Colors.Serialize(), out short width, out short height, out byte[] bitmap);
+            BMP256Converter.ConvertTo(buffer, palette.ToRGB().ToByteArray(), out short width, out short height, out byte[] bitmap);
 
             var map = new MAP(palette, width, height) { _bitmap = bitmap };
 

@@ -61,7 +61,7 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailCreateInstanceFromBuffer()
         {
-            try
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
             {
                 var buffer = new byte[ColorPalette.SIZE];
 
@@ -69,11 +69,20 @@ namespace DIV2.Format.Exporter.Tests
                     buffer[i] = byte.MaxValue;
 
                 new ColorPalette(buffer);
-                Assert.Fail();
-            }
-            catch
+            });
+        }
+
+        [TestMethod]
+        public void FailCreateInstanceFromColorArray()
+        {
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
             {
-            }
+                var colors = new Color[ColorPalette.LENGTH];
+                for (int i = 0; i < ColorPalette.LENGTH; i++)
+                    colors[i] = new Color(i, i, i);
+
+                new ColorPalette(colors);
+            });
         }
 
         [TestMethod]
@@ -106,22 +115,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailReadByIndex()
         {
-            try
-            {
-                _ = new ColorPalette()[-1];
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    _ = new ColorPalette()[ColorPalette.LENGTH + 1];
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = new ColorPalette()[-1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = new ColorPalette()[ColorPalette.LENGTH + 1]);
         }
 
         [TestMethod]
@@ -140,35 +135,14 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void TryToSetFullRGBColor()
         {
-            try
-            {
-                new ColorPalette()[0] = new Color(byte.MaxValue, byte.MaxValue, byte.MaxValue);
-                Assert.Fail();
-            }
-            catch
-            {
-            }
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new ColorPalette()[0] = new Color(byte.MaxValue, byte.MaxValue, byte.MaxValue));
         }
 
         [TestMethod]
         public void FailWriteByIndex()
         {
-            try
-            {
-                new ColorPalette()[-1] = new Color();
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    new ColorPalette()[ColorPalette.LENGTH + 1] = new Color();
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => new ColorPalette()[-1] = new Color());
+            Assert.ThrowsException<IndexOutOfRangeException>(() => new ColorPalette()[ColorPalette.LENGTH + 1] = new Color());
         }
 
         [TestMethod]

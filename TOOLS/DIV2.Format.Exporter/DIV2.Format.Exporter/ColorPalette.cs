@@ -203,6 +203,17 @@ namespace DIV2.Format.Exporter
                              (byte)(this.blue / RGB_TO_DAC_FACTOR));
         }
 
+        /// <summary>
+        /// Is a valid DAC color value?
+        /// </summary>
+        /// <returns>Returns true if the RGB components are into the DAC range values [0..63].</returns>
+        public bool IsDAC()
+        {
+            return (this.red.IsClamped(0, Color.MAX_DAC_VALUE) ||
+                    this.green.IsClamped(0, Color.MAX_DAC_VALUE) ||
+                    this.blue.IsClamped(0, Color.MAX_DAC_VALUE));
+        }
+
         public override bool Equals(object obj)
         {
             if (!(obj is Color)) return false;
@@ -363,9 +374,7 @@ namespace DIV2.Format.Exporter
             for (int i = 0; i < LENGTH; i++)
             {
                 this._colors[i] = new Color(buffer[index++], buffer[index++], buffer[index++]);
-                if (!this._colors[i].red.IsClamped(0, Color.MAX_DAC_VALUE) ||
-                    !this._colors[i].green.IsClamped(0, Color.MAX_DAC_VALUE) ||
-                    !this._colors[i].blue.IsClamped(0, Color.MAX_DAC_VALUE))
+                if (!this._colors[i].IsDAC())
                     throw OUT_OF_RANGE_DAC_EXCEPTION;
             }
         }
@@ -379,6 +388,10 @@ namespace DIV2.Format.Exporter
         {
             if (colors.Length != LENGTH)
                 throw OUT_OF_RANGE_DAC_EXCEPTION;
+
+            foreach (var color in colors)
+                if (!color.IsDAC())
+                    throw OUT_OF_RANGE_DAC_EXCEPTION;
 
             this._colors = colors;
         }

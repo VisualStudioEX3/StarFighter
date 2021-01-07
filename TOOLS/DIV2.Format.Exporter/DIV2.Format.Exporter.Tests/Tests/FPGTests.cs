@@ -24,12 +24,18 @@ namespace DIV2.Format.Exporter.Tests
         #region Structs
         struct Register
         {
+            #region Public vars
             public int graphId;
             public short width;
             public short height;
             public string description;
             public string filename;
             public ControlPoint[] controlPoints;
+            #endregion
+
+            #region Properties
+            public int BitmapLength => this.width * this.height;
+            #endregion
         }
         #endregion
 
@@ -58,7 +64,7 @@ namespace DIV2.Format.Exporter.Tests
             Assert.AreEqual(reg.controlPoints.Length, map.ControlPoints.Count);
             for (int i = 0; i < reg.controlPoints.Length; i++)
                 Assert.AreEqual(reg.controlPoints[i], map.ControlPoints[i]);
-            Assert.AreEqual(reg.width * reg.height, map.Count);
+            Assert.AreEqual(reg.BitmapLength, map.Count);
         }
 
         void AssertAreEqualDefaultRegisters(FPG fpg, int index)
@@ -93,7 +99,7 @@ namespace DIV2.Format.Exporter.Tests
                     filename = "PLAYER.BMP",
                     controlPoints = new ControlPoint[7]
                         {
-                            new ControlPoint(128, 128),
+                            new ControlPoint(128, 128), // Undefined control point (x:-1, y:-1). Must be received a default control point values (MAP center).
                             new ControlPoint(127, 159),
                             new ControlPoint(169, 164),
                             new ControlPoint(19, 154),
@@ -218,24 +224,187 @@ namespace DIV2.Format.Exporter.Tests
             int i = 0;
             var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
             foreach (var map in fpg)
-                AssertAreEqualDefaultRegisters(this._testFPGRegisters[i++], map, fpg.GetFilename(i++));
+            {
+                AssertAreEqualDefaultRegisters(this._testFPGRegisters[i], map, fpg.GetFilename(i));
+                i++;
+            }
         }
 
         [TestMethod]
-        public void AddMap()
+        public void AddMapWithTheSamePalette()
         {
-            const string PLAYER_MAP_FILENAME = "PLAYER.MAP";
+            const string PLAYER_MAP_FILENAME_FIELD = "PLAYER.MAP";
 
             var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_SPACE));
             var map = new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
             var fpg = new FPG(pal);
 
-            fpg.Add(map, PLAYER_MAP_FILENAME);
+            fpg.Add(map, PLAYER_MAP_FILENAME_FIELD);
 
             Assert.AreEqual(pal, fpg.Palette);
             Assert.AreEqual(1, fpg.Count);
             Assert.AreEqual(map, fpg[0]);
-            Assert.AreEqual(PLAYER_MAP_FILENAME, fpg.GetFilename(0));
+            Assert.AreEqual(PLAYER_MAP_FILENAME_FIELD, fpg.GetFilename(0));
+        }
+
+        [TestMethod]
+        public void AddMapWithDifferentPalette()
+        {
+            const string PLAYER_MAP_FILENAME_FIELD = "PLAYER.MAP";
+            string playerMapPath = this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP);
+
+            var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
+            var map = new MAP(playerMapPath);
+            var fpg = new FPG(pal);
+
+            fpg.Add(map, PLAYER_MAP_FILENAME_FIELD);
+
+            Assert.AreEqual(pal, fpg.Palette);
+            Assert.AreEqual(1, fpg.Count);
+            Assert.AreEqual(PLAYER_MAP_FILENAME_FIELD, fpg.GetFilename(0));
+
+            map = MAP.FromImage(playerMapPath, pal);
+            Assert.AreEqual(map, fpg[0]);
+        }
+
+        [TestMethod]
+        [DataRow(24)]
+        [DataRow(100)]
+        [DataRow(320)]
+        [DataRow(600)]
+        [DataRow(601)]
+        public void ContainsGraphId(int graphId)
+        {
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            Assert.IsTrue(fpg.Contains(graphId));
+        }
+
+        [TestMethod]
+        [DataRow(1)]
+        [DataRow(120)]
+        [DataRow(255)]
+        public void FailContainsGraphId(int graphId)
+        {
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            Assert.IsFalse(fpg.Contains(graphId));
+        }
+
+        [TestMethod]
+        public void ContainsMap()
+        {
+            var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_SPACE));
+            var map = new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
+            var fpg = new FPG(pal);
+
+            fpg.Add(map);
+
+            Assert.IsTrue(fpg.Contains(map));
+        }
+
+        [TestMethod]
+        public void FailContainsMap()
+        {
+            var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
+            var map = new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
+            var fpg = new FPG(pal);
+
+            fpg.Add(map); // Force palette conversion.
+
+            Assert.IsFalse(fpg.Contains(map));
+        }
+
+        [TestMethod]
+        public void RemoveMapByGraphId()
+        {
+            const int GRAPH_ID = 100; // PLAYER.MAP, index 1.
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+
+            fpg.Remove(GRAPH_ID);
+
+            Assert.IsFalse(fpg.Contains(GRAPH_ID));
+        }
+
+        [TestMethod]
+        public void FailRemoveMapByGraphId()
+        {
+            const int GRAPH_ID = 333;
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            Assert.ThrowsException<ArgumentException>(() => fpg.Remove(GRAPH_ID));
+        }
+
+        [TestMethod]
+        public void FailRemoveMapByGraphIdWhenFPGIsEmpty()
+        {
+            const int GRAPH_ID = 333;
+            var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_SPACE));
+            var fpg = new FPG(pal);
+            Assert.ThrowsException<InvalidOperationException>(() => fpg.Remove(GRAPH_ID));
+        }
+
+        [TestMethod]
+        public void RemoveMapByInstance()
+        {
+            var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_SPACE));
+            var map = new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
+            var fpg = new FPG(pal);
+
+            fpg.Add(map);
+            Assert.IsTrue(fpg.Contains(map));
+
+            fpg.Remove(map);
+            Assert.IsFalse(fpg.Contains(map));
+        }
+
+        [TestMethod]
+        public void FailRemoveMapByInstance()
+        {
+            var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_SPACE));
+            var fpg = new FPG(pal);
+
+            var a = new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
+            var b = MAP.FromImage(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_BMP));
+
+            fpg.Add(b);
+
+            Assert.ThrowsException<ArgumentException>(() => fpg.Remove(a));
+        }
+
+        [TestMethod]
+        public void FailRemoveMapByInstanceWhenFPGIsEmpty()
+        {
+            var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_SPACE));
+            var map = new MAP(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
+            var fpg = new FPG(pal);
+
+            Assert.ThrowsException<InvalidOperationException>(() => fpg.Remove(map));
+        }
+
+        [TestMethod]
+        public void RemoveMapByIndex()
+        {
+            const int GRAPH_ID = 100; // PLAYER.MAP, index 1.
+            const int INDEX = 1;
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+
+            fpg.RemoveAt(INDEX);
+
+            Assert.IsFalse(fpg.Contains(GRAPH_ID));
+        }
+
+        [TestMethod]
+        public void FailRemoveMapByIndex()
+        {
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            Assert.ThrowsException<IndexOutOfRangeException>(() => fpg.RemoveAt(-1));
+            Assert.ThrowsException<IndexOutOfRangeException>(() => fpg.RemoveAt(fpg.Count + 1));
+        }
+
+        [TestMethod]
+        public void FailRemoveMapByIndexWhenFPGIsEmpty()
+        {
+            var pal = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_SPACE));
+            var fpg = new FPG(pal);
+            Assert.ThrowsException<InvalidOperationException>(() => fpg.Remove(0));
         }
 
         [TestMethod]

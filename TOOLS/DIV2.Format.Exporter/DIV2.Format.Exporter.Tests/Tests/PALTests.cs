@@ -1,6 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
 using DIV2.Format.Exporter.MethodExtensions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
 {
@@ -90,14 +91,7 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailCreateByRGBColors()
         {
-            try
-            {
-                new PAL(this._colors);
-                Assert.Fail();
-            }
-            catch
-            {
-            }
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new PAL(this._colors.ToRGB()));
         }
 
         [TestMethod]
@@ -129,22 +123,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailReadByIndex()
         {
-            try
-            {
-                _ = new PAL()[-1];
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    _ = new PAL()[PAL.LENGTH + 1];
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = new PAL()[-1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = new PAL()[PAL.LENGTH + 1]);
         }
 
         [TestMethod]
@@ -161,35 +141,14 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailWriteByIndex()
         {
-            try
-            {
-                new PAL()[-1] = new Color();
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    new PAL()[PAL.LENGTH + 1] = new Color();
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => new PAL()[-1] = new Color());
+            Assert.ThrowsException<IndexOutOfRangeException>(() => new PAL()[PAL.LENGTH + 1] = new Color());
         }
 
         [TestMethod]
         public void TryToSetFullRGBColor()
         {
-            try
-            {
-                new PAL()[0] = new Color(byte.MaxValue, byte.MaxValue, byte.MaxValue);
-                Assert.Fail();
-            }
-            catch
-            {
-            }
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new PAL()[0] = new Color(byte.MaxValue, byte.MaxValue, byte.MaxValue));
         }
 
         [TestMethod]

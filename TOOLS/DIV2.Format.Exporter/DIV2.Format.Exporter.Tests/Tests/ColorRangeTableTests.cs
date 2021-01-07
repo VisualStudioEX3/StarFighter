@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
@@ -83,22 +84,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailReadByIndex()
         {
-            try
-            {
-                _ = new ColorRangeTable()[-1];
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    _ = new ColorRangeTable()[ColorRangeTable.LENGTH + 1];
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = new ColorRangeTable()[-1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = new ColorRangeTable()[ColorRangeTable.LENGTH + 1]);
         }
 
         [TestMethod]
@@ -119,22 +106,8 @@ namespace DIV2.Format.Exporter.Tests
         public void FailWriteByIndex()
         {
             byte startIndex = 0;
-            try
-            {
-                new ColorRangeTable()[-1] = new ColorRange(ref startIndex);
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    new ColorRangeTable()[ColorPalette.LENGTH + 1] = new ColorRange(ref startIndex);
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => new ColorRangeTable()[-1] = new ColorRange(ref startIndex));
+            Assert.ThrowsException<IndexOutOfRangeException>(() => new ColorRangeTable()[ColorPalette.LENGTH + 1] = new ColorRange(ref startIndex));
         }
 
         [TestMethod]

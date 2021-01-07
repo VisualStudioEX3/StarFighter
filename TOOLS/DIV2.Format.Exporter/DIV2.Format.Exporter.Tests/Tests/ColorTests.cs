@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
@@ -50,22 +51,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailCreateInstanceFromBuffer()
         {
-            try
-            {
-                new Color(new byte[1]);
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    new Color(new byte[5]);
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new Color(new byte[1]));
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new Color(new byte[5]));
         }
 
         [TestMethod]
@@ -91,22 +78,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailReadByIndex()
         {
-            try
-            {
-                _ = RGB_COLOR[-1];
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    _ = RGB_COLOR[Color.LENGTH + 1];
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = RGB_COLOR[-1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = RGB_COLOR[Color.LENGTH + 1]);
         }
 
         [TestMethod]
@@ -123,24 +96,14 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailWriteByIndex()
         {
-            try
-            {
+            Assert.ThrowsException<IndexOutOfRangeException>(() => {
                 var color = new Color();
                 color[-1] = 0;
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    var color = new Color();
-                    color[Color.LENGTH + 1] = 0;
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            });
+            Assert.ThrowsException<IndexOutOfRangeException>(() => {
+                var color = new Color();
+                color[Color.LENGTH + 1] = 0;
+            });
         }
 
         [TestMethod]
@@ -168,6 +131,18 @@ namespace DIV2.Format.Exporter.Tests
         public void DAC2RGB()
         {
             Assert.AreEqual(RGB_COLOR, DAC_COLOR.ToRGB());
+        }
+
+        [TestMethod]
+        public void IsDAC()
+        {
+            Assert.IsTrue(DAC_COLOR.IsDAC());
+        }
+
+        [TestMethod]
+        public void FailIsDAC()
+        {
+            Assert.IsFalse(RGB_COLOR.IsDAC());
         }
         #endregion
     }

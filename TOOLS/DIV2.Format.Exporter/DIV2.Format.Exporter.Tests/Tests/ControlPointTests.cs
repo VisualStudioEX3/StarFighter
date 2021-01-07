@@ -74,22 +74,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailReadByIndex()
         {
-            try
-            {
-                _ = new ControlPoint()[-1];
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    _ = new ControlPoint()[PAL.LENGTH + 1];
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = new ControlPoint()[-1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = new ControlPoint()[PAL.LENGTH + 1]);
         }
 
         [TestMethod]
@@ -111,22 +97,8 @@ namespace DIV2.Format.Exporter.Tests
         public void FailWriteByIndex()
         {
             var point = new ControlPoint();
-            try
-            {
-                point[-1] = 0;
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    point[ControlPoint.LENGTH + 1] = 0;
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => point[-1] = 0);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => point[ControlPoint.LENGTH + 1] = 0);
         }
 
         [TestMethod]

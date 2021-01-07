@@ -66,7 +66,30 @@ namespace DIV2.Format.Exporter.MethodExtensions
                 colors[i] = new Color(buffer[index++], buffer[index++], buffer[index++]);
 
             return colors;
-        } 
+        }
+
+        /// <summary>
+        /// Converts a <see cref="Color"/> array to <see cref="byte"/> array.
+        /// </summary>
+        /// <param name="colors">A 256 <see cref="Color"/> array length.</param>
+        /// <returns>Returns a <see cref="byte"/> array.</returns>
+        public static byte[] ToByteArray(this Color[] colors)
+        {
+            if (colors.Length != ColorPalette.LENGTH)
+                throw CreateException(ColorPalette.LENGTH);
+
+            var buffer = new byte[ColorPalette.SIZE];
+
+            int i = 0;
+            foreach (var color in colors)
+            {
+                buffer[i++] = color.red;
+                buffer[i++] = color.green;
+                buffer[i++] = color.blue;
+            }
+
+            return buffer;
+        }
         #endregion
     }
 }

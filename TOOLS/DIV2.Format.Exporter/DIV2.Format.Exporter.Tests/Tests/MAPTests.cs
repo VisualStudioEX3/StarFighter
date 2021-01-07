@@ -94,35 +94,14 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void TryCreateMapWithInvalidSizes()
         {
-            try
-            {
-                new MAP(this._palette, MAP.MIN_PIXEL_SIZE - 1, MAP.MIN_PIXEL_SIZE - 1);
-                Assert.Fail();
-            }
-            catch
-            {
-            }
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new MAP(this._palette, MAP.MIN_PIXEL_SIZE - 1, MAP.MIN_PIXEL_SIZE - 1));
         }
 
         [TestMethod]
         public void TryCreateMapWithInvalidGraphId()
         {
-            try
-            {
-                new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT, MAP.MIN_GRAPH_ID - 1);
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT, MAP.MAX_GRAPH_ID + 1);
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT, MAP.MIN_GRAPH_ID - 1));
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT, MAP.MAX_GRAPH_ID + 1));
         }
 
         [TestMethod]
@@ -152,14 +131,7 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailCreateFromImageFromMAPWithoutPalette()
         {
-            try
-            {
-                MAP.FromImage(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP));
-                Assert.Fail();
-            }
-            catch
-            {
-            }
+            Assert.ThrowsException<ArgumentException>(() => MAP.FromImage(this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_MAP)));
         }
 
         [DataTestMethod]
@@ -204,22 +176,8 @@ namespace DIV2.Format.Exporter.Tests
         {
             var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
 
-            try
-            {
-                _ = map[-1];
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    _ = map[PAL.LENGTH + 1];
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = map[-1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = map[map.Count + 1]);
         }
 
         [TestMethod]
@@ -239,22 +197,8 @@ namespace DIV2.Format.Exporter.Tests
         {
             var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
 
-            try
-            {
-                _ = map[-1];
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    _ = map[PAL.LENGTH + 1];
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => map[-1] = 0);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => map[map.Count + 1] = 0);
         }
 
         [TestMethod]
@@ -290,17 +234,12 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailSetBitmapArray()
         {
-            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
-
-            try
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
             {
+                var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
                 var buffer = new byte[map.Count - 1];
                 map.SetBitmapArray(buffer);
-                Assert.Fail();
-            }
-            catch
-            {
-            }
+            });
         }
 
         [TestMethod]

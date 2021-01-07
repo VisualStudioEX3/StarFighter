@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
@@ -100,22 +101,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailReadByIndex()
         {
-            try
-            {
-                _ = this.CreateDefaultRange(out _)[-1];
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    _ = this.CreateDefaultRange(out _)[ColorRange.LENGTH + 1];
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = this.CreateDefaultRange(out _)[-1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = this.CreateDefaultRange(out _)[ColorRange.LENGTH + 1]);
         }
 
         [TestMethod]
@@ -133,22 +120,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailWriteByIndex()
         {
-            try
-            {
-                this.CreateDefaultRange(out _)[-1] = 0;
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    this.CreateDefaultRange(out _)[ColorRange.LENGTH + 1] = 0;
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => this.CreateDefaultRange(out _)[-1] = 0);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => this.CreateDefaultRange(out _)[ColorRange.LENGTH + 1] = 0);
         }
 
         [TestMethod]

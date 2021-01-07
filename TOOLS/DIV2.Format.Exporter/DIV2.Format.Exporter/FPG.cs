@@ -384,12 +384,17 @@ namespace DIV2.Format.Exporter
         /// <param name="map"><see cref="MAP"/> instance to remove.</param>
         public void Remove(MAP map)
         {
+            if (this._registers.Count == 0)
+                throw new InvalidOperationException($"The {nameof(FPG)} is empty!");
+
             for (int i = 0; i < this.Count; i++)
                 if (this[i] == map)
                 {
                     this._registers.RemoveAt(i);
                     return;
                 }
+
+            throw new ArgumentException($"The {nameof(MAP)} instance not exists in this {nameof(FPG)}.");
         }
 
         /// <summary>
@@ -398,12 +403,17 @@ namespace DIV2.Format.Exporter
         /// <param name="graphId"><see cref="MAP.GraphId"/> to search.</param>
         public void Remove(int graphId)
         {
+            if (this._registers.Count == 0)
+                throw new InvalidOperationException($"The {nameof(FPG)} is empty!");
+
             for (int i = 0; i < this.Count; i++)
                 if (this[i].GraphId == graphId)
                 {
                     this.RemoveAt(i);
                     return;
                 }
+            
+            throw new ArgumentException($"The {nameof(MAP)} with {nameof(MAP.GraphId)} {graphId} not exists in this {nameof(FPG)}.");
         }
 
         /// <summary>
@@ -412,6 +422,12 @@ namespace DIV2.Format.Exporter
         /// <param name="index"><see cref="MAP"/> index in this instance.</param>
         public void RemoveAt(int index)
         {
+            if (this._registers.Count == 0)
+                throw new InvalidOperationException($"The {nameof(FPG)} is empty!");
+
+            if (!index.IsClamped(0, this._registers.Count - 1))
+                throw new IndexOutOfRangeException($"The {nameof(MAP)} index {index} is out of range in this {nameof(FPG)}.");
+
             this._registers.RemoveAt(index);
         }
 
