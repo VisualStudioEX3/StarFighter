@@ -630,12 +630,15 @@ namespace DIV2.Format.Exporter
                 stream.Write(this.Width);
                 stream.Write(this.Height);
                 stream.Write(this.GraphId);
-                stream.Write(this.Description.GetASCIIZString(DESCRIPTION_LENGTH));
+
+                byte[] description = this.Description.GetASCIIZString(DESCRIPTION_LENGTH);
+                stream.Write(description);
 
                 this.Palette.Write(stream);
 
                 var count = (short)Math.Min(this.ControlPoints.Count, MAX_CONTROL_POINTS);
                 stream.Write(count);
+
                 for (int i = 0; i < count; i++)
                     this.ControlPoints[i].Write(stream);
 

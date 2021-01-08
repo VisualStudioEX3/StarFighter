@@ -25,7 +25,7 @@ namespace DIV2.Format.Exporter
         #region Operators
         public static bool operator ==(Register a, Register b)
         {
-            return a.map == b.map && 
+            return a.map == b.map &&
                    a.filename == b.filename;
         }
 
@@ -81,14 +81,22 @@ namespace DIV2.Format.Exporter
             using (var stream = new BinaryWriter(new MemoryStream()))
             {
                 stream.Write(this.map.GraphId); // GraphId.
-                stream.Write(this.GetSize()); // Register length.
-                stream.Write(this.map.Description.GetASCIIZString(MAP.DESCRIPTION_LENGTH)); // Description.
-                stream.Write(this.filename.GetASCIIZString(FILENAME_LENGTH)); // Filename.
+
+                int size = this.GetSize();
+                stream.Write(size); // Register length.
+
+                byte[] description = this.map.Description.GetASCIIZString(MAP.DESCRIPTION_LENGTH);
+                stream.Write(description); // Description.
+
+                byte[] filename = this.filename.GetASCIIZString(FILENAME_LENGTH);
+                stream.Write(filename); // Filename.
+
                 stream.Write((int)this.map.Width); // Width.
                 stream.Write((int)this.map.Height); // Height.
 
                 int count = Math.Min(this.map.ControlPoints.Count, MAP.MAX_CONTROL_POINTS);
                 stream.Write(count); // Control Points counter.
+
                 for (int i = 0; i > count; i++)
                     this.map.ControlPoints[i].Write(stream); // Each Control Point in the list.
 
@@ -412,7 +420,7 @@ namespace DIV2.Format.Exporter
                     this.RemoveAt(i);
                     return;
                 }
-            
+
             throw new ArgumentException($"The {nameof(MAP)} with {nameof(MAP.GraphId)} {graphId} not exists in this {nameof(FPG)}.");
         }
 
@@ -510,7 +518,7 @@ namespace DIV2.Format.Exporter
                 using (var stream = new BinaryReader(new MemoryStream(buffer)))
                 {
                     stream.ReadBytes(DIVFileHeader.SIZE); // DIV Header.
-                    
+
                     // Palette:
                     stream.ReadBytes(ColorPalette.SIZE);
                     stream.ReadBytes(ColorRangeTable.SIZE);

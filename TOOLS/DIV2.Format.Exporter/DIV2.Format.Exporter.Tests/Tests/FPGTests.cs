@@ -18,7 +18,8 @@ namespace DIV2.Format.Exporter.Tests
     {
         #region Constants
         const string RESULT_FOLDER_NAME = "FPG";
-        const int TEST_FPG_REGISTERS_COUNT = 5;
+        const int FPG_TEST_REGISTERS_COUNT = 5;
+        const int FPG_REGISTER_BASE_SIZE = 64;
         #endregion
 
         #region Structs
@@ -48,9 +49,9 @@ namespace DIV2.Format.Exporter.Tests
         void AssertAreEqualDefaultFPG(FPG fpg)
         {
             Assert.AreEqual(this._palette, fpg.Palette);
-            Assert.AreEqual(TEST_FPG_REGISTERS_COUNT, fpg.Count);
+            Assert.AreEqual(FPG_TEST_REGISTERS_COUNT, fpg.Count);
 
-            for (int i = 0; i < TEST_FPG_REGISTERS_COUNT; i++)
+            for (int i = 0; i < FPG_TEST_REGISTERS_COUNT; i++)
                 AssertAreEqualDefaultRegisters(fpg, i);
         }
 
@@ -70,6 +71,14 @@ namespace DIV2.Format.Exporter.Tests
         void AssertAreEqualDefaultRegisters(FPG fpg, int index)
         {
             this.AssertAreEqualDefaultRegisters(this._testFPGRegisters[index], fpg[index], fpg.GetFilename(index));
+        }
+
+        int GetDefaultFPGSize()
+        {
+            int size = ColorPalette.SIZE + ColorRangeTable.SIZE;
+            foreach (var reg in this._testFPGRegisters)
+                size += FPG_REGISTER_BASE_SIZE + (ControlPoint.SIZE * reg.controlPoints.Length) + reg.BitmapLength;
+            return size;
         }
         #endregion
 
@@ -192,7 +201,7 @@ namespace DIV2.Format.Exporter.Tests
         public void ReadByIndex()
         {
             var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
-            for (int i = 0; i < this._testFPGRegisters.Count; i++)
+            for (int i = 0; i < FPG_TEST_REGISTERS_COUNT; i++)
                 AssertAreEqualDefaultRegisters(fpg, i);
         }
 
@@ -200,22 +209,8 @@ namespace DIV2.Format.Exporter.Tests
         public void FailReadByIndex()
         {
             var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
-            try
-            {
-                _ = fpg[-1];
-                Assert.Fail();
-            }
-            catch
-            {
-                try
-                {
-                    _ = fpg[fpg.Count];
-                    Assert.Fail();
-                }
-                catch
-                {
-                }
-            }
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = fpg[-1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = fpg[fpg.Count]);
         }
 
         [TestMethod]
@@ -408,33 +403,58 @@ namespace DIV2.Format.Exporter.Tests
         }
 
         [TestMethod]
+        public void ClearFPG()
+        {
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            Assert.AreEqual(FPG_TEST_REGISTERS_COUNT, fpg.Count);
+
+            fpg.Clear();
+            Assert.AreEqual(0, fpg.Count);
+        }
+
+        [TestMethod]
         public void Serialize()
         {
-            throw new System.NotImplementedException();
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            byte[] serialized = fpg.Serialize();
+            Assert.AreEqual(this.GetDefaultFPGSize(), serialized.Length);
         }
 
         [TestMethod]
         public void Write()
         {
-            throw new System.NotImplementedException();
+            using (var stream = new BinaryWriter(new MemoryStream()))
+            {
+                var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+                fpg.Write(stream);
+                Assert.AreEqual(this.GetDefaultFPGSize(), stream.BaseStream.Length);
+            }
         }
 
         [TestMethod]
         public void Validate()
         {
-            throw new System.NotImplementedException();
+            string filename = this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST);
+            Assert.IsTrue(FPG.ValidateFormat(filename));
         }
 
         [TestMethod]
         public void FailValidate()
         {
-            throw new System.NotImplementedException();
+            string filename = this.GetAssetPath(SharedConstants.FILENAME_IMG_PLAYER_BMP);
+            Assert.IsFalse(FPG.ValidateFormat(filename));
         }
 
         [TestMethod]
         public void Save()
         {
-            throw new System.NotImplementedException();
+            var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
+            string filename = this.GetOutputPath(SharedConstants.FILENAME_FPG_TEST);
+
+            fpg.Save(filename);
+
+            fpg = new FPG(filename);
+            this.AssertAreEqualDefaultFPG(fpg);
         }
         #endregion
     }

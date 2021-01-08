@@ -54,10 +54,17 @@ namespace DIV2.Format.Exporter.MethodExtensions
         /// If the input string is longer than the length, getting a substring with the desired length.</returns>
         public static byte[] GetASCIIZString(this string text, int length)
         {
-            char[] buffer = (text.Length > length ? text.Substring(0, length) : text.PadRight(length)).ToCharArray();
-            buffer[length - 1] = '\0';
+            const char NULL = '\0';
+
+            char[] buffer = (text.Length > length ? text.Substring(0, length) : text.PadRight(length, NULL)).ToCharArray();
+
+            if (text.Length < length)
+                buffer[text.Length] = NULL;
+
+            //buffer[length - 1] = NULL;
+
             return buffer.ToByteArray();
-        } 
+        }
         #endregion
     }
 }
