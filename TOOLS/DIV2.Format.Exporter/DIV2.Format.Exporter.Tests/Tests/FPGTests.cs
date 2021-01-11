@@ -1,7 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace DIV2.Format.Exporter.Tests
 {
@@ -27,8 +27,8 @@ namespace DIV2.Format.Exporter.Tests
         {
             #region Public vars
             public int graphId;
-            public short width;
-            public short height;
+            public int width;
+            public int height;
             public string description;
             public string filename;
             public ControlPoint[] controlPoints;
@@ -36,6 +36,10 @@ namespace DIV2.Format.Exporter.Tests
 
             #region Properties
             public int BitmapLength => this.width * this.height;
+            public int Size => (sizeof(int) * 5) + // GraphId + Register size + Width + Height + Control Point counter
+                               MAP.DESCRIPTION_LENGTH + 12 + // Description + Filename
+                               (ControlPoint.SIZE * this.controlPoints.Length) + // Control points
+                               this.BitmapLength; // Bitmap data
             #endregion
         }
         #endregion
@@ -417,7 +421,9 @@ namespace DIV2.Format.Exporter.Tests
         {
             var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
             byte[] serialized = fpg.Serialize();
-            Assert.AreEqual(this.GetDefaultFPGSize(), serialized.Length);
+            int expectedSize = this.GetDefaultFPGSize();
+
+            Assert.AreEqual(expectedSize, serialized.Length);
         }
 
         [TestMethod]
@@ -427,7 +433,9 @@ namespace DIV2.Format.Exporter.Tests
             {
                 var fpg = new FPG(this.GetAssetPath(SharedConstants.FILENAME_FPG_TEST));
                 fpg.Write(stream);
-                Assert.AreEqual(this.GetDefaultFPGSize(), stream.BaseStream.Length);
+
+                int expectedSize = this.GetDefaultFPGSize();
+                Assert.AreEqual(expectedSize, stream.BaseStream.Length);
             }
         }
 

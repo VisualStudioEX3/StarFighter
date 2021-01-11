@@ -52,6 +52,8 @@ namespace DIV2.Format.Exporter.Tests
                     (ControlPoint.SIZE * map.ControlPoints.Count) + // ControlPoints total size
                     (map.Width * map.Height); // Bitmap size
         }
+
+        int GetIndex(int x, int y) => (TEST_WIDTH * y) + x;
         #endregion
 
         #region Initializer
@@ -184,6 +186,7 @@ namespace DIV2.Format.Exporter.Tests
         public void WriteByIndex()
         {
             var map = this.CreateTestMap(out byte[] bitmap);
+            map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
 
             for (int i = 0; i < map.Count; i++)
                 map[i] = bitmap[i];
@@ -212,6 +215,53 @@ namespace DIV2.Format.Exporter.Tests
         }
 
         [TestMethod]
+        public void ReadByCoordinates()
+        {
+            var map = this.CreateTestMap(out byte[] bitmap);
+
+            for (int y = 0; y < TEST_HEIGHT; y++)
+                for (int x = 0; x < TEST_WIDTH; x++)
+                    Assert.AreEqual(bitmap[this.GetIndex(x, y)], map[x, y]);
+        }
+
+        [TestMethod]
+        public void FailReadByCoordinates()
+        {
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
+
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = map[-1, 0]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = map[map.Width, 0]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = map[0, -1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => _ = map[0, map.Height]);
+        }
+
+        [TestMethod]
+        public void WriteByCoordinates()
+        {
+            var map = this.CreateTestMap(out byte[] bitmap);
+            map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
+
+            for (int y = 0; y < TEST_HEIGHT; y++)
+                for (int x = 0; x < TEST_WIDTH; x++)
+                    map[x, y] = bitmap[this.GetIndex(x, y)];
+
+            for (int y = 0; y < TEST_HEIGHT; y++)
+                for (int x = 0; x < TEST_WIDTH; x++)
+                    Assert.AreEqual(bitmap[this.GetIndex(x, y)], map[x, y]);
+        }
+
+        [TestMethod]
+        public void FailWriteByCoordinates()
+        {
+            var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
+
+            Assert.ThrowsException<IndexOutOfRangeException>(() => map[-1, 0] = 0);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => map[map.Width, 0] = 0);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => map[0, -1] = 0);
+            Assert.ThrowsException<IndexOutOfRangeException>(() => map[0, map.Height] = 0);
+        }
+
+        [TestMethod]
         public void GetBitmapArray()
         {
             var map = this.CreateTestMap(out byte[] a);
@@ -229,6 +279,20 @@ namespace DIV2.Format.Exporter.Tests
             var b = this.CreateTestMap(out byte[] a);
             for (int i = 0; i < b.Count; i++)
                 Assert.AreEqual(a[i], b[i]);
+        }
+
+        [TestMethod]
+        public void ClearBitmap()
+        {
+            var map = this.CreateTestMap(out byte[] bitmap);
+
+            for (int i = 0; i < map.Count; i++)
+                Assert.AreEqual(bitmap[i], map[i]);
+
+            map.Clear();
+
+            foreach (var pixel in map)
+                Assert.AreEqual(0, pixel);
         }
 
         [TestMethod]

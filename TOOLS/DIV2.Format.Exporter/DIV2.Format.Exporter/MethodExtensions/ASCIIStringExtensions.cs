@@ -58,10 +58,7 @@ namespace DIV2.Format.Exporter.MethodExtensions
 
             char[] buffer = (text.Length > length ? text.Substring(0, length) : text.PadRight(length, NULL)).ToCharArray();
 
-            if (text.Length < length)
-                buffer[text.Length] = NULL;
-
-            //buffer[length - 1] = NULL;
+            buffer[length - 1] = NULL;
 
             return buffer.ToByteArray();
         }

@@ -97,10 +97,11 @@ namespace DIV2.Format.Exporter
                 int count = Math.Min(this.map.ControlPoints.Count, MAP.MAX_CONTROL_POINTS);
                 stream.Write(count); // Control Points counter.
 
-                for (int i = 0; i > count; i++)
+                for (int i = 0; i < count; i++)
                     this.map.ControlPoints[i].Write(stream); // Each Control Point in the list.
 
-                stream.Write(this.map.GetBitmapArray()); // Bitmap array.
+                byte[] bitmap = this.map.GetBitmapArray();
+                stream.Write(bitmap); // Bitmap array.
 
                 return (stream.BaseStream as MemoryStream).ToArray();
             }
@@ -221,7 +222,16 @@ namespace DIV2.Format.Exporter
         /// </summary>
         /// <param name="index">Index of the <see cref="MAP"/> in the <see cref="FPG"/>.</param>
         /// <returns>Returns the <see cref="MAP"/> instance.</returns>
-        public MAP this[int index] => this._registers[index].map;
+        public MAP this[int index]
+        {
+            get
+            {
+                if (!index.IsClamped(0, this.Count - 1))
+                    throw new IndexOutOfRangeException($"The index value must be a value beteween 0 and {this.Count}. (Index: {index})");
+
+                return this._registers[index].map;
+            }
+        }
         #endregion
 
         #region Operators

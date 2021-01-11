@@ -203,11 +203,11 @@ namespace DIV2.Format.Exporter
         #region Constants
         readonly static DIVFileHeader MAP_FILE_HEADER = new DIVFileHeader('m', 'a', 'p');
         readonly static MAP VALIDATOR = new MAP();
-        readonly static string PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} min value accepted is " + MIN_PIXEL_SIZE;
+        readonly static string PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} min value accepted is " + MIN_PIXEL_SIZE + " ({0}: {1})";
         readonly static ArgumentOutOfRangeException GRAPHID_OUT_OF_RANGE =
             new ArgumentOutOfRangeException($"GraphId must be a value between {MIN_GRAPH_ID} and {MAX_GRAPH_ID}.");
-        const string INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE = "The index value must be a value beteween 0 and {0}.";
-        const string COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} coordinate must be a value beteween 0 and {1}.";
+        const string INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE = "The index value must be a value beteween 0 and {0} (Index: {1}).";
+        const string COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE = "{0} coordinate must be a value beteween 0 and {1} ({0}: {2}).";
 
         /// <summary>
         /// Min supported size value for width or height properties.
@@ -286,14 +286,14 @@ namespace DIV2.Format.Exporter
             get
             {
                 if (!index.IsClamped(0, this._bitmap.Length))
-                    throw new IndexOutOfRangeException(string.Format(INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE, this._bitmap.Length));
+                    throw new IndexOutOfRangeException(string.Format(INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE, this._bitmap.Length, index));
 
                 return this._bitmap[index];
             }
             set
             {
                 if (!index.IsClamped(0, this._bitmap.Length))
-                    throw new IndexOutOfRangeException(string.Format(INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE, this._bitmap.Length));
+                    throw new IndexOutOfRangeException(string.Format(INDEX_OUT_OF_RANGE_EXCEPTION_MESSAGE, this._bitmap.Length, index));
 
                 this._bitmap[index] = value;
             }
@@ -308,21 +308,21 @@ namespace DIV2.Format.Exporter
         {
             get
             {
-                if (!x.IsClamped(0, this.Width))
-                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "X", this.Width));
+                if (!x.IsClamped(0, this.Width - 1))
+                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "X", this.Width, x));
 
-                if (!y.IsClamped(0, this.Width))
-                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Y", this.Height));
+                if (!y.IsClamped(0, this.Height - 1))
+                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Y", this.Height, y));
 
                 return this._bitmap[this.GetIndex(x, y)];
             }
             set
             {
-                if (!x.IsClamped(0, this.Width))
-                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "X", this.Width));
+                if (!x.IsClamped(0, this.Width - 1))
+                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "X", this.Width, x));
 
-                if (!y.IsClamped(0, this.Width))
-                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Y", this.Height));
+                if (!y.IsClamped(0, this.Height - 1))
+                    throw new IndexOutOfRangeException(string.Format(COORDINATE_OUT_OF_RANGE_EXCEPTION_MESSAGE, "Y", this.Height, y));
 
                 this._bitmap[this.GetIndex(x, y)] = value;
             }
@@ -379,9 +379,9 @@ namespace DIV2.Format.Exporter
             : this()
         {
             if (width < MIN_PIXEL_SIZE)
-                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, nameof(this.Width)));
+                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, nameof(this.Width), width));
             if (height < MIN_PIXEL_SIZE)
-                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, nameof(this.Height)));
+                throw new ArgumentOutOfRangeException(string.Format(PIXEL_OUT_OF_RANGE_EXCEPTION_MESSAGE, nameof(this.Height), height));
             if (!graphId.IsClamped(MIN_GRAPH_ID, MAX_GRAPH_ID))
                 throw GRAPHID_OUT_OF_RANGE;
 
@@ -542,6 +542,15 @@ namespace DIV2.Format.Exporter
                 throw new ArgumentOutOfRangeException($"The pixel array must be had the same length that this bitmap instance ({this._bitmap.Length} bytes).");
 
             this._bitmap = pixels;
+        }
+
+        /// <summary>
+        /// Clear the bitmap.
+        /// </summary>
+        /// <remarks>This function sets all pixels to zero palette color (mostly transparent black).</remarks>
+        public void Clear()
+        {
+            this._bitmap = new byte[this.Width * this.Height];
         }
 
         /// <summary>
