@@ -6,8 +6,11 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using System.Collections.Generic;
 
-namespace DIV2.Format.Exporter.MethodExtensions
+namespace DIV2.Format.Exporter.ExtensionMethods
 {
+    /// <summary>
+    /// Extension methods to interoperate between DIV2.Format.Exporter and ImageSharp formats.
+    /// </summary>
     public static class ImageSharpExtensions
     {
         #region Constants

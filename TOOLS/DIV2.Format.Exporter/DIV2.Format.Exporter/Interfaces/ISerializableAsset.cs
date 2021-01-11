@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace DIV2.Format.Exporter
+namespace DIV2.Format.Exporter.Interfaces
 {
     public interface ISerializableAsset
     {

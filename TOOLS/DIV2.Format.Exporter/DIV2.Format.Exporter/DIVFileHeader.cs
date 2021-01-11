@@ -1,9 +1,13 @@
-﻿using DIV2.Format.Exporter.MethodExtensions;
+﻿using DIV2.Format.Exporter.ExtensionMethods;
+using DIV2.Format.Exporter.Interfaces;
 using System;
 using System.IO;
 
 namespace DIV2.Format.Exporter
 {
+    /// <summary>
+    /// DIV Games Studio file header.
+    /// </summary>
     sealed class DIVFileHeader : ISerializableAsset, IFormatValidable
     {
         #region Constants

@@ -1,5 +1,5 @@
 ﻿using DIV2.Format.Exporter.Converters;
-using DIV2.Format.Exporter.MethodExtensions;
+using DIV2.Format.Exporter.ExtensionMethods;
 using DIV2.Format.Importer;
 
 namespace DIV2.Format.Exporter.Processors.Palettes

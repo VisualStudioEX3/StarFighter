@@ -1,5 +1,5 @@
-﻿using DIV2.Format.Exporter;
-using DIV2.Format.Exporter.MethodExtensions;
+﻿using DIV2.Format.Exporter.ExtensionMethods;
+using DIV2.Format.Exporter.Interfaces;
 using System;
 using System.IO;
 

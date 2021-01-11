@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace DIV2.Format.Exporter.MethodExtensions
+namespace DIV2.Format.Exporter.ExtensionMethods
 {
     /// <summary>
-    /// Method extensions for <see cref="Color"/> values.
+    /// Extension methods for <see cref="Color"/> values.
     /// </summary>
     public static class ColorExtensions
     {

@@ -1,9 +1,9 @@
 ﻿using DIV2.Format.Exporter.Cryptographic;
 
-namespace DIV2.Format.Exporter.MethodExtensions
+namespace DIV2.Format.Exporter.ExtensionMethods
 {
     /// <summary>
-    /// Method extensions for <see cref="byte"/> arrays.
+    /// Extension methods for <see cref="byte"/> arrays.
     /// </summary>
     public static class ByteExtensions
     {

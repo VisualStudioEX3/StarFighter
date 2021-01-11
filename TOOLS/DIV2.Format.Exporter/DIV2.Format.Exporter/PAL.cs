@@ -1,4 +1,5 @@
-﻿using DIV2.Format.Exporter.MethodExtensions;
+﻿using DIV2.Format.Exporter.ExtensionMethods;
+using DIV2.Format.Exporter.Interfaces;
 using DIV2.Format.Exporter.Processors.Palettes;
 using System;
 using System.Collections;

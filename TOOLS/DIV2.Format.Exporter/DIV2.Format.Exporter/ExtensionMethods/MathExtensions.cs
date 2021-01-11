@@ -1,7 +1,7 @@
-﻿namespace DIV2.Format.Exporter.MethodExtensions
+﻿namespace DIV2.Format.Exporter.ExtensionMethods
 {
     /// <summary>
-    /// Math helper method extensions.
+    /// Math helper extension methods.
     /// </summary>
     public static class MathExtensions
     {
