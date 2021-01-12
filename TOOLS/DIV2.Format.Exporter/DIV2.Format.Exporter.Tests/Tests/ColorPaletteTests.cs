@@ -43,9 +43,8 @@ namespace DIV2.Format.Exporter.Tests
         {
             var buffer = new byte[ColorPalette.SIZE];
 
-            var random = new Random();
             for (int i = 0; i < buffer.Length; i++)
-                buffer[i] = (byte)random.Next(0, Color.MAX_DAC_VALUE + 1);
+                buffer[i] = (byte)this.Random.Next(0, Color.MAX_DAC_VALUE + 1);
 
             var palette = new ColorPalette(buffer);
 

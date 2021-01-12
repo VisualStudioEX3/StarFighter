@@ -26,7 +26,6 @@ namespace DIV2.Format.Exporter.Tests
 
         #region Intenral vars
         PAL _palette;
-        Random _random;
         #endregion
 
         #region HelperFunctions
@@ -35,7 +34,7 @@ namespace DIV2.Format.Exporter.Tests
             var map = new MAP(this._palette, TEST_WIDTH, TEST_HEIGHT);
 
             bitmap = new byte[map.Count];
-            this._random.NextBytes(bitmap);
+            this.Random.NextBytes(bitmap);
             map.SetBitmapArray(bitmap);
 
             return map;
@@ -62,7 +61,6 @@ namespace DIV2.Format.Exporter.Tests
         {
             this.InitializeResultFolder(RESULT_FOLDER_NAME);
             this._palette = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
-            this._random = new Random();
         }
         #endregion
 
@@ -313,8 +311,8 @@ namespace DIV2.Format.Exporter.Tests
             map.GraphId = TEST_GRAPH_ID;
             map.Description = TEST_DESCRIPTION;
             for (int i = 0; i < MAP.MAX_CONTROL_POINTS; i++)
-                map.ControlPoints.Add(new ControlPoint(this._random.Next(0, short.MaxValue),
-                                                       this._random.Next(0, short.MaxValue)));
+                map.ControlPoints.Add(new ControlPoint(this.Random.Next(0, short.MaxValue),
+                                                       this.Random.Next(0, short.MaxValue)));
 
             byte[] serialized = map.Serialize();
             int expectedSize = this.CalculateSize(map);
@@ -373,7 +371,7 @@ namespace DIV2.Format.Exporter.Tests
             var bitmap = new byte[TEST_WIDTH * TEST_HEIGHT];
             var a = new Color[bitmap.Length];
 
-            this._random.NextBytes(bitmap);
+            this.Random.NextBytes(bitmap);
 
             for (int i = 0; i < a.Length; i++)
                 a[i] = this._palette[bitmap[i]].ToRGB();

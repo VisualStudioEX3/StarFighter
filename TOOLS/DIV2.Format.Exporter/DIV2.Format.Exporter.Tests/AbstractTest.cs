@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -12,6 +13,7 @@ namespace DIV2.Format.Exporter.Tests
         public string Class => this.TestContext.FullyQualifiedTestClassName;
         public string Method => this.TestContext.TestName;
         public string ResultFolder { get; private set; }
+        public Random Random => new Random();
         #endregion
 
         #region Methods & Functions
