@@ -144,6 +144,34 @@ namespace DIV2.Format.Exporter.Tests
         {
             Assert.IsFalse(RGB_COLOR.IsDAC());
         }
+
+        [TestMethod]
+        public void MinorThan()
+        {
+            var a = new Color(32, 255, 64); // Hash: 4259616
+            var b = new Color(0, 128, 255); // Hash: 16744448
+            var c = a;
+
+            Assert.IsTrue(a < b);
+            Assert.IsFalse(b < a);
+
+            Assert.IsTrue(a <= c);
+            Assert.IsFalse(b <= a);
+        }
+
+        [TestMethod]
+        public void MajorThan()
+        {
+            var a = new Color(0, 128, 255); // Hash: 16744448
+            var b = new Color(32, 255, 64); // Hash: 4259616
+            var c = b;
+
+            Assert.IsTrue(a > b);
+            Assert.IsFalse(b > a);
+
+            Assert.IsTrue(a >= c);
+            Assert.IsFalse(b >= a);
+        }
         #endregion
     }
 }

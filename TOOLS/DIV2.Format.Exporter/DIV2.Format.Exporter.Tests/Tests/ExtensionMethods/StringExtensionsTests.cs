@@ -1,5 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using DIV2.Format.Exporter.ExtensionMethods;
+﻿using DIV2.Format.Exporter.ExtensionMethods;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DIV2.Format.Exporter.Tests.ExtensionMethods
 {
