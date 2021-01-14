@@ -26,6 +26,8 @@ namespace DIV2.Format.Exporter.Tests
 
         #region Intenral vars
         PAL _palette;
+
+        static bool _isFirstRun = true;
         #endregion
 
         #region HelperFunctions
@@ -60,6 +62,13 @@ namespace DIV2.Format.Exporter.Tests
         public void Initialize()
         {
             this.InitializeResultFolder(RESULT_FOLDER_NAME);
+
+            if (_isFirstRun)
+            {
+                this.CleanUp();
+                _isFirstRun = false;
+            }
+
             this._palette = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
         }
         #endregion

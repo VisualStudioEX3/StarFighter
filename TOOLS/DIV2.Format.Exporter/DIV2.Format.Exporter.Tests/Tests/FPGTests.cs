@@ -47,6 +47,8 @@ namespace DIV2.Format.Exporter.Tests
         #region Internal vars
         PAL _palette;
         List<Register> _testFPGRegisters;
+
+        static bool _isFirstRun = true;
         #endregion
 
         #region Helper functions
@@ -91,6 +93,13 @@ namespace DIV2.Format.Exporter.Tests
         public void Initialize()
         {
             this.InitializeResultFolder(RESULT_FOLDER_NAME);
+
+            if (_isFirstRun)
+            {
+                this.CleanUp();
+                _isFirstRun = false;
+            }
+
             this._palette = new PAL(this.GetAssetPath(SharedConstants.FILENAME_PAL_DIV));
             this._testFPGRegisters = new List<Register>() // This is the content of the TEST.FPG asset.
             {

@@ -23,6 +23,8 @@ namespace DIV2.Format.Exporter.Tests
 
         #region Intenral vars
         Color[] _colors = new Color[PAL.LENGTH];
+
+        static bool _isFirstRun = true;
         #endregion
 
         #region Initializer
@@ -30,6 +32,13 @@ namespace DIV2.Format.Exporter.Tests
         public void Initialize()
         {
             this.InitializeResultFolder(RESULT_FOLDER_NAME);
+
+            if (_isFirstRun)
+            {
+                this.CleanUp();
+                _isFirstRun = false;
+            }
+
             for (int i = 0; i < PAL.LENGTH; i++)
                 this._colors[i] = new Color(i, i, i).ToDAC();
         }
