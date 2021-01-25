@@ -1,10 +1,8 @@
-﻿using DIV2.Format.Exporter.Processors.Images;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Png;
+﻿using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.PixelFormats;
-using System.Collections.Generic;
+using System;
 
 namespace DIV2.Format.Exporter.ExtensionMethods
 {
@@ -13,26 +11,6 @@ namespace DIV2.Format.Exporter.ExtensionMethods
     /// </summary>
     public static class ImageSharpExtensions
     {
-        #region Constants
-        static readonly Dictionary<SupportedMimeTypes, string> SUPPORTED_MIME_TYPES = new Dictionary<SupportedMimeTypes, string>()
-        {
-            { SupportedMimeTypes.PCX, PcxFormat.Instance.DefaultMimeType },
-            { SupportedMimeTypes.MAP, MapFormat.Instance.DefaultMimeType },
-            { SupportedMimeTypes.BMP, BmpFormat.Instance.DefaultMimeType },
-            { SupportedMimeTypes.PNG, PngFormat.Instance.DefaultMimeType }
-        };
-        #endregion
-
-        #region Enums
-        internal enum SupportedMimeTypes
-        {
-            PCX,
-            MAP,
-            BMP,
-            PNG
-        }
-        #endregion
-
         #region Methods & Functions
         internal static SixLabors.ImageSharp.Color[] ToImageSharpColors(this PAL instance)
         {
@@ -69,10 +47,23 @@ namespace DIV2.Format.Exporter.ExtensionMethods
             }
         }
 
-        internal static bool IsSupportedFormat(this Image instance, SupportedMimeTypes format, IImageFormat mime)
+        internal static Tuple<float, float, float> ToHSV(this Color color, bool fromDAC = true)
         {
-            return SUPPORTED_MIME_TYPES[format] == mime.DefaultMimeType && instance.PixelType.BitsPerPixel == (int)BmpBitsPerPixel.Pixel8;
-        } 
+            float max = fromDAC ? Color.MAX_DAC_VALUE : byte.MaxValue;
+            Rgb rgb = new Rgb(color.red / max, color.green / max, color.blue / max);
+            Hsv hsv = new ColorSpaceConverter().ToHsv(rgb);
+
+            return new Tuple<float, float, float>(hsv.H, hsv.S, hsv.V);
+        }
+
+        internal static Tuple<float, float, float> ToHSL(this Color color, bool fromDAC = true)
+        {
+            float max = fromDAC ? Color.MAX_DAC_VALUE : byte.MaxValue;
+            Rgb rgb = new Rgb(color.red / max, color.green / max, color.blue / max);
+            Hsl hsl = new ColorSpaceConverter().ToHsl(rgb);
+
+            return new Tuple<float, float, float>(hsl.H, hsl.S, hsl.L);
+        }
         #endregion
     }
 }

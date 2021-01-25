@@ -16,6 +16,8 @@
         public const string FILENAME_IMG_PLAYER_PNG = "PLAYER.PNG";
         public const string FILENAME_IMG_PLAYER_MAP = "PLAYER.MAP";
         public const string FILENAME_IMG_PLAYER_FPG = "PLAYER.FPG";
+
+        public const string FILENAME_IMG_SPACE_PCX = "SPACE.PCX";
         #endregion
     }
 }

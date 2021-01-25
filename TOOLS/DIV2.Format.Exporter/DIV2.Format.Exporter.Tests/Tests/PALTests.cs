@@ -97,6 +97,19 @@ namespace DIV2.Format.Exporter.Tests
             palette.Save(this.GetOutputPath(saveFilename));
         }
 
+        [DataTestMethod]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_PCX)]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_BMP)]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_PNG)]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_MAP)]
+        [DataRow(SharedConstants.FILENAME_IMG_PLAYER_FPG)]
+        public void CreateFromImageSortingColors(string file)
+        {
+            var palette = PAL.FromImage(this.GetAssetPath(file), true);
+            string saveFilename = $"{Path.GetExtension(file)[1..4]}_S.PAL";
+            palette.Save(this.GetOutputPath(saveFilename));
+        }
+
         [TestMethod]
         public void FailCreateByRGBColors()
         {
@@ -209,7 +222,7 @@ namespace DIV2.Format.Exporter.Tests
         public void Save()
         {
             string assetPath = this.GetOutputPath("GRAYSCAL.PAL");
-            new PAL(this._colors.ToDAC()).Save(assetPath);
+            new PAL(this._colors).Save(assetPath);
             Assert.IsTrue(PAL.ValidateFormat(assetPath));
         }
 

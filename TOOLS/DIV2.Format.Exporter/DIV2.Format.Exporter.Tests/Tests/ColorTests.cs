@@ -148,8 +148,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void MinorThan()
         {
-            var a = new Color(32, 255, 64); // Hash: 4259616
-            var b = new Color(0, 128, 255); // Hash: 16744448
+            var a = new Color(0, 128, 255); // 33023
+            var b= new Color(32, 255, 64); // 2162496
             var c = a;
 
             Assert.IsTrue(a < b);
@@ -162,8 +162,8 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void MajorThan()
         {
-            var a = new Color(0, 128, 255); // Hash: 16744448
-            var b = new Color(32, 255, 64); // Hash: 4259616
+            var a = new Color(32, 255, 64); // 2162496
+            var b = new Color(0, 128, 255); // 33023
             var c = b;
 
             Assert.IsTrue(a > b);

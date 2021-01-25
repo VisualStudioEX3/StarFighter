@@ -17,7 +17,7 @@ namespace DIV2.Format.Exporter
         #region Constants
         readonly static DIVFileHeader PAL_FILE_HEADER = new DIVFileHeader('p', 'a', 'l');
         readonly static PAL VALIDATOR = new PAL();
-        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION = 
+        readonly static IndexOutOfRangeException INDEX_OUT_OF_RANGE_EXCEPTION =
             new IndexOutOfRangeException($"The index value must be a value beteween 0 and {LENGTH}.");
 
         /// <summary>
@@ -160,25 +160,30 @@ namespace DIV2.Format.Exporter
         /// Creates new <see cref="PAL"/> instance from a supported image file.
         /// </summary>
         /// <param name="filename">Image file to load.</param>
+        /// <param name="sortColors">Sort colors of the imported palette. By default is false.</param>
         /// <returns>Returns a new <see cref="PAL"/> instance.</returns>
         /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
         /// Also supported 256 color PCX images, <see cref="MAP"/> and <see cref="FPG"/> files.</remarks>
-        public static PAL FromImage(string filename)
+        public static PAL FromImage(string filename, bool sortColors = false)
         {
-            return FromImage(File.ReadAllBytes(filename));
+            return FromImage(File.ReadAllBytes(filename), sortColors);
         }
 
         /// <summary>
         /// Creates new <see cref="PAL"/> instance from a supported image file.
         /// </summary>
         /// <param name="buffer">Memory buffer that contains a supported image file.</param>
+        /// <param name="sortColors">Sort colors of the imported palette. By default is false.</param>
         /// <returns>Returns a new <see cref="PAL"/> instance.</returns>
         /// <remarks>Supported image formats are JPEG, PNG, BMP, GIF and TGA. 
         /// Also supported 256 color PCX images, <see cref="MAP"/> and <see cref="FPG"/> files.</remarks>
-        public static PAL FromImage(byte[] buffer)
+        public static PAL FromImage(byte[] buffer, bool sortColors = false)
         {
             var pal = PaletteProcessor.ProcessPalette(buffer);
-            pal.Sort();
+
+            if (sortColors)
+                pal.Sort();
+
             return pal;
         }
 
@@ -311,6 +316,7 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Sorts the <see cref="Color"/> values.
         /// </summary>
+        /// <remarks>This method try to sort the colors using the Nearest Neighbour algorithm, trying to ensure that the black color (0, 0, 0), if exists in palette, be the first color.</remarks>
         public void Sort()
         {
             this.Colors.Sort();

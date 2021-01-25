@@ -1,5 +1,6 @@
 ﻿using DIV2.Format.Exporter.ExtensionMethods;
 using DIV2.Format.Exporter.Interfaces;
+using DIV2.Format.Exporter.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -84,33 +85,48 @@ namespace DIV2.Format.Exporter
 
         public static bool operator <(Color a, Color b)
         {
-            return a.GetHashCode() < b.GetHashCode();
+            return (int)a < (int)b;
         }
 
         public static bool operator >(Color a, Color b)
         {
-            return a.GetHashCode() > b.GetHashCode();
+            return (int)a > (int)b;
         }
 
         public static bool operator <=(Color a, Color b)
         {
-            return a.GetHashCode() <= b.GetHashCode();
+            return (int)a <= (int)b;
         }
 
         public static bool operator >=(Color a, Color b)
         {
-            return a.GetHashCode() >= b.GetHashCode();
+            return (int)a >= (int)b;
         }
 
+        /// <summary>
+        /// Cast an <see cref="int"/> value to <see cref="Color"/> value.
+        /// </summary>
+        /// <param name="value"><see cref="int"/> value.</param>
         public static implicit operator Color(int value)
         {
-            byte[] buffer = BitConverter.GetBytes(value);
-            return new Color(buffer);
+            int red = (value >> 16) & 0xFF;
+            int green = (value >> 8) & 0xFF;
+            int blue = value & 0xFF;
+
+            return new Color(red, green, blue);
         }
 
+        /// <summary>
+        /// Cast the <see cref="Color"/> value to <see cref="int"/> value.
+        /// </summary>
+        /// <param name="value"><see cref="Color"/> value.</param>
         public static explicit operator int(Color value)
         {
-            return value.GetHashCode();
+            int rgb = value.red;
+            rgb = (rgb << 8) + value.green;
+            rgb = (rgb << 8) + value.blue;
+
+            return rgb;
         }
         #endregion
 
@@ -135,10 +151,8 @@ namespace DIV2.Format.Exporter
         /// <param name="green">Green component value.</param>
         /// <param name="blue">Blue component value.</param>
         public Color(int red, int green, int blue)
+            : this((byte)red, (byte)green, (byte)blue)
         {
-            this.red = (byte)Math.Clamp(red, byte.MinValue, byte.MaxValue);
-            this.green = (byte)Math.Clamp(green, byte.MinValue, byte.MaxValue);
-            this.blue = (byte)Math.Clamp(blue, byte.MinValue, byte.MaxValue);
         }
 
         /// <summary>
@@ -210,9 +224,9 @@ namespace DIV2.Format.Exporter
         /// <returns>Returns true if the RGB components are into the DAC range values [0..63].</returns>
         public bool IsDAC()
         {
-            return (this.red.IsClamped(0, Color.MAX_DAC_VALUE) ||
-                    this.green.IsClamped(0, Color.MAX_DAC_VALUE) ||
-                    this.blue.IsClamped(0, Color.MAX_DAC_VALUE));
+            return (this.red.IsClamped(0, MAX_DAC_VALUE) ||
+                    this.green.IsClamped(0, MAX_DAC_VALUE) ||
+                    this.blue.IsClamped(0, MAX_DAC_VALUE));
         }
 
         public override bool Equals(object obj)
@@ -453,9 +467,22 @@ namespace DIV2.Format.Exporter
         /// <summary>
         /// Sorts the <see cref="Color"/> values.
         /// </summary>
+        /// <remarks>This method try to sort the colors using the Nearest Neighbour algorithm, trying to ensure that the black color (0, 0, 0), if exists in palette, be the first color.
+        /// This implementation is based on this article: https://www.alanzucconi.com/2015/09/30/colour-sorting/ </remarks>
         public void Sort()
         {
-            this._colors.OrderBy(e => e.GetHashCode()).ToArray();
+            float dac = Color.MAX_DAC_VALUE;
+            var vectors = this._colors.Select(e =>
+                new Tuple<float, float, float>(e.red / dac, e.green / dac, e.blue / dac)).ToList();
+
+            int start = vectors.FindIndex(e => e.Item1 + e.Item2 + e.Item3 == 0f);
+            start = start < 0 ? 0 : start;
+
+            List<int> path = NNAlgorithm.CalculatePath(vectors, start, out float cost);
+
+            var source = (Color[])this._colors.Clone();
+            for (int i = 0; i < path.Count; i++)
+                this._colors[i] = source[path[i]];
         }
 
         public IEnumerator<Color> GetEnumerator()
