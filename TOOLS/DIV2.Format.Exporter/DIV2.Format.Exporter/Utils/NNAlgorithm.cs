@@ -69,15 +69,15 @@ namespace DIV2.Format.Exporter.Utils
                 visited++;
             };
 
-            Func<int, Tuple<int, float>> getNext = (start) =>
+            Func<int, Tuple<int, float>> getNext = (s) =>
             {
-                var ret = new Tuple<int, float>(start, float.NaN);
+                var ret = new Tuple<int, float>(s, float.NaN);
 
                 for (int i = 0; i < nnVectors.Length; i++)
                 {
                     if (!nnVectors[i].isVisited)
                     {
-                        float d = NNVector.Distance(nnVectors[start], nnVectors[i]);
+                        float d = NNVector.Distance(nnVectors[s], nnVectors[i]);
                         if (float.IsNaN(ret.Item2) || d < ret.Item2)
                             ret = new Tuple<int, float>(i, d);
                     }
