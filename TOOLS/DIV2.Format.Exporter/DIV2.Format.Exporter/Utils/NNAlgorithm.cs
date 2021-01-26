@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DIV2.Format.Exporter.Utils
 {
     /// <summary>
     /// Nearest Neighbour algorithm.
     /// </summary>
-    /// <remarks>Description: https://en.wikipedia.org/wiki/Nearest_neighbour_algorithm </remarks>
+    /// <remarks>Algorithm description: https://en.wikipedia.org/wiki/Nearest_neighbour_algorithm </remarks>
     public static class NNAlgorithm
     {
         #region Structs
@@ -58,51 +59,45 @@ namespace DIV2.Format.Exporter.Utils
         /// <returns>Returns a <see cref="List{T}"/> of <see cref="int"/> with the sorted indexes.</returns>
         public static List<int> CalculatePath(List<Tuple<float, float, float>> input, int start, out float cost)
         {
-            var nnVectors = new NNVector[input.Count];
+            var vectors = input.Select((e, i) => new NNVector(i, e)).ToArray();
             int current = start;
             var path = new List<int>();
             int visited = 0;
 
-            Action<int> setVisited = (i) =>
+            Action setCurrentVisited = () =>
             {
-                nnVectors[i].isVisited = true;
+                vectors[current].isVisited = true;
                 visited++;
             };
 
-            Func<int, Tuple<int, float>> getNext = (s) =>
+            Func<float> findNext = () =>
             {
-                var ret = new Tuple<int, float>(s, float.NaN);
+                int local = current;
+                float distance = float.NaN;
 
-                for (int i = 0; i < nnVectors.Length; i++)
-                {
-                    if (!nnVectors[i].isVisited)
+                for (int i = 0; i < vectors.Length; i++)
+                    if (!vectors[i].isVisited)
                     {
-                        float d = NNVector.Distance(nnVectors[s], nnVectors[i]);
-                        if (float.IsNaN(ret.Item2) || d < ret.Item2)
-                            ret = new Tuple<int, float>(i, d);
+                        float d = NNVector.Distance(vectors[current], vectors[i]);
+                        if (float.IsNaN(distance) || d < distance)
+                        {
+                            local = i;
+                            distance = d;
+                        }
                     }
-                }
 
-                setVisited(ret.Item1);
+                current = local;
+                path.Add(current);
+                setCurrentVisited();
 
-                return ret;
+                return distance;
             };
 
-            for (int i = 0; i < input.Count; i++)
-                nnVectors[i] = new NNVector(i, input[i]);
-
-            cost = 0;
-            setVisited(current);
+            cost = 0f;
             path.Add(current);
+            setCurrentVisited();
 
-            do
-            {
-                Tuple<int, float> next = getNext(current);
-                current = next.Item1;
-                cost += next.Item2;
-                path.Add(current);
-
-            } while (visited < nnVectors.Length);
+            do { cost += findNext(); } while (visited < vectors.Length);
 
             return path;
         }
