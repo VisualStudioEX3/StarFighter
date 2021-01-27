@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Linq;
 
 namespace DIV2.Format.Exporter
 {
@@ -716,12 +717,7 @@ namespace DIV2.Format.Exporter
         /// <remarks>Use this function when need to render this <see cref="MAP"/> in any modern system that works in full 32 bits color space.</remarks>
         public Color[] GetRGBTexture()
         {
-            var pixels = new Color[this.Count];
-
-            for (int i = 0; i < pixels.Length; i++)
-                pixels[i] = this.Palette[this[i]].ToRGB();
-
-            return pixels;
+            return this._bitmap.Select(e => this.Palette[e].ToRGB()).ToArray();
         }
 
         public override string ToString()

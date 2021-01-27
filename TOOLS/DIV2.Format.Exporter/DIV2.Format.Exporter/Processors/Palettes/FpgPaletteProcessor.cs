@@ -1,4 +1,6 @@
-﻿namespace DIV2.Format.Exporter.Processors.Palettes
+﻿using DIV2.Format.Exporter.Interfaces;
+
+namespace DIV2.Format.Exporter.Processors.Palettes
 {
     class FpgPaletteProcessor : IPaletteProcessor
     {

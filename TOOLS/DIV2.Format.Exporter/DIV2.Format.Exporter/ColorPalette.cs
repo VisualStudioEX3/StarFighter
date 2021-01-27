@@ -446,12 +446,7 @@ namespace DIV2.Format.Exporter
         /// <returns>Returns new <see cref="Color"/> array of full RGB values [0..255]. In most of the cases, this value is an aproximation to the real RGB value.</returns>
         public Color[] ToRGB()
         {
-            var rgb = new Color[LENGTH];
-
-            for (int i = 0; i < LENGTH; i++)
-                rgb[i] = this[i].ToRGB();
-
-            return rgb;
+            return this._colors.Select(e => e.ToRGB()).ToArray();
         }
 
         /// <summary>
@@ -480,9 +475,7 @@ namespace DIV2.Format.Exporter
 
             List<int> path = NNAlgorithm.CalculatePath(vectors, start, out float cost);
 
-            var source = (Color[])this._colors.Clone();
-            for (int i = 0; i < path.Count; i++)
-                this._colors[i] = source[path[i]];
+            this._colors = path.Select(e => this._colors[e]).ToArray();
         }
 
         public IEnumerator<Color> GetEnumerator()

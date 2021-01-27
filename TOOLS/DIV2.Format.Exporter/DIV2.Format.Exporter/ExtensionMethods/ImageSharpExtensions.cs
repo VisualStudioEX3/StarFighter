@@ -3,6 +3,7 @@ using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
+using System.Linq;
 
 namespace DIV2.Format.Exporter.ExtensionMethods
 {
@@ -19,22 +20,12 @@ namespace DIV2.Format.Exporter.ExtensionMethods
 
         internal static SixLabors.ImageSharp.Color[] ToImageSharpColors(this Color[] palette)
         {
-            var colors = new SixLabors.ImageSharp.Color[PAL.LENGTH];
-
-            for (int i = 0; i < PAL.LENGTH; i++)
-                colors[i] = SixLabors.ImageSharp.Color.FromRgb(palette[i].red, palette[i].green, palette[i].blue);
-
-            return colors;
+            return palette.Select(e => SixLabors.ImageSharp.Color.FromRgb(e.red, e.green, e.blue)).ToArray();
         }
 
         internal static SixLabors.ImageSharp.Color[] ToImageSharpColors(this byte[] palette)
         {
-            var colors = new SixLabors.ImageSharp.Color[PAL.LENGTH];
-
-            for (int i = 0, j = 0; i < ColorPalette.LENGTH; i++)
-                colors[i] = SixLabors.ImageSharp.Color.FromRgb(palette[j++], palette[j++], palette[j++]);
-
-            return colors;
+            return ToImageSharpColors(palette.ToColorArray());
         }
 
         internal static void ComposeBitmap(this Image<Rgb24> instance, byte[] pixels, SixLabors.ImageSharp.Color[] palette)
@@ -50,7 +41,7 @@ namespace DIV2.Format.Exporter.ExtensionMethods
         internal static Tuple<float, float, float> ToHSV(this Color color, bool fromDAC = true)
         {
             float max = fromDAC ? Color.MAX_DAC_VALUE : byte.MaxValue;
-            Rgb rgb = new Rgb(color.red / max, color.green / max, color.blue / max);
+            var rgb = new Rgb(color.red / max, color.green / max, color.blue / max);
             Hsv hsv = new ColorSpaceConverter().ToHsv(rgb);
 
             return new Tuple<float, float, float>(hsv.H, hsv.S, hsv.V);
@@ -59,7 +50,7 @@ namespace DIV2.Format.Exporter.ExtensionMethods
         internal static Tuple<float, float, float> ToHSL(this Color color, bool fromDAC = true)
         {
             float max = fromDAC ? Color.MAX_DAC_VALUE : byte.MaxValue;
-            Rgb rgb = new Rgb(color.red / max, color.green / max, color.blue / max);
+            var rgb = new Rgb(color.red / max, color.green / max, color.blue / max);
             Hsl hsl = new ColorSpaceConverter().ToHsl(rgb);
 
             return new Tuple<float, float, float>(hsl.H, hsl.S, hsl.L);

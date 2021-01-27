@@ -1,8 +1,7 @@
-﻿using DIV2.Format.Exporter.Interfaces;
-using SixLabors.ImageSharp;
+﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 
-namespace DIV2.Format.Exporter.Processors.Images
+namespace DIV2.Format.Exporter.Interfaces
 {
     interface IImageProcessor : IFormatValidable
     {

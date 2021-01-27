@@ -1,4 +1,5 @@
 ﻿using DIV2.Format.Exporter.ExtensionMethods;
+using DIV2.Format.Exporter.Interfaces;
 using DIV2.Format.Importer;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;

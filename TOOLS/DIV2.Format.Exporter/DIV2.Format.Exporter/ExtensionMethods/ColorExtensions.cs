@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace DIV2.Format.Exporter.ExtensionMethods
 {
@@ -23,12 +24,7 @@ namespace DIV2.Format.Exporter.ExtensionMethods
             if (colors.Length != ColorPalette.LENGTH)
                 throw CreateException(ColorPalette.LENGTH);
 
-            var dac = new Color[ColorPalette.LENGTH];
-
-            for (int i = 0; i < colors.Length; i++)
-                dac[i] = colors[i].ToDAC();
-
-            return dac;
+            return colors.Select(e => e.ToDAC()).ToArray();
         }
 
         /// <summary>
@@ -41,12 +37,7 @@ namespace DIV2.Format.Exporter.ExtensionMethods
             if (colors.Length != ColorPalette.LENGTH)
                 throw CreateException(ColorPalette.LENGTH);
 
-            var rgb = new Color[ColorPalette.LENGTH];
-
-            for (int i = 0; i < colors.Length; i++)
-                rgb[i] = colors[i].ToRGB();
-
-            return rgb;
+            return colors.Select(e => e.ToRGB()).ToArray();
         }
 
         /// <summary>

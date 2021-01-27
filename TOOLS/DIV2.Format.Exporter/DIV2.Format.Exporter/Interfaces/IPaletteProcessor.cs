@@ -1,6 +1,4 @@
-﻿using DIV2.Format.Exporter.Interfaces;
-
-namespace DIV2.Format.Exporter.Processors.Palettes
+﻿namespace DIV2.Format.Exporter.Interfaces
 {
     interface IPaletteProcessor : IFormatValidable
     {

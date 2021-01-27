@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DIV2.Format.Exporter.Interfaces;
+using System;
 
 namespace DIV2.Format.Exporter.Processors.Palettes
 {
