@@ -14,28 +14,17 @@ namespace DIV2.Format.Exporter.Utils
         #region Structs
         struct NNVector
         {
-            #region Internal vars
-            Vector3 _vector;
-            #endregion
-
             #region Public vars
             public readonly int index;
+            public readonly Vector3 vector;
             public bool isVisited;
-            #endregion
-
-            #region Properties
-            public float x => this._vector.X;
-            public float Y => this._vector.Y;
-            public float Z => this._vector.Z;
             #endregion
 
             #region Constructor
             public NNVector(int index, Vector3 vector)
             {
                 this.index = index;
-
-                this._vector = vector;
-
+                this.vector = vector;
                 this.isVisited = false;
             }
             #endregion
@@ -43,7 +32,7 @@ namespace DIV2.Format.Exporter.Utils
             #region Methods & Functions
             public static float Distance(NNVector a, NNVector b)
             {
-                return Vector3.Distance(a._vector, b._vector);
+                return Vector3.Distance(a.vector, b.vector);
             }
             #endregion
         }
