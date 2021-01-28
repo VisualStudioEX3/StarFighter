@@ -6,9 +6,25 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 
 namespace DIV2.Format.Exporter
 {
+    /// <summary>
+    /// Color formats.
+    /// </summary>
+    public enum ColorFormat : byte
+    {
+        /// <summary>
+        /// DAC format [0..63].
+        /// </summary>
+        DAC = Color.MAX_DAC_VALUE,
+        /// <summary>
+        /// RGB format [0.255].
+        /// </summary>
+        RGB = byte.MaxValue
+    }
+
     public struct Color : ISerializableAsset
     {
         #region Constants
@@ -216,6 +232,39 @@ namespace DIV2.Format.Exporter
             return new Color((byte)(this.red / RGB_TO_DAC_FACTOR),
                              (byte)(this.green / RGB_TO_DAC_FACTOR),
                              (byte)(this.blue / RGB_TO_DAC_FACTOR));
+        }
+
+        /// <summary>
+        /// Gets a tuple with normalized values [0..1].
+        /// </summary>
+        /// <param name="colorType">Indicate the color range for set the normalization factor.</param>
+        /// <returns>Returns a <see cref="Tuple{T1, T2, T3}"/> of 3 <see cref="float"/> values with the <see cref="Color"/> componentes normalized.</returns>
+        public Vector3 Normalize(ColorFormat colorType)
+        {
+            float factor = (float)colorType;
+            return new Vector3(this.red / factor, this.green / factor, this.blue / factor);
+        }
+
+        // Based on this source: https://www.alanzucconi.com/2015/09/30/colour-sorting/
+        // Helps to sort by color ranges using the NN algorithm, but the result is very noisy, and currently is not used.
+        internal Vector3 Step()
+        {
+            const float REPETITIONS = 8f;
+
+            float lum = MathF.Sqrt(this.red * 0.241f + this.green * 0.691f + this.blue * 0.068f);
+            Vector3 hsv = this.ToRGB().ToHSV(ColorFormat.DAC);
+
+            float h2 = hsv.X * REPETITIONS;
+            float l2 = lum * REPETITIONS;
+            float v2 = hsv.Z * REPETITIONS;
+
+            if (h2 % 2 == 1)
+            {
+                v2 = REPETITIONS - v2;
+                l2 = REPETITIONS - l2;
+            }
+
+            return new Vector3(h2, l2, v2);
         }
 
         /// <summary>
@@ -466,14 +515,17 @@ namespace DIV2.Format.Exporter
         /// This implementation is based on this article: https://www.alanzucconi.com/2015/09/30/colour-sorting/ </remarks>
         public void Sort()
         {
-            float dac = Color.MAX_DAC_VALUE;
-            var vectors = this._colors.Select(e =>
-                new Tuple<float, float, float>(e.red / dac, e.green / dac, e.blue / dac)).ToList();
-
-            int start = vectors.FindIndex(e => e.Item1 + e.Item2 + e.Item3 == 0f);
-            start = start < 0 ? 0 : start;
-
-            List<int> path = NNAlgorithm.CalculatePath(vectors, start, out float cost);
+#if SORT_BY_HSV
+            var vectors = this._colors.Select(e => e.ToHSV(ColorFormat.DAC)).ToList();
+#elif SORT_BY_HSL
+            var vectors = this._colors.Select(e => e.ToHSL(ColorFormat.DAC)).ToList();
+#elif SORT_BY_HLV_STEP
+            var vectors = this._colors.Select(e => e.Step()).ToList();
+#else
+            var vectors = this._colors.Select(e => e.Normalize(ColorFormat.DAC)).ToList();
+#endif
+            int start = vectors.FindIndex(e => e == Vector3.Zero); // Try to localize the black color.
+            List<int> path = NNAlgorithm.CalculatePath(vectors, (start == -1 ? 0 : start), out float cost);
 
             this._colors = path.Select(e => this._colors[e]).ToArray();
         }

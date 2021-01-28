@@ -4,6 +4,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Linq;
+using System.Numerics;
 
 namespace DIV2.Format.Exporter.ExtensionMethods
 {
@@ -38,22 +39,22 @@ namespace DIV2.Format.Exporter.ExtensionMethods
             }
         }
 
-        internal static Tuple<float, float, float> ToHSV(this Color color, bool fromDAC = true)
+        internal static Vector3 ToHSV(this Color color, ColorFormat colorType)
         {
-            float max = fromDAC ? Color.MAX_DAC_VALUE : byte.MaxValue;
+            float max = (float)colorType;
             var rgb = new Rgb(color.red / max, color.green / max, color.blue / max);
             Hsv hsv = new ColorSpaceConverter().ToHsv(rgb);
 
-            return new Tuple<float, float, float>(hsv.H, hsv.S, hsv.V);
+            return new Vector3(hsv.H, hsv.S, hsv.V);
         }
 
-        internal static Tuple<float, float, float> ToHSL(this Color color, bool fromDAC = true)
+        internal static Vector3 ToHSL(this Color color, ColorFormat colorType)
         {
-            float max = fromDAC ? Color.MAX_DAC_VALUE : byte.MaxValue;
+            float max = (float)colorType;
             var rgb = new Rgb(color.red / max, color.green / max, color.blue / max);
             Hsl hsl = new ColorSpaceConverter().ToHsl(rgb);
 
-            return new Tuple<float, float, float>(hsl.H, hsl.S, hsl.L);
+            return new Vector3(hsl.H, hsl.S, hsl.L);
         }
         #endregion
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 namespace DIV2.Format.Exporter.Utils
 {
@@ -13,22 +14,27 @@ namespace DIV2.Format.Exporter.Utils
         #region Structs
         struct NNVector
         {
+            #region Internal vars
+            Vector3 _vector;
+            #endregion
+
             #region Public vars
             public readonly int index;
-            public readonly float x;
-            public readonly float y;
-            public readonly float z;
             public bool isVisited;
             #endregion
 
+            #region Properties
+            public float x => this._vector.X;
+            public float Y => this._vector.Y;
+            public float Z => this._vector.Z;
+            #endregion
+
             #region Constructor
-            public NNVector(int index, Tuple<float, float, float> xyz)
+            public NNVector(int index, Vector3 vector)
             {
                 this.index = index;
 
-                this.x = xyz.Item1;
-                this.y = xyz.Item2;
-                this.z = xyz.Item3;
+                this._vector = vector;
 
                 this.isVisited = false;
             }
@@ -37,13 +43,7 @@ namespace DIV2.Format.Exporter.Utils
             #region Methods & Functions
             public static float Distance(NNVector a, NNVector b)
             {
-                float diff_x = a.x - b.x;
-                float diff_y = a.y - b.y;
-                float diff_z = a.z - b.z;
-
-                return MathF.Sqrt(diff_x * diff_x +
-                                  diff_y * diff_y +
-                                  diff_z * diff_z);
+                return Vector3.Distance(a._vector, b._vector);
             }
             #endregion
         }
@@ -51,13 +51,13 @@ namespace DIV2.Format.Exporter.Utils
 
         #region Methods & Functions
         /// <summary>
-        /// Calculates the best path from a list of vectors (x, y, z).
+        /// Calculates the best path from a list of <see cref="Vector3"/>.
         /// </summary>
-        /// <param name="input"><see cref="Tuple"/> of 3 <see cref="float"/> values that contains the vectors to calculate the best path.</param>
+        /// <param name="input"><see cref="Vector3"/> that contains the vectors to calculate the best path.</param>
         /// <param name="start">Index of the start vector of the path.</param>
         /// <param name="cost">Returns the cost of the path.</param>
         /// <returns>Returns a <see cref="List{T}"/> of <see cref="int"/> with the sorted indexes.</returns>
-        public static List<int> CalculatePath(List<Tuple<float, float, float>> input, int start, out float cost)
+        public static List<int> CalculatePath(IEnumerable<Vector3> input, int start, out float cost)
         {
             var vectors = input.Select((e, i) => new NNVector(i, e)).ToArray();
             int current = start;
