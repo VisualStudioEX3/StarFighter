@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
+using System.Numerics;
 
 namespace DIV2.Format.Exporter.Tests
 {
@@ -96,11 +97,13 @@ namespace DIV2.Format.Exporter.Tests
         [TestMethod]
         public void FailWriteByIndex()
         {
-            Assert.ThrowsException<IndexOutOfRangeException>(() => {
+            Assert.ThrowsException<IndexOutOfRangeException>(() =>
+            {
                 var color = new Color();
                 color[-1] = 0;
             });
-            Assert.ThrowsException<IndexOutOfRangeException>(() => {
+            Assert.ThrowsException<IndexOutOfRangeException>(() =>
+            {
                 var color = new Color();
                 color[Color.LENGTH + 1] = 0;
             });
@@ -149,7 +152,7 @@ namespace DIV2.Format.Exporter.Tests
         public void MinorThan()
         {
             var a = new Color(0, 128, 255); // 33023
-            var b= new Color(32, 255, 64); // 2162496
+            var b = new Color(32, 255, 64); // 2162496
             var c = a;
 
             Assert.IsTrue(a < b);
@@ -171,6 +174,22 @@ namespace DIV2.Format.Exporter.Tests
 
             Assert.IsTrue(a >= c);
             Assert.IsFalse(b >= a);
+        }
+
+        [TestMethod]
+        public void Normalize()
+        {
+            var factor = (float)ColorFormat.DAC;
+            var color = new Color(8, 32, 63);
+            var expected = new Vector3(color.red / factor, color.green / factor, color.blue / factor);
+
+            Assert.AreEqual(expected, color.Normalize(ColorFormat.DAC));
+
+            factor = (float)ColorFormat.RGB;
+            color = new Color(16, 128, 255);
+            expected = new Vector3(color.red / factor, color.green / factor, color.blue / factor);
+
+            Assert.AreEqual(expected, color.Normalize(ColorFormat.RGB));
         }
         #endregion
     }

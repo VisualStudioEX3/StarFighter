@@ -235,10 +235,10 @@ namespace DIV2.Format.Exporter
         }
 
         /// <summary>
-        /// Gets a tuple with normalized values [0..1].
+        /// Gets a <see cref="Vector3"/> with normalized values [0..1].
         /// </summary>
         /// <param name="colorType">Indicate the color range for set the normalization factor.</param>
-        /// <returns>Returns a <see cref="Tuple{T1, T2, T3}"/> of 3 <see cref="float"/> values with the <see cref="Color"/> componentes normalized.</returns>
+        /// <returns>Returns a <see cref="Vector3"/> with the <see cref="Color"/> componentes normalized.</returns>
         public Vector3 Normalize(ColorFormat colorType)
         {
             float factor = (float)colorType;

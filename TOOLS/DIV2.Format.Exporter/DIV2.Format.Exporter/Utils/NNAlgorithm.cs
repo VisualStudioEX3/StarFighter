@@ -42,7 +42,7 @@ namespace DIV2.Format.Exporter.Utils
         /// <summary>
         /// Calculates the best path from a list of <see cref="Vector3"/>.
         /// </summary>
-        /// <param name="input"><see cref="Vector3"/> that contains the vectors to calculate the best path.</param>
+        /// <param name="input"><see cref="Vector3"/> list that contains the vectors to calculate the best path.</param>
         /// <param name="start">Index of the start vector of the path.</param>
         /// <param name="cost">Returns the cost of the path.</param>
         /// <returns>Returns a <see cref="List{T}"/> of <see cref="int"/> with the sorted indexes.</returns>
