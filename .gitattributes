@@ -1,5 +1,6 @@
 # Force DIV Games Studio PRGs files to show as "Pascal" language instead of "xBase":
-*.prg linguist-language=Pascal
+*.PRG linguist-language=Pascal
 
 # Force all CPP files to show as "C" instead of "C++":
-*.cpp linguist-language=C
+*.CPP linguist-language=C
+
